@@ -1,0 +1,35 @@
+<?xml version="1.0" standalone="yes"?>
+<PythonProcessSequences>
+  <xs:schema id="PythonProcessSequences" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="PythonProcessSequences" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+		      <xs:element name="StationVerification">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="StationCalibration">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <StationVerification StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationVerification StepName="CalibrateCamera" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="CalibrateCamera" MustRun="true" />
+  <StationVerification StepName="VerifyGantryAccuracy" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="VerifyGantryAccuracy" MustRun="true" />
+  <StationVerification StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Finalize" MustRun="true" />
+  
+  <StationCalibration StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationCalibration StepName="CalibrateCameras" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
+  <StationCalibration StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
+</PythonProcessSequences>
