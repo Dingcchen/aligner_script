@@ -1,0 +1,48 @@
+<?xml version="1.0" standalone="yes"?>
+<PythonProcessSequences>
+  <xs:schema id="PythonProcessSequences" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="PythonProcessSequences" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="LSAToBoardAttach">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="StationCalibration">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <LSAToBoardAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="Initialize" MustRun="true" />
+  <LSAToBoardAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <LSAToBoardAttach StepName="Locate board" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="LocateBoard" MustRun="true" />
+  <LSAToBoardAttach StepName="Pick up LSA" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="PickUpLSA" MustRun="true" />
+  <LSAToBoardAttach StepName="Place LSA on board" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="PlaceLSAOnBoard" MustRun="true" />
+  <LSAToBoardAttach StepName="Test probe LSA" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="TestLSAProbe" MustRun="true" />
+  <LSAToBoardAttach StepName="Dry align LSA" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="LSADryAlign" MustRun="true" />
+  <LSAToBoardAttach StepName="Move LSA safely" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="MoveLSASafe" MustRun="true" />
+  <LSAToBoardAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <LSAToBoardAttach StepName="Epoxy whet" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="EpoxyWhet" MustRun="true" />
+  <LSAToBoardAttach StepName="Wet align LSA" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="LSAWetAlign" MustRun="true" />
+  <LSAToBoardAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="UVCure" MustRun="true" />
+  <LSAToBoardAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="Unload" MustRun="true" />
+  <LSAToBoardAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSAToBoardAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />  
+  <StationCalibration StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationCalibration StepName="CalibrateCameras" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
+  <StationCalibration StepName="CorrectCalibrationError" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CorrectCalibrationError" MustRun="true" />
+  <StationCalibration StepName="CalibrateContactSensor" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateContactSensor" MustRun="true" />
+  <StationCalibration StepName="CalibrateGripper" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateGripper" MustRun="true" />
+  <StationCalibration StepName="CalibrateEpoxyTool" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateEpoxyTool" MustRun="true" />
+  <StationCalibration StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
+</PythonProcessSequences>

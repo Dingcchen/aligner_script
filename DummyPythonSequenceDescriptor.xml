@@ -1,0 +1,31 @@
+<?xml version="1.0" standalone="yes"?>
+<PythonProcessSequences>
+  <xs:schema id="PythonProcessSequences" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="PythonProcessSequences" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="FAU_FAU_Alignment">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Sequence2">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <FAU_FAU_Alignment StepName="Step1" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
+  <FAU_FAU_Alignment StepName="Step2" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
+  <Sequence2 StepName="Step1" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
+  <Sequence2 StepName="Step2" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
+</PythonProcessSequences>
