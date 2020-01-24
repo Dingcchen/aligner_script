@@ -26,6 +26,7 @@
   </xs:schema>
   <StationVerification StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Initialize" MustRun="true" />
   <StationVerification StepName="CalibrateCamera" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="CalibrateCamera" MustRun="true" />
+  <StationVerification StepName="GetWaferAngle" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="GetWaferAngle" MustRun="true" />
   <StationVerification StepName="VerifyGantryAccuracy" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="VerifyGantryAccuracy" MustRun="true" />
   <StationVerification StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Finalize" MustRun="true" />
   

@@ -12,6 +12,7 @@ from System import Array
 from System import String
 from System import ValueTuple
 from System import Math
+from System import Random
 from System.Diagnostics import Stopwatch
 from System.Collections.Generic import List
 clr.AddReferenceToFile('HAL.dll')
@@ -208,7 +209,7 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
 # FixtureCameras
 # Calibrate cameras
 #-------------------------------------------------------------------------------
-def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
+def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
 
     Utility.ShowProcessTextOnMainUI()
 
@@ -234,45 +235,98 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
     #get the wafer pattern pitch
     xpitch = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PatternPitchX').DataItem
+    i=0
+    while True:
+        yoffset = Math.Sin(waferAngle) * xpitch
+        xoffset = Math.Cos(waferAngle) * xpitch
+
+        #move to next reticle
+        if not Gantry.MoveAxesRelative(calibrateaxes, Array[float]([xoffset, yoffset]), Motion.AxisMotionSpeeds.Normal, True):
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
+            return 0
+
+        #check where we ended up
+        DownCamera.Snap()
+        res = MachineVision.RunVisionTool(downvision)
+        if res['Result'] != 'Success':
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
+            if i>0:
+                break
+            else:
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find second fiducial for wafer angle calculation.')
+                return 0
+
+        dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
+        if dcCalCenter == None:
+            return 0
+
+                
 
 
 
-    yoffset = Math.Sin(waferAngle) * xpitch
-    xoffset = Math.Cos(waferAngle) * xpitch
+        #record vision result
+        #TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
+        #TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
 
-    #move to next reticle
-    if not Gantry.MoveAxesRelative(calibrateaxes, Array[float]([xoffset, yoffset]), Motion.AxisMotionSpeeds.Normal, True):
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
-        return 0
+        dx = dcCalCenter.Item1 - TestResults.RetrieveTestResult('OriginXTarget')
+        dy = dcCalCenter.Item2 - TestResults.RetrieveTestResult('OriginYTarget')
 
-    #check where we ended up
-    DownCamera.Snap()
-    res = MachineVision.RunVisionTool(downvision)
-    if res['Result'] != 'Success':
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
-        return 0
-    dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
-    if dcCalCenter == None:
-        return 0
+        newwaferAngle = Math.Atan(dy / dx)
 
 
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "New guess for wafer angle {0:E}deg (change of {1:E}deg).".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
 
-    #record vision result
-    #TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
-    #TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
+        waferAngle = newWaferAngle
+        i = i+1
 
-    dx = dcCalCenter.Item1 - TestResults.RetrieveTestResult('OriginXTarget')
-    dy = dcCalCenter.Item2 - TestResults.RetrieveTestResult('OriginYTarget')
-
-    newwaferAngle = Math.Atan(dy / dx)
-
-
-    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "New guess for wafer angle {0:E}deg (change of {1:E}deg).".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
-
-    waferAngle = newWaferAngle
+    TestResults.AddTestResult('WaferAngle', waferAngle)
 
     #TODO: continue west to the end of the wafer, then go east, find E/W center and go North/South, find global center, spiral out
 
+
+
+    return 1
+
+
+def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
+
+    Utility.ShowProcessTextOnMainUI()
+
+    #Retrieve the reference to our hardware
+    Gantry = HardwareFactory.Instance.GetHardwareByName('Gantry')
+    DownCamera = HardwareFactory.Instance.GetHardwareByName('DownCamera')
+    MachineVision = HardwareFactory.Instance.GetHardwareByName('MachineVision')
+
+    downvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ReticlePatternVisionTool').DataItem
+    snaps = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NumberOfAcquisitions').DataItem
+
+    calibrateaxes = Array[String]([ 'X', 'Y' ]) #Active gantry axes
+
+
+
+
+
+
+    '''
+    1 = North
+    2 = NorthEast
+    3 = East
+    4 = SouthEast
+    5 = South
+    6 = SouthWest
+    7 = West
+    8 = NorthWest
+    '''
+    availableDirections = list(range(8))
+
+    while True:
+        if len(availableDirections)>1:
+            direction = Random.Next() % len(availableDirections)
+        else:
+            direction = availableDirections[0]
+
+        if SequenceObj.Halt:
+            return 0
 
 
     return 1
