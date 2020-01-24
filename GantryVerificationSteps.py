@@ -197,6 +197,11 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
     TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
     TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
 
+    posErrorX = TestResults('OriginXTarget') - TestResults('OriginXVision')
+    posErrorY = TestResults('OriginYTarget') - TestResults('OriginYVision')
+
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Porition error in aquiring center of camera [{0:.3f}mm,{1:.3f}mm].".format(posErrorX,posErrorY))
+
     return 1
 
 #-------------------------------------------------------------------------------
@@ -223,17 +228,52 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
     TestResults.AddTestResult('CalibratedAngle', angle)
 
     #get the static angle back
-    waferangle = angle - TestResults.RetrieveTestResult('StaticAngle')
+    waferAngle = angle - TestResults.RetrieveTestResult('StaticAngle')
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "First guess for wafer angle {0:E}deg.".format(waferAngle*180/Math.pi))
+
+
     #get the wafer pattern pitch
     xpitch = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PatternPitchX').DataItem
 
-    yoffset = Math.Sin(waferangle) * xpitch
-    xoffset = Math.Cos(waferangle) * xpitch
+
+
+    yoffset = Math.Sin(waferAngle) * xpitch
+    xoffset = Math.Cos(waferAngle) * xpitch
 
     #move to next reticle
     if not Gantry.MoveAxesRelative(calibrateaxes, Array[float]([xoffset, yoffset]), Motion.AxisMotionSpeeds.Normal, True):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
         return 0
+
+    #check where we ended up
+    DownCamera.Snap()
+    res = MachineVision.RunVisionTool(downvision)
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
+        return 0
+    dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
+    if dcCalCenter == None:
+        return 0
+
+
+
+    #record vision result
+    #TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
+    #TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
+
+    dx = dcCalCenter.Item1 - TestResults.RetrieveTestResult('OriginXTarget')
+    dy = dcCalCenter.Item2 - TestResults.RetrieveTestResult('OriginYTarget')
+
+    newwaferAngle = Math.Atan(dy / dx)
+
+
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "New guess for wafer angle {0:E}deg (change of {1:E}deg).".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
+
+    waferAngle = newWaferAngle
+
+    #TODO: continue west to the end of the wafer, then go east, find E/W center and go North/South, find global center, spiral out
+
+
 
     return 1
 
