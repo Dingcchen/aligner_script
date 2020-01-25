@@ -177,7 +177,7 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
         return 0
 
     # Wait for stage to settle
-    Utility.DelayMS(1000)
+    Utility.DelayMS(500)
 
     # Save the origin position
     origin = Gantry.GetAxesPositions(calibrateaxes)
@@ -201,7 +201,7 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
     posErrorX = TestResults('OriginXTarget') - TestResults('OriginXVision')
     posErrorY = TestResults('OriginYTarget') - TestResults('OriginYVision')
 
-    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Porition error in aquiring center of camera [{0:.3f}mm,{1:.3f}mm].".format(posErrorX,posErrorY))
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Porition 'error' in aquiring center of camera [{0:.3f}mm,{1:.3f}mm].".format(posErrorX,posErrorY))
 
     return 1
 
@@ -244,6 +244,8 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
         if not Gantry.MoveAxesRelative(calibrateaxes, Array[float]([xoffset, yoffset]), Motion.AxisMotionSpeeds.Normal, True):
             LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
             return 0
+
+        Utility.DelayMS(500)
 
         #check where we ended up
         DownCamera.Snap()
@@ -302,12 +304,30 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
     calibrateaxes = Array[String]([ 'X', 'Y' ]) #Active gantry axes
 
+    # move to camera calibration preset position
+    if not Gantry.GetHardwareStateTree().ActivateState('Start'):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to down camera start calibration position.')
+        return 0
 
+    #set the 'index' of the predefines 'start' location as 0,0
+    #other locations will be defined in reticle widths and heights away from this origin
+    currentLocationIndex = {'X':0, 'Y':0}
+    waferAngle = TestResults.RetrieveTestResult('WaferAngle')
+    paternPitchX = TestResults.RetrieveTestResult('PatternPitchX')
+    paternPitchY = TestResults.RetrieveTestResult('PatternPitchY')
 
-
-
+    
+    moves = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NumRandomVerificationMoves').DataItem
+    if moves == null:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to pull number from NumRandomVerificationMoves, check Aligner/Recipes/recipes.xml.')
+        return 0
+    elif (moves < 1) or (moves > 100):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'NumRandomVerificationMoves must fall between 1 and 100.')
+        return 0
 
     '''
+    Generate a random move direction, move in increments of the reticle dimensions
+
     1 = North
     2 = NorthEast
     3 = East
@@ -317,18 +337,126 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
     7 = West
     8 = NorthWest
     '''
-    availableDirections = list(range(8))
+    
 
-    while True:
-        if len(availableDirections)>1:
-            direction = Random.Next() % len(availableDirections)
-        else:
-            direction = availableDirections[0]
-
+    while moves>0:
+        #stop loop if halt button is pressed
         if SequenceObj.Halt:
             return 0
+        availableDirections = list(range(8))
 
+        while len(availableDirections>0) and (moves > 0):
+            if len(availableDirections)<1:
+                return 0
+            elif len(availableDirections)>1:
+                moveDirection = availableDirections[Random.Next() % len(availableDirections)]
+            else:
+                moveDirection = availableDirections[0]
 
+            availableDirections.remove(moveDirection)
+        
+            #newLocationIndex = currentLocationIndex
+            
+            #if moveDirection == 0:
+            #    newLocationIndex['X'] = newLocationIndex['X'] + 0
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
+            #elif moveDirection == 1:
+            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
+            #elif moveDirection == 2:
+            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 0
+            #elif moveDirection == 3:
+            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
+            #elif moveDirection == 4:
+            #    newLocationIndex['X'] = newLocationIndex['X'] + 0
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
+            #elif moveDirection == 5:
+            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
+            #elif moveDirection == 6:
+            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 0
+            #elif moveDirection == 7:
+            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
+            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
+            #else:
+            #    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Improper moveDirection value, check recipe script.')
+            #    return 0
+            
+            moveDirectionIndex = {'X':0,'Y':0}
+            if moveDirection == 0:
+                moveDirectionIndex['X'] = 0
+                moveDirectionIndex['Y'] = 1
+            elif moveDirection == 1:
+                moveDirectionIndex['X'] = 1
+                moveDirectionIndex['Y'] = 1
+            elif moveDirection == 2:
+                moveDirectionIndex['X'] = 1
+                moveDirectionIndex['Y'] = 0
+            elif moveDirection == 3:
+                moveDirectionIndex['X'] = 1
+                moveDirectionIndex['Y'] = -1
+            elif moveDirection == 4:
+                moveDirectionIndex['X'] = 0
+                moveDirectionIndex['Y'] = -1
+            elif moveDirection == 5:
+                moveDirectionIndex['X'] = -1
+                moveDirectionIndex['Y'] = -1
+            elif moveDirection == 6:
+                moveDirectionIndex['X'] = -1
+                moveDirectionIndex['Y'] = 0
+            elif moveDirection == 7:
+                moveDirectionIndex['X'] = -1
+                moveDirectionIndex['Y'] = 1
+            else:
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Improper moveDirection value, check recipe script.')
+                return 0
+
+            #rotate move direction vector from wafer coordinates to gantry coordinates
+            xoffset = Math.Cos(waferAngle) * PatternPitchX * moveDirectionIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * moveDirectionIndex['Y']
+            yoffset = Math.Sin(waferAngle) * PatternPitchX * moveDirectionIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * moveDirectionIndex['Y']
+
+            currentX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
+            currentY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+            
+
+            #move to next reticle
+            if not Gantry.MoveAxesAbsolute(calibrateaxes, Array[float]([currentX + xoffset, currentY + yoffset]), Motion.AxisMotionSpeeds.Normal, True):
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
+                return 0
+            Utility.DelayMS(500)
+
+            moves = moves - 1
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
+
+            DownCamera.Snap()
+            res = MachineVision.RunVisionTool(downvision)
+            if res['Result'] != 'Success':
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Machine vision (downvision) was not successful.')
+                continue
+
+            dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
+            if dcCalCenter == None:
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'DownCameraTransform did not return a value.')
+                return 0
+
+            else:
+                break
+
+        currentLocationIndex['X'] = currentLocationIndex['X'] + moveDirectionIndex['X']
+        currentLocationIndex['Y'] = currentLocationIndex['Y'] + moveDirectionIndex['Y']
+        #by our calibration and our knowledge of the wafer angle we can calculate where we SHOULD have ended up in stage coordinates
+        currentTargetX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
+        currentTargetY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+
+        #This is where we actually ended up according to our vision
+        currentVisionX = dcCalCenter.Item1
+        currentVisionY = dcCalCenter.Item2
+
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Error in fiducial placement in camera FOV: [{0:.3f}mm, {1:.3f}mm].".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
+        
     return 1
 
 
