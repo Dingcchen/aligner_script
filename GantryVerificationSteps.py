@@ -12,7 +12,8 @@ from System import Array
 from System import String
 from System import ValueTuple
 from System import Math
-from System import Random
+#from System.Random import Next
+#import random
 from System.Diagnostics import Stopwatch
 from System.Collections.Generic import List
 clr.AddReferenceToFile('HAL.dll')
@@ -184,6 +185,7 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
     TestResults.AddTestResult('OriginXTarget', dcCalCenter.Item1)
     TestResults.AddTestResult('OriginYTarget', dcCalCenter.Item2)
     
+    
     #one more vision verification
     DownCamera.Snap()
     res = MachineVision.RunVisionTool(downvision)
@@ -197,11 +199,17 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
     #record vision result
     TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
     TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
+    origin = Gantry.GetAxesPositions(calibrateaxes)
+    TestResults.AddTestResult('OriginXGantry', origin[0])
+    TestResults.AddTestResult('OriginYGantry', origin[1])
 
-    posErrorX = TestResults('OriginXTarget') - TestResults('OriginXVision')
-    posErrorY = TestResults('OriginYTarget') - TestResults('OriginYVision')
 
-    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Porition 'error' in aquiring center of camera [{0:.3f}mm,{1:.3f}mm].".format(posErrorX,posErrorY))
+
+
+    posErrorX = TestResults.RetrieveTestResult('OriginXTarget') - TestResults.RetrieveTestResult('OriginXVision')
+    posErrorY = TestResults.RetrieveTestResult('OriginYTarget') - TestResults.RetrieveTestResult('OriginYVision')
+
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Position error in aquiring center of camera [{0:.2f} um,{1:.2f} um].".format(posErrorX*1000,posErrorY*1000))
 
     return 1
 
@@ -220,6 +228,11 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
 
     calibrateaxes = Array[String]([ 'X', 'Y' ])
 
+    # Get recipe parameters
+    #downcamexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DownCamCalExposure').DataItem
+    downvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ReticlePatternVisionTool').DataItem
+    snaps = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NumberOfAcquisitions').DataItem
+
     #generate a vector in pixel space and get the stage space coordinate
     vectorstart = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](0, 0))
     vectorend = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](10000, 0))
@@ -230,15 +243,25 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
 
     #get the static angle back
     waferAngle = angle - TestResults.RetrieveTestResult('StaticAngle')
-    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "First guess for wafer angle {0:E}deg.".format(waferAngle*180/Math.pi))
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "First guess for wafer angle {0:E} deg.".format(waferAngle*180/Math.PI))
+
+    camCenterPosition = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](TestResults.RetrieveTestResult('CameraResolutionX') / 2, TestResults.RetrieveTestResult('CameraResolutionY')  / 2))
+    if camCenterPosition == None:
+        return 0
 
 
     #get the wafer pattern pitch
     xpitch = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PatternPitchX').DataItem
     i=0
-    while True:
-        yoffset = Math.Sin(waferAngle) * xpitch
-        xoffset = Math.Cos(waferAngle) * xpitch
+    fiducialLocationError = {'X':0,'Y':0}
+    dy = 0
+    while i<12:
+        i += 1
+        if SequenceObj.Halt:
+            return 0
+        xoffset = Math.Cos(waferAngle) * xpitch - fiducialLocationError['X']
+        yoffset = Math.Sin(waferAngle) * xpitch - fiducialLocationError['Y']
+        
 
         #move to next reticle
         if not Gantry.MoveAxesRelative(calibrateaxes, Array[float]([xoffset, yoffset]), Motion.AxisMotionSpeeds.Normal, True):
@@ -253,7 +276,7 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
         if res['Result'] != 'Success':
             LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
             if i>0:
-                break
+                continue
             else:
                 LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find second fiducial for wafer angle calculation.')
                 return 0
@@ -262,26 +285,29 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
         if dcCalCenter == None:
             return 0
 
-                
+        fiducialLocationError['X'] = dcCalCenter.Item1 - camCenterPosition.Item1
+        fiducialLocationError['Y'] = dcCalCenter.Item2 - camCenterPosition.Item2
+        TestResults.AddTestResult('fiducialLocationErrorX',fiducialLocationError['X'])
+        TestResults.AddTestResult('fiducialLocationErrorY',fiducialLocationError['Y'])
 
-
+        currentGantryPosition = Gantry.GetAxesPositions(calibrateaxes)
 
         #record vision result
-        #TestResults.AddTestResult('OriginXVision', dcCalCenter.Item1)
-        #TestResults.AddTestResult('OriginYVision', dcCalCenter.Item2)
+        TestResults.AddTestResult('LastAngleCalcXVision', dcCalCenter.Item1 + (currentGantryPosition[0] - TestResults.RetrieveTestResult('OriginXGantry')))
+        TestResults.AddTestResult('LastAngleCalcYVision', dcCalCenter.Item2 + (currentGantryPosition[1] - TestResults.RetrieveTestResult('OriginYGantry')))
 
-        dx = dcCalCenter.Item1 - TestResults.RetrieveTestResult('OriginXTarget')
-        dy = dcCalCenter.Item2 - TestResults.RetrieveTestResult('OriginYTarget')
+        dx = TestResults.RetrieveTestResult('LastAngleCalcXVision') - TestResults.RetrieveTestResult('OriginXGantry')
+        dy = TestResults.RetrieveTestResult('LastAngleCalcYVision') - TestResults.RetrieveTestResult('OriginYGantry')
 
-        newwaferAngle = Math.Atan(dy / dx)
+        newWaferAngle = Math.Atan(dy / dx)
 
 
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "New guess for wafer angle {0:E}deg (change of {1:E}deg).".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "New guess for wafer angle {0:E} deg (change of {1:E} deg).".format(newWaferAngle*180/Math.PI,(newWaferAngle-waferAngle)*180/Math.PI))
 
         waferAngle = newWaferAngle
-        i = i+1
 
     TestResults.AddTestResult('WaferAngle', waferAngle)
+    TestResults.AddTestResult('maxXIndex', i)
 
     #TODO: continue west to the end of the wafer, then go east, find E/W center and go North/South, find global center, spiral out
 
@@ -304,6 +330,11 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
     calibrateaxes = Array[String]([ 'X', 'Y' ]) #Active gantry axes
 
+    # Get recipe parameters
+    #downcamexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DownCamCalExposure').DataItem
+    downvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ReticlePatternVisionTool').DataItem
+    snaps = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NumberOfAcquisitions').DataItem
+
     # move to camera calibration preset position
     if not Gantry.GetHardwareStateTree().ActivateState('Start'):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to down camera start calibration position.')
@@ -311,151 +342,152 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
     #set the 'index' of the predefines 'start' location as 0,0
     #other locations will be defined in reticle widths and heights away from this origin
-    currentLocationIndex = {'X':0, 'Y':0}
+    #currentLocationIndex = {'X':0, 'Y':0}
     waferAngle = TestResults.RetrieveTestResult('WaferAngle')
-    paternPitchX = TestResults.RetrieveTestResult('PatternPitchX')
-    paternPitchY = TestResults.RetrieveTestResult('PatternPitchY')
+    PatternPitchX = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PatternPitchX').DataItem
+    PatternPitchY = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PatternPitchY').DataItem
 
     
-    moves = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NumRandomVerificationMoves').DataItem
-    if moves == null:
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to pull number from NumRandomVerificationMoves, check Aligner/Recipes/recipes.xml.')
-        return 0
-    elif (moves < 1) or (moves > 100):
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'NumRandomVerificationMoves must fall between 1 and 100.')
-        return 0
-
-    '''
-    Generate a random move direction, move in increments of the reticle dimensions
-
-    1 = North
-    2 = NorthEast
-    3 = East
-    4 = SouthEast
-    5 = South
-    6 = SouthWest
-    7 = West
-    8 = NorthWest
-    '''
+    maxXIndex = TestResults.RetrieveTestResult('maxXIndex')
     
-
-    while moves>0:
+    
+    # go row by row and look for fiducials
+    # start on the next row once you hit the maxXIndex
+    # if no fiducials are found on the row stop
+    fiducialPositionIndex = {}
+    fiducialPositionIndex['X'] = 0
+    fiducialPositionIndex['Y'] = 0
+    fiducialFoundOnRow = True
+    xTravelDir = 1
+    while fiducialFoundOnRow:
+        fiducialFoundOnRow = False
+        #fiducialPositionIndex['X'] = 0
         #stop loop if halt button is pressed
-        if SequenceObj.Halt:
-            return 0
-        availableDirections = list(range(8))
-
-        while len(availableDirections>0) and (moves > 0):
-            if len(availableDirections)<1:
-                return 0
-            elif len(availableDirections)>1:
-                moveDirection = availableDirections[Random.Next() % len(availableDirections)]
-            else:
-                moveDirection = availableDirections[0]
-
-            availableDirections.remove(moveDirection)
-        
-            #newLocationIndex = currentLocationIndex
-            
-            #if moveDirection == 0:
-            #    newLocationIndex['X'] = newLocationIndex['X'] + 0
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
-            #elif moveDirection == 1:
-            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
-            #elif moveDirection == 2:
-            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 0
-            #elif moveDirection == 3:
-            #    newLocationIndex['X'] = newLocationIndex['X'] + 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
-            #elif moveDirection == 4:
-            #    newLocationIndex['X'] = newLocationIndex['X'] + 0
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
-            #elif moveDirection == 5:
-            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] - 1
-            #elif moveDirection == 6:
-            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 0
-            #elif moveDirection == 7:
-            #    newLocationIndex['X'] = newLocationIndex['X'] - 1
-            #    newLocationIndex['Y'] = newLocationIndex['Y'] + 1
-            #else:
-            #    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Improper moveDirection value, check recipe script.')
-            #    return 0
-            
-            moveDirectionIndex = {'X':0,'Y':0}
-            if moveDirection == 0:
-                moveDirectionIndex['X'] = 0
-                moveDirectionIndex['Y'] = 1
-            elif moveDirection == 1:
-                moveDirectionIndex['X'] = 1
-                moveDirectionIndex['Y'] = 1
-            elif moveDirection == 2:
-                moveDirectionIndex['X'] = 1
-                moveDirectionIndex['Y'] = 0
-            elif moveDirection == 3:
-                moveDirectionIndex['X'] = 1
-                moveDirectionIndex['Y'] = -1
-            elif moveDirection == 4:
-                moveDirectionIndex['X'] = 0
-                moveDirectionIndex['Y'] = -1
-            elif moveDirection == 5:
-                moveDirectionIndex['X'] = -1
-                moveDirectionIndex['Y'] = -1
-            elif moveDirection == 6:
-                moveDirectionIndex['X'] = -1
-                moveDirectionIndex['Y'] = 0
-            elif moveDirection == 7:
-                moveDirectionIndex['X'] = -1
-                moveDirectionIndex['Y'] = 1
-            else:
-                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Improper moveDirection value, check recipe script.')
+        while ((fiducialPositionIndex['X']<= maxXIndex) & (fiducialPositionIndex['X'] >= 0)) :
+            if SequenceObj.Halt:
                 return 0
 
-            #rotate move direction vector from wafer coordinates to gantry coordinates
-            xoffset = Math.Cos(waferAngle) * PatternPitchX * moveDirectionIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * moveDirectionIndex['Y']
-            yoffset = Math.Sin(waferAngle) * PatternPitchX * moveDirectionIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * moveDirectionIndex['Y']
+            nextX = Math.Cos(waferAngle) * PatternPitchX * fiducialPositionIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * fiducialPositionIndex['Y'] + TestResults.RetrieveTestResult('OriginXGantry')
+            nextY = Math.Sin(waferAngle) * PatternPitchX * fiducialPositionIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * fiducialPositionIndex['Y'] + TestResults.RetrieveTestResult('OriginYGantry')
 
-            currentX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
-            currentY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+            ### check if next position is in the gantry range of travel
+            #if ((nextX) < Gantry.AxesSoftLowerTravelLimits[0]) or ((nextX) > Gantry.AxesSoftUpperTravelLimits[0]):
+            #    continue
+            #elif ((nextY) < Gantry.AxesSoftLowerTravelLimits[1]) or ((nextY) > Gantry.AxesSoftUpperTravelLimits[1]):
+            #    continue
             
 
             #move to next reticle
-            if not Gantry.MoveAxesAbsolute(calibrateaxes, Array[float]([currentX + xoffset, currentY + yoffset]), Motion.AxisMotionSpeeds.Normal, True):
-                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to calibrated center position.')
+            if not Gantry.MoveAxesAbsolute(calibrateaxes, Array[float]([nextX, nextY]), Motion.AxisMotionSpeeds.Normal, True):
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to next fiducial.')
                 return 0
             Utility.DelayMS(500)
 
-            moves = moves - 1
-            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
+            #LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
 
             DownCamera.Snap()
             res = MachineVision.RunVisionTool(downvision)
             if res['Result'] != 'Success':
                 LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Machine vision (downvision) was not successful.')
+                fiducialPositionIndex['X'] += xTravelDir
                 continue
 
             dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
             if dcCalCenter == None:
                 LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'DownCameraTransform did not return a value.')
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+
+            fiducialFoundOnRow = True
+
+            currentGantryPosition = Gantry.GetAxesPositions(calibrateaxes)
+
+            #calculate actual visioned location of fiducial
+            currentVisionX = dcCalCenter.Item1 + (currentGantryPosition[0] - TestResults.RetrieveTestResult('OriginXGantry'))
+            currentVisionY = dcCalCenter.Item2 + (currentGantryPosition[1] - TestResults.RetrieveTestResult('OriginYGantry'))
+
+            
+            #by our calibration and our knowledge of the wafer angle we can calculate where we SHOULD have ended up in stage coordinates
+            #currentTargetX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
+            #currentTargetY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Position error in aquiring fiducial [{0:.2f} um,{1:.2f} um].".format((currentVisionX - nextX)*1000,(currentVisionY - nextY)*1000))
+            TestResults.AddTestResult('LastXFidPosError_um', (currentVisionX - nextX)*1000)
+            TestResults.AddTestResult('LastYFidPosError_um', (currentVisionY - nextY)*1000)
+
+
+            fiducialPositionIndex['X'] +=  xTravelDir
+        xTravelDir = -xTravelDir
+        fiducialPositionIndex['X'] +=  xTravelDir
+        #fiducialPositionIndex['X'] = fiducialPositionIndex['X'] + xTravelDir
+        fiducialPositionIndex['Y'] += 1
+
+        fiducialPositionIndex['X'] = 0
+    fiducialPositionIndex['Y'] = 0
+    fiducialFoundOnRow = True
+    xTravelDir = 1
+    while fiducialFoundOnRow:
+        fiducialFoundOnRow = False
+        #fiducialPositionIndex['X'] = 0
+        #stop loop if halt button is pressed
+        while ((fiducialPositionIndex['X']<= maxXIndex) & (fiducialPositionIndex['X'] >= 0)) :
+            if SequenceObj.Halt:
                 return 0
 
-            else:
-                break
+            nextX = Math.Cos(waferAngle) * PatternPitchX * fiducialPositionIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * fiducialPositionIndex['Y'] + TestResults.RetrieveTestResult('OriginXGantry')
+            nextY = Math.Sin(waferAngle) * PatternPitchX * fiducialPositionIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * fiducialPositionIndex['Y'] + TestResults.RetrieveTestResult('OriginYGantry')
 
-        currentLocationIndex['X'] = currentLocationIndex['X'] + moveDirectionIndex['X']
-        currentLocationIndex['Y'] = currentLocationIndex['Y'] + moveDirectionIndex['Y']
-        #by our calibration and our knowledge of the wafer angle we can calculate where we SHOULD have ended up in stage coordinates
-        currentTargetX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
-        currentTargetY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+            ### check if next position is in the gantry range of travel
+            #if ((nextX) < Gantry.AxesSoftLowerTravelLimits[0]) or ((nextX) > Gantry.AxesSoftUpperTravelLimits[0]):
+            #    continue
+            #elif ((nextY) < Gantry.AxesSoftLowerTravelLimits[1]) or ((nextY) > Gantry.AxesSoftUpperTravelLimits[1]):
+            #    continue
+            
 
-        #This is where we actually ended up according to our vision
-        currentVisionX = dcCalCenter.Item1
-        currentVisionY = dcCalCenter.Item2
+            #move to next reticle
+            if not Gantry.MoveAxesAbsolute(calibrateaxes, Array[float]([nextX, nextY]), Motion.AxisMotionSpeeds.Normal, True):
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move to next fiducial.')
+                return 0
+            Utility.DelayMS(500)
 
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Error in fiducial placement in camera FOV: [{0:.3f}mm, {1:.3f}mm].".format(waferAngle*180/Math.pi,(newwaferAngle-waferAngle)*180/Math.pi))
+            #LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
+
+            DownCamera.Snap()
+            res = MachineVision.RunVisionTool(downvision)
+            if res['Result'] != 'Success':
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Machine vision (downvision) was not successful.')
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+
+            dcCalCenter = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](res['X'], res['Y']))
+            if dcCalCenter == None:
+                LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'DownCameraTransform did not return a value.')
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+
+            fiducialFoundOnRow = True
+
+            currentGantryPosition = Gantry.GetAxesPositions(calibrateaxes)
+
+            #calculate actual visioned location of fiducial
+            currentVisionX = dcCalCenter.Item1 + (currentGantryPosition[0] - TestResults.RetrieveTestResult('OriginXGantry'))
+            currentVisionY = dcCalCenter.Item2 + (currentGantryPosition[1] - TestResults.RetrieveTestResult('OriginYGantry'))
+
+            
+            #by our calibration and our knowledge of the wafer angle we can calculate where we SHOULD have ended up in stage coordinates
+            #currentTargetX = Math.Cos(waferAngle) * PatternPitchX * currentLocationIndex['X'] - Math.Sin(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginXTarget')
+            #currentTargetY = Math.Sin(waferAngle) * PatternPitchX * currentLocationIndex['X'] + Math.Cos(waferAngle) * PatternPitchY * currentLocationIndex['Y'] + TestResults.RetrieveTestResult('OriginYTarget')
+
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "Position error in aquiring fiducial [{0:.2f} um,{1:.2f} um].".format((currentVisionX - nextX)*1000,(currentVisionY - nextY)*1000))
+            TestResults.AddTestResult('LastXFidPosError_um', (currentVisionX - nextX)*1000)
+            TestResults.AddTestResult('LastYFidPosError_um', (currentVisionY - nextY)*1000)
+
+
+            fiducialPositionIndex['X'] +=  xTravelDir
+        xTravelDir = -xTravelDir
+        fiducialPositionIndex['X'] +=  xTravelDir
+        #fiducialPositionIndex['X'] = fiducialPositionIndex['X'] + xTravelDir
+        fiducialPositionIndex['Y'] -= 1
         
     return 1
 
