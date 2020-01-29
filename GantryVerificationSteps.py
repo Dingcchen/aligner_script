@@ -187,8 +187,9 @@ def CalibrateCamera(StepName, SequenceObj, TestMetrics, TestResults):
     
     
     #one more vision verification
-    DownCamera.Snap()
-    res = MachineVision.RunVisionTool(downvision)
+    res = medianSnaps(StepName, SequenceObj, TestMetrics, TestResults, DownCamera, downvision, snaps)
+    #DownCamera.Snap()
+    #res = MachineVision.RunVisionTool(downvision)
     if res['Result'] != 'Success':
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
         return 0
@@ -271,8 +272,9 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
         Utility.DelayMS(500)
 
         #check where we ended up
-        DownCamera.Snap()
-        res = MachineVision.RunVisionTool(downvision)
+        res = medianSnaps(StepName, SequenceObj, TestMetrics, TestResults, DownCamera, downvision, snaps)
+        #DownCamera.Snap()
+        #res = MachineVision.RunVisionTool(downvision)
         if res['Result'] != 'Success':
             LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
             if i>0:
@@ -384,9 +386,9 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
             Utility.DelayMS(500)
 
             #LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
-
-            DownCamera.Snap()
-            res = MachineVision.RunVisionTool(downvision)
+            res = medianSnaps(StepName, SequenceObj, TestMetrics, TestResults, DownCamera, downvision, snaps)
+            #DownCamera.Snap()
+            #res = MachineVision.RunVisionTool(downvision)
             if res['Result'] != 'Success':
                 LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Machine vision (downvision) was not successful.')
                 fiducialPositionIndex['X'] += xTravelDir
@@ -452,8 +454,9 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
             #LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, "{} gantry moves remaining in step.".format(moves))
 
-            DownCamera.Snap()
-            res = MachineVision.RunVisionTool(downvision)
+            res = medianSnaps(StepName, SequenceObj, TestMetrics, TestResults, DownCamera, downvision, snaps)
+            #DownCamera.Snap()
+            #res = MachineVision.RunVisionTool(downvision)
             if res['Result'] != 'Success':
                 LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Machine vision (downvision) was not successful.')
                 fiducialPositionIndex['X'] += xTravelDir
@@ -500,5 +503,33 @@ def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
 
 
     return 1
+
+def medianSnaps(StepName, SequenceObj, TestMetrics, TestResults, Camera, visionAlgo, numSnaps):
+    MachineVision = HardwareFactory.Instance.GetHardwareByName('MachineVision')
+    #DownCamera = HardwareFactory.Instance.GetHardwareByName('DownCamera')
+
+     # variable to save results
+    camsnapx = []
+    camsnapy = []
+
+    # start acqusition
+    for i in range(numSnaps):
+        Camera.Snap()
+        res = MachineVision.RunVisionTool(visionAlgo)
+        if res['Result'] != 'Success':
+            #LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the fiducial.')
+            return {'Result':'Fail'}
+
+        # save result
+        camsnapx.append(res['X'])
+        camsnapy.append(res['Y'])
+
+    # Done repeat snaps, find the median for each value
+    #medianx = median(camsnapx)
+    #mediany = median(camsnapy)
+
+    result = {'X':median(camsnapx), 'Y':median(camsnapy),'Result':'Success'}
+
+    return result
 
 
