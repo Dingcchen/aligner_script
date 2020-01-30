@@ -29,6 +29,14 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from CiscoAligner import CoordinateCalibration
 
+###### xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Instructions for setup
+# the START location should be on the LEFT side of the wafer (closest to x=0) and in the middle top to bottom (longest row)
+# the notch should face the front of the tool
+#
+# be careful to check focus in the middle of the wafer as center is higher than the edge (bowed)
+###### xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 #-------------------------------------------------------------------------------
 # median
 # Helper function to calculate median of a list
@@ -256,7 +264,7 @@ def GetWaferAngle(StepName, SequenceObj, TestMetrics, TestResults):
     i=0
     fiducialLocationError = {'X':0,'Y':0}
     dy = 0
-    while i<12:
+    while i<11:
         i += 1
         if SequenceObj.Halt:
             return 0
@@ -353,7 +361,7 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
     maxXIndex = TestResults.RetrieveTestResult('maxXIndex')
     
     
-    # go row by row and look for fiducials
+    # go South row by row and look for fiducials
     # start on the next row once you hit the maxXIndex
     # if no fiducials are found on the row stop
     fiducialPositionIndex = {}
@@ -374,10 +382,19 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
             ### check if next position is in the gantry range of travel
             #if ((nextX) < Gantry.AxesSoftLowerTravelLimits[0]) or ((nextX) > Gantry.AxesSoftUpperTravelLimits[0]):
+                #fiducialPositionIndex['X'] += xTravelDir
             #    continue
             #elif ((nextY) < Gantry.AxesSoftLowerTravelLimits[1]) or ((nextY) > Gantry.AxesSoftUpperTravelLimits[1]):
+                #fiducialPositionIndex['X'] += xTravelDir
             #    continue
-            
+            ## hard-coded axes travel limits because "Gantry.AxesSoftLowerTravelLimits[0]" does not return the soft stops correctly
+            if ((nextX) < 0) or ((nextX) > 400):
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+            elif ((nextY) < 0) or ((nextY) > 300):
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+
 
             #move to next reticle
             if not Gantry.MoveAxesAbsolute(calibrateaxes, Array[float]([nextX, nextY]), Motion.AxisMotionSpeeds.Normal, True):
@@ -424,7 +441,9 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
         #fiducialPositionIndex['X'] = fiducialPositionIndex['X'] + xTravelDir
         fiducialPositionIndex['Y'] += 1
 
-        fiducialPositionIndex['X'] = 0
+    
+    ## Move North along wafer
+    fiducialPositionIndex['X'] = 0
     fiducialPositionIndex['Y'] = 0
     fiducialFoundOnRow = True
     xTravelDir = 1
@@ -441,9 +460,18 @@ def VerifyGantryAccuracy(StepName, SequenceObj, TestMetrics, TestResults):
 
             ### check if next position is in the gantry range of travel
             #if ((nextX) < Gantry.AxesSoftLowerTravelLimits[0]) or ((nextX) > Gantry.AxesSoftUpperTravelLimits[0]):
+            #    fiducialPositionIndex['X'] += xTravelDir
             #    continue
             #elif ((nextY) < Gantry.AxesSoftLowerTravelLimits[1]) or ((nextY) > Gantry.AxesSoftUpperTravelLimits[1]):
+            #    fiducialPositionIndex['X'] += xTravelDir
             #    continue
+            ## hard-coded axes travel limits because "Gantry.AxesSoftLowerTravelLimits[0]" does not return the soft stops correctly
+            if ((nextX) < 0) or ((nextX) > 400):
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
+            elif ((nextY) < 0) or ((nextY) > 300):
+                fiducialPositionIndex['X'] += xTravelDir
+                continue
             
 
             #move to next reticle
