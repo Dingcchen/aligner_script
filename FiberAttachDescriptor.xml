@@ -40,6 +40,30 @@
               <xs:attribute name="MustRun" type="xs:boolean" use="required" />
             </xs:complexType>
           </xs:element>
+          <xs:element name="FAU_to_Die_PD_Nanocube">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="FAU_to_Board_PD_Nanocube">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Nanocube_Scan_Repeatablility_Test">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
           <xs:element name="FiberToDieLoopbackAttach">
             <xs:complexType>
               <xs:attribute name="StepName" type="xs:string" use="required" />
@@ -105,13 +129,47 @@
   <FiberToDiePDAttach StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
   <FiberToDiePDAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
   <FiberToDiePDAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <FiberToDiePDAttach StepName="Find pitch pivot" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="PitchPivotSearch" MustRun="true" />
+  <FiberToDiePDAttach StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
   <FiberToDiePDAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
   <FiberToDiePDAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
   <FiberToDiePDAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="SweepOptimizedBalanceWetAlignment" MustRun="true" />
   <FiberToDiePDAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
   <FiberToDiePDAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
   <FiberToDiePDAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  
+  <FAU_to_Die_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  
+  <FAU_to_Board_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ManualSetFirstLightPositionToBoard" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  
+  <Nanocube_Scan_Repeatablility_Test StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Loop Nanocube Scans" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="NanocubeAlignLoop" MustRun="true" />
   
   <FiberToDieLoopbackAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
   <FiberToDieLoopbackAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadLoopbackDie" MustRun="true" />

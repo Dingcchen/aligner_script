@@ -186,7 +186,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
     else:
         return 0
 
-    ret = UserFormInputDialog.ShowDialog('Load FAU/MPO', 'Please load FAU/MPO and enter serial number:', True)
+    ret = UserFormInputDialog.ShowDialog('Load FAU', 'Please load FAU and enter serial number:', True)
     if ret == True:
         TestResults.AddTestResult('MPO_SN', UserFormInputDialog.ReturnValue)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
@@ -273,9 +273,10 @@ def InitializeRepeatability(StepName, SequenceObj, TestMetrics, TestResults):
 def Load(StepName, SequenceObj, TestMetrics, TestResults):
 
     loadposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'LoadPresetPosition').DataItem #'BoardLoad'
+    fauvac = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUVaccumPortName').DataItem
 
     # reset the positions
-    HardwareFactory.Instance.GetHardwareByName('UVWandStage').GetHardwareStateTree().ActivateState(loadposition)
+    HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
     HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState(loadposition)
     HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState(loadposition)
     HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(loadposition)
@@ -288,9 +289,16 @@ def Load(StepName, SequenceObj, TestMetrics, TestResults):
     else:
         return 0
 
-    ret = UserFormInputDialog.ShowDialog('Load MPO', 'Please load MPO and enter serial number:', True)
+    ret = UserFormInputDialog.ShowDialog('Load FAU', 'Please load FAU and enter serial number:', True)
     if ret == True:
-        TestResults.AddTestResult('MPO_SN', UserFormInputDialog.ReturnValue)
+        TestResults.AddTestResult('FAU_SN', UserFormInputDialog.ReturnValue)
+        HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
+    else:
+        return 0
+        
+    ret = UserFormInputDialog.ShowDialog('Enter assembly ID', 'Please enter assembly serial number:', True)
+    if ret == True:
+        TestResults.AddTestResult('Assembly_SN', UserFormInputDialog.ReturnValue)
     else:
         return 0
 
@@ -440,6 +448,511 @@ def OptimizeRollAngle(StepName, SequenceObj, TestMetrics, TestResults):
     TestResults.AddTestResult('First_Light_Hexapod_W', position[5])
 
     return 1
+
+def SetFirstLightPositionToBoard(StepName, SequenceObj, TestMetrics, TestResults):
+    
+    def vision_FAU_top():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+     
+    def vision_die_top():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+        
+    def vision_die_side():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+
+    def vision_FAU_side():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().SetIlluminationOff()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+        
+
+    # define vision tool to use for easier editing
+    """ topdievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #'DieTopGF2NoGlassBlock'
+    topmpovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
+    sidedievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionTool').DataItem #'DieSideGF2NoGlassBlock'
+    sidempovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionTool').DataItem #'MPOSideNormal'
+    dietopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #3
+    mpotopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
+    diesideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
+    mposideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #10 """
+    initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+    focusedposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem #'FAUToBoardInitial'
+    # Move hexapod to root coordinate system
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
+    
+    # turn on the cameras
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    
+    ## turn on coax lights on lenses and turn off side backlight
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', True)
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+
+    # move cameras to preset position
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+    HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+
+    # Get hexapod and camera stage preset positions from recipe and go there
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState(initialposition)
+
+    if SequenceObj.Halt:
+        return 0
+
+    # set the hexapod pivot point for this process
+    initpivot = list(map(lambda x: float(x), TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPivotPoint').DataItem.split(',')))
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+
+    #turn off all lights and then set to recipe level
+    HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
+
+    # acquire image for vision
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    # save to file
+    dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+    Utility.CreateDirectory(dir)
+    dir = IO.Path.Combine(dir, 'DieTop.jpg')
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').SaveToFile(dir)
+
+    # run vision
+    #####res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(topdievision)
+    res = vision_die_top()
+    if res['Result'] != 'Success': # check result
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
+        return 0
+
+    inputx = res['X']
+    inputy = res['Y']
+    inputangle = Utility.RadianToDegree(res['Angle'])
+
+    # one more time for the MPO side
+    res = vision_FAU_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
+        return 0
+
+    outputx = res['X']
+    outputy = res['Y']
+    outputangle = Utility.RadianToDegree(res['Angle'])
+
+    # adjust the yaw angle
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', outputangle - inputangle, Motion.AxisMotionSpeeds.Normal, True)
+
+    # transform the coordinates so we know how to move
+    dest = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](inputx, inputy))
+    start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
+
+    # move Y first
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+        return 0
+    Utility.DelayMS(500)
+
+    if SequenceObj.Halt:
+        return 0
+    
+    # re-do the vision again to have better initial angle placement
+    
+    res = vision_FAU_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
+        return 0
+
+    # retreive vision results
+    outputx = res['X']
+    outputy = res['Y']
+    outputx2 = res['X2']
+    outputy2 = res['Y2']
+
+    # adjust the translation
+    start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
+    end = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
+
+    # calculate the distance between the first and last fiber channel in order to do pivot angle compensation
+    TestResults.AddTestResult('Outer_Channels_Width', Math.Round(Math.Sqrt(Math.Pow(end.Item1 - start.Item1, 2) + pow(end.Item2 - start.Item2, 2)), 5))
+
+    if SequenceObj.Halt:
+        return 0
+
+    # resume the translational motion again
+    """ if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+        return 0 """
+
+    # move in x, but with 200um gap remain
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignGapX').DataItem, Motion.AxisMotionSpeeds.Slow, True):
+        Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+        return 0
+    
+    if SequenceObj.Halt:
+        return 0
+
+    # re-do vision one more time at close proximity to achieve better initial alignment
+    res = vision_die_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
+        return 0
+
+    inputangle = Utility.RadianToDegree(res['Angle'])
+
+    # one more time for the FAU side   
+    res = vision_FAU_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
+        return 0
+
+    outputangle = Utility.RadianToDegree(res['Angle'])
+
+    # do angle adjustment one more time
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', outputangle - inputangle, Motion.AxisMotionSpeeds.Normal, True)
+
+    # re-do vision one more time at close proximity to achieve better initial alignment    
+    res = vision_die_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
+        return 0
+
+    inputx = res['X']
+    inputy = res['Y']
+    inputangle = Utility.RadianToDegree(res['Angle'])
+
+    # one more time for the FAU side    
+    res = vision_FAU_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position (639).')
+        return 0
+
+    outputx = res['X']
+    outputy = res['Y']
+
+    if SequenceObj.Halt:
+        return 0
+
+    # transform the coordinates so we know how to move
+    dest = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](inputx, inputy))
+    start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
+
+    # start the translational motion again
+    # first move in Y
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+        Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+        return 0
+
+    if SequenceObj.Halt:
+        return 0
+
+    # Start imaging from the side
+    #######################################################################################################################
+    #######################################################################################################################
+    
+    # find the die from side camera
+    HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState(focusedposition)
+
+    res = vision_die_side()
+    if res['Result'] != 'Success':
+        # if unsuccessful try again - workaround for backlight delay not working
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+        res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidedievision)
+        if res['Result'] != 'Success':
+            LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die side position.')
+            return 0
+
+    diex = res['X']
+    diey = res['Y']
+    dieangle = Utility.RadianToDegree(res['Angle'])
+
+    # find the FAU side
+    res = vision_FAU_side()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the MPO side position.')
+        return 0
+
+    mpox = res['WGX']
+    mpoy = res['WGY']
+    mpoangle = Utility.RadianToDegree(res['Angle'])
+
+    # transform the coordinates so we know how to move
+    dest = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('SideCameraTransform', ValueTuple[float,float](diex, diey))
+    start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('SideCameraTransform', ValueTuple[float,float](mpox, mpoy))
+
+    # move the mpo height to match that of the die height
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
+        return 0
+
+    # adjust the yaw angle
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('V', mpoangle - dieangle, Motion.AxisMotionSpeeds.Normal, True)
+
+    # now move x to put the mpo to process distance from die
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+        return 0
+
+    if SequenceObj.Halt:
+        return 0
+
+    # remember this postion as optical z zero
+    TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+
+    # adjust the starting Z position base on the recipe value
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLightZOffsetFromVision').DataItem, Motion.AxisMotionSpeeds.Normal, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Z direction during initial height offset adjustment.')
+        return 0
+    
+    # Back to imaging the top
+    #######################################################################################################################
+    #######################################################################################################################
+    res = vision_die_top()
+    # check result
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
+        return 0
+
+    inputangle = Utility.RadianToDegree(res['Angle'])
+
+    # one more time for the FAU side
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(mpotopexposure)
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(topmpovision)
+
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
+        return 0
+
+    outputangle = Utility.RadianToDegree(res['Angle'])
+    
+    # done vision, back to live view
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    # do angle adjustment one more time
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', outputangle - inputangle, Motion.AxisMotionSpeeds.Normal, True)
+    
+    ###############################################################################################
+    ### NK Correct Y Position after all other motion because it is consistently off 01-Apr-2020
+    if SequenceObj.Halt:
+        return 0
+    
+    # re-do vision one more time at close proximity to achieve better initial alignment    
+    res = vision_die_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
+        return 0
+
+    inputx = res['X']
+    inputy = res['Y']
+    inputangle = Utility.RadianToDegree(res['Angle'])
+
+    # one more time for the FAU top
+    res = vision_FAU_top()
+    if res['Result'] != 'Success':
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
+        return 0
+
+    outputx = res['X']
+    outputy = res['Y']
+
+    if SequenceObj.Halt:
+        return 0
+
+    # transform the coordinates so we know how to move
+    dest = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](inputx, inputy))
+    start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
+
+    # start the translational motion again
+    # move in Y
+    y_offset_from_vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLightYOffsetFromVision').DataItem
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Y', y_offset_from_vision + dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+        Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+        return 0
+
+    # move to a location far enough for side view vision to work better
+    # the light causes the die to bleed into the MPO
+    processdist = dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignFinalGapX').DataItem
+
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+        return 0
+    
+    TestResults.AddTestResult('vision_align_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+    TestResults.AddTestResult('vision_align_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
+    TestResults.AddTestResult('vision_align_hexapod_final_Z', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Z'))
+    TestResults.AddTestResult('vision_align_hexapod_final_U', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('U'))
+    TestResults.AddTestResult('vision_align_hexapod_final_V', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('V'))
+    TestResults.AddTestResult('vision_align_hexapod_final_W', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('W'))
+    
+    
+    if SequenceObj.Halt:
+        return 0
+    else:
+        return 1
+        
+        
+def ManualSetFirstLightPositionToBoard(StepName, SequenceObj, TestMetrics, TestResults):
+    
+    def vision_FAU_top():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+     
+    def vision_die_top():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+        
+    def vision_die_side():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+
+    def vision_FAU_side():
+        vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionTool').DataItem #"MPOTop_2_7"
+        exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #4
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
+        ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().SetIlluminationOff()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
+        Utility.DelayMS(2000)
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+        HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+        
+
+    # define vision tool to use for easier editing
+    """ topdievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #'DieTopGF2NoGlassBlock'
+    topmpovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
+    sidedievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionTool').DataItem #'DieSideGF2NoGlassBlock'
+    sidempovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionTool').DataItem #'MPOSideNormal'
+    dietopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #3
+    mpotopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
+    diesideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
+    mposideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #10 """
+    initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+    focusedposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem #'FAUToBoardInitial'
+    # Move hexapod to root coordinate system
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
+    
+    # turn on the cameras
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    
+    ## turn on coax lights on lenses and turn off side backlight
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
+    HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
+
+    # move cameras to preset position
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+    HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+
+    # Get hexapod and camera stage preset positions from recipe and go there
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState(initialposition)
+    
+    
+    # set ring light brightness
+    HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
+    HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').SetIlluminationOff()
+    
+    ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+    #HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+
+    if SequenceObj.Halt:
+        return 0
+
+    # set the hexapod pivot point for this process
+    initpivot = list(map(lambda x: float(x), TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPivotPoint').DataItem.split(',')))
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+
+    # acquire image for vision
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    # save to file
+    dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+    Utility.CreateDirectory(dir)
+    dir = IO.Path.Combine(dir, 'DieTop.jpg')
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').SaveToFile(dir)
+    
+    #Ask operator to set the first light position
+    if LogHelper.AskContinue('Adjust hexapod to set first light position. Click Yes when done, No to abort.') == False:
+        return 0
+    
+    TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+    TestResults.AddTestResult('vision_align_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+    TestResults.AddTestResult('vision_align_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
+    TestResults.AddTestResult('vision_align_hexapod_final_Z', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Z'))
+    TestResults.AddTestResult('vision_align_hexapod_final_U', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('U'))
+    TestResults.AddTestResult('vision_align_hexapod_final_V', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('V'))
+    TestResults.AddTestResult('vision_align_hexapod_final_W', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('W'))
+    
+    
+    if SequenceObj.Halt:
+        return 0
+    else:
+        return 1
 
 #-------------------------------------------------------------------------------
 # ApplyEpoxyRepeatability
