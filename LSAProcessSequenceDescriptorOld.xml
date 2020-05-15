@@ -40,43 +40,43 @@
       </xs:complexType>
     </xs:element>
   </xs:schema>
-  <GF3PORDieCantileverAssembly StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Initialize" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Load components" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Check probe" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Locate die" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="FindSubmount" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Pick up LSA" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="PickUpLaserDiode" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Check LSA to die gap" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="CheckLaserDiodeGap" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Adjust die angle" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="SetSubmountAngle" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Place LSA on die" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="PlaceLaserDiode" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Find channel 2B first light" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel2BFirstLight" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Dry align channel 2B" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel2BDryAlign" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Dry align channel 1A" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel1ADryAlign" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Move LSA safely" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="MoveLaserSafe" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Epoxy whet" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="EpoxyWhet" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Align and balance channels" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="ChannelsBalancedWetAlign" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="UVCure" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Unload" StepScriptFile="c:\Aligner\Scripts\LSAAttachProcessSteps.py" StepMethod="Unload" MustRun="true" />
-  <GF3PORDieCantileverAssembly StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />  
-  <GF3PORDieCantileverPostThermalMeasure StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Select die" StepScriptFile="c:\Aligner\Scripts\LSAPostBakeProcessSteps.py" StepMethod="SelectDie" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Check probe" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Locate diode" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="LocateDiode" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Probe and measure" StepScriptFile="c:\Aligner\Scripts\LSAPostBakeProcessSteps.py" StepMethod="ProbeAndMeasure" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Unload" StepScriptFile="c:\Aligner\Scripts\LSAPostBakeProcessSteps.py" StepMethod="Unload" MustRun="true" />
-  <GF3PORDieCantileverPostThermalMeasure StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />  
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Select die" StepScriptFile="c:\Aligner\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="SelectDie" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Check probe" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Locate diode" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="LocateDiode" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Probe and measure" StepScriptFile="c:\Aligner\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="ProbeAndMeasure" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Unload" StepScriptFile="c:\Aligner\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="Unload" MustRun="true" />
-  <GF3PORDieCantileverPostTempCycleMeasure StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
-  <StationCalibration StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
-  <StationCalibration StepName="CalibrateCameras" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
-  <StationCalibration StepName="ApplyOffsetCorrection" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="ApplyOffsetCorrection" MustRun="true" />
-  <StationCalibration StepName="CalibrateContactSensor" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateContactSensor" MustRun="true" />
-  <StationCalibration StepName="CalibrateGripper" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateGripper" MustRun="true" />
-  <StationCalibration StepName="CalibrateEpoxyTool" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateEpoxyTool" MustRun="true" />
-  <StationCalibration StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\LSACalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Initialize" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Initialize" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Load components" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Check probe" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Locate die" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="FindSubmount" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Pick up LSA" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="PickUpLaserDiode" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Check LSA to die gap" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="CheckLaserDiodeGap" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Adjust die angle" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="SetSubmountAngle" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Place LSA on die" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="PlaceLaserDiode" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Find channel 2B first light" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel2BFirstLight" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Dry align channel 2B" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel2BDryAlign" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Dry align channel 1A" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Channel1ADryAlign" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Move LSA safely" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="MoveLaserSafe" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Apply epoxy" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Epoxy whet" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="EpoxyWhet" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Align and balance channels" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="ChannelsBalancedWetAlign" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="UV cure" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="UVCure" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Unload" StepScriptFile="..\Scripts\LSAAttachProcessSteps.py" StepMethod="Unload" MustRun="true" />
+  <GF3PORDieCantileverAssembly StepName="Finalize" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />  
+  <GF3PORDieCantileverPostThermalMeasure StepName="Initialize" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Select die" StepScriptFile="..\Scripts\LSAPostBakeProcessSteps.py" StepMethod="SelectDie" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Check probe" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Locate diode" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="LocateDiode" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Probe and measure" StepScriptFile="..\Scripts\LSAPostBakeProcessSteps.py" StepMethod="ProbeAndMeasure" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Unload" StepScriptFile="..\Scripts\LSAPostBakeProcessSteps.py" StepMethod="Unload" MustRun="true" />
+  <GF3PORDieCantileverPostThermalMeasure StepName="Finalize" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />  
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Initialize" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Select die" StepScriptFile="..\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="SelectDie" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Check probe" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Locate diode" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="LocateDiode" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Probe and measure" StepScriptFile="..\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="ProbeAndMeasure" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Unload" StepScriptFile="..\Scripts\LSAPostTempCycleProcessSteps.py" StepMethod="Unload" MustRun="true" />
+  <GF3PORDieCantileverPostTempCycleMeasure StepName="Finalize" StepScriptFile="..\Scripts\LSAProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
+  <StationCalibration StepName="Initialize" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationCalibration StepName="CalibrateCameras" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
+  <StationCalibration StepName="ApplyOffsetCorrection" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="ApplyOffsetCorrection" MustRun="true" />
+  <StationCalibration StepName="CalibrateContactSensor" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateContactSensor" MustRun="true" />
+  <StationCalibration StepName="CalibrateGripper" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateGripper" MustRun="true" />
+  <StationCalibration StepName="CalibrateEpoxyTool" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="CalibrateEpoxyTool" MustRun="true" />
+  <StationCalibration StepName="Finalize" StepScriptFile="..\Scripts\LSACalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
 </PythonProcessSequences>

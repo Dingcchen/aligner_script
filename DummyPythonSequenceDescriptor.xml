@@ -24,8 +24,8 @@
       </xs:complexType>
     </xs:element>
   </xs:schema>
-  <FAU_FAU_Alignment StepName="Step1" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
-  <FAU_FAU_Alignment StepName="Step2" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
-  <Sequence2 StepName="Step1" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
-  <Sequence2 StepName="Step2" StepScriptFile="c:\Aligner\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
+  <FAU_FAU_Alignment StepName="Step1" StepScriptFile="..\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
+  <FAU_FAU_Alignment StepName="Step2" StepScriptFile="..\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
+  <Sequence2 StepName="Step1" StepScriptFile="..\Scripts\DummyPythonScriptFile.py" StepMethod="Step1" MustRun="true" />
+  <Sequence2 StepName="Step2" StepScriptFile="..\Scripts\DummyPythonScriptFile.py" StepMethod="Step2" MustRun="true" />
 </PythonProcessSequences>

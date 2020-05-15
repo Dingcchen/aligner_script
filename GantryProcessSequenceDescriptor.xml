@@ -24,13 +24,13 @@
       </xs:complexType>
     </xs:element>
   </xs:schema>
-  <StationVerification StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Initialize" MustRun="true" />
-  <StationVerification StepName="CalibrateCamera" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="CalibrateCamera" MustRun="true" />
-  <StationVerification StepName="GetWaferAngle" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="GetWaferAngle" MustRun="true" />
-  <StationVerification StepName="VerifyGantryAccuracy" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="VerifyGantryAccuracy" MustRun="true" />
-  <StationVerification StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\GantryVerificationSteps.py" StepMethod="Finalize" MustRun="true" />
+  <StationVerification StepName="Initialize" StepScriptFile="..\Scripts\GantryVerificationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationVerification StepName="CalibrateCamera" StepScriptFile="..\Scripts\GantryVerificationSteps.py" StepMethod="CalibrateCamera" MustRun="true" />
+  <StationVerification StepName="GetWaferAngle" StepScriptFile="..\Scripts\GantryVerificationSteps.py" StepMethod="GetWaferAngle" MustRun="true" />
+  <StationVerification StepName="VerifyGantryAccuracy" StepScriptFile="..\Scripts\GantryVerificationSteps.py" StepMethod="VerifyGantryAccuracy" MustRun="true" />
+  <StationVerification StepName="Finalize" StepScriptFile="..\Scripts\GantryVerificationSteps.py" StepMethod="Finalize" MustRun="true" />
   
-  <StationCalibration StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
-  <StationCalibration StepName="CalibrateCameras" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
-  <StationCalibration StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\GantryCalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
+  <StationCalibration StepName="Initialize" StepScriptFile="..\Scripts\GantryCalibrationSteps.py" StepMethod="Initialize" MustRun="true" />
+  <StationCalibration StepName="CalibrateCameras" StepScriptFile="..\Scripts\GantryCalibrationSteps.py" StepMethod="FixtureCameras" MustRun="true" />
+  <StationCalibration StepName="Finalize" StepScriptFile="..\Scripts\GantryCalibrationSteps.py" StepMethod="Finalize" MustRun="true" />
 </PythonProcessSequences>

@@ -92,112 +92,112 @@
       </xs:complexType>
     </xs:element>
   </xs:schema>
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="InitializeRepeatability" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ApplyEpoxyRepeatability" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberToDiePDRepeatability StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="FinalizeRepeatability" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Initialize" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="InitializeRepeatability" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Apply epoxy" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ApplyEpoxyRepeatability" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Wet balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberToDiePDRepeatability StepName="Finalize" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="FinalizeRepeatability" MustRun="true" />
 
-  <BoardLevelPORFiberLoopbackAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Optimize roll angle" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="OptimizeRollAngleHexapod" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
-  <BoardLevelPORFiberLoopbackAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Load components" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Optimize roll angle" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="OptimizeRollAngleHexapod" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Wet balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
+  <BoardLevelPORFiberLoopbackAttach StepName="Finalize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
 
-  <BoardLevelPORFiberToDiePDAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
-  <BoardLevelPORFiberToDiePDAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Load components" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Wet balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
+  <BoardLevelPORFiberToDiePDAttach StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
 
-  <FiberToDiePDAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <FiberToDiePDAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
-  <FiberToDiePDAttach StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <FiberToDiePDAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <FiberToDiePDAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <FiberToDiePDAttach StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
-  <FiberToDiePDAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <FiberToDiePDAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <FiberToDiePDAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="SweepOptimizedBalanceWetAlignment" MustRun="true" />
-  <FiberToDiePDAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <FiberToDiePDAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
-  <FiberToDiePDAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  <FiberToDiePDAttach StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FiberToDiePDAttach StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <FiberToDiePDAttach StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FiberToDiePDAttach StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <FiberToDiePDAttach StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FiberToDiePDAttach StepName="Adjust polarization" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <FiberToDiePDAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <FiberToDiePDAttach StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FiberToDiePDAttach StepName="Wet balanced align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="SweepOptimizedBalanceWetAlignment" MustRun="true" />
+  <FiberToDiePDAttach StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FiberToDiePDAttach StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
+  <FiberToDiePDAttach StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
   
-  <FAU_to_Die_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Snap Die Text" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Snap Die Text" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Adjust polarization" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Wet balanced align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
   
-  <FAU_to_Board_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Snap Die Text" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ManualSetFirstLightPositionToBoard" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
-  <FAU_to_Board_PD_Nanocube StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Load components" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Snap Die Text" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Set first light position" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ManualSetFirstLightPositionToBoard" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Adjust polarization" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Wet balanced align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadBoard" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
   
-  <Nanocube_Scan_Repeatablility_Test StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
-  <Nanocube_Scan_Repeatablility_Test StepName="Loop Nanocube Scans" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="NanocubeAlignLoop" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Adjust polarization" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
+  <Nanocube_Scan_Repeatablility_Test StepName="Loop Nanocube Scans" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="NanocubeAlignLoop" MustRun="true" />
   
-  <FiberToDieLoopbackAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadLoopbackDie" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Optimize roll angle" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="OptimizeRollAngleHexapod" MustRun="true" />  <FiberToDieLoopbackAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignment" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
-  <FiberToDieLoopbackAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadLoopbackDie" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Optimize roll angle" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="OptimizeRollAngleHexapod" MustRun="true" />  <FiberToDieLoopbackAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignment" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Wet balanced align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
+  <FiberToDieLoopbackAttach StepName="Finalize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
 
-  <FiberToFiberAttach StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <FiberToFiberAttach StepName="Load components" StepScriptFile="c:\Aligner\Scripts\FiberToFiberAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
-  <FiberToFiberAttach StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToFAU" MustRun="true" />
-  <FiberToFiberAttach StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
-  <FiberToFiberAttach StepName="Dry balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
-  <FiberToFiberAttach StepName="Apply epoxy" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
-  <FiberToFiberAttach StepName="Wet balanced align" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
-  <FiberToFiberAttach StepName="UV cure" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
-  <FiberToFiberAttach StepName="Unload" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadFAU" MustRun="true" />
-  <FiberToFiberAttach StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
+  <FiberToFiberAttach StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FiberToFiberAttach StepName="Load components" StepScriptFile="..\Scripts\FiberToFiberAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
+  <FiberToFiberAttach StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToFAU" MustRun="true" />
+  <FiberToFiberAttach StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FiberToFiberAttach StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentHexapod" MustRun="true" />
+  <FiberToFiberAttach StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FiberToFiberAttach StepName="Wet balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceWedAlignmentHexapod" MustRun="true" />
+  <FiberToFiberAttach StepName="UV cure" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UVCure" MustRun="true" />
+  <FiberToFiberAttach StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadFAU" MustRun="true" />
+  <FiberToFiberAttach StepName="Finalize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Finalize" MustRun="true" />
   
-  <CamerasCalibration StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
-  <CamerasCalibration StepName="Calibrate down camera" StepScriptFile="c:\Aligner\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateDownCamera" MustRun="true" />
-  <CamerasCalibration StepName="Calibrate side camera" StepScriptFile="c:\Aligner\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateSideCamera" MustRun="true" />
-  <CamerasCalibration StepName="Finalize" StepScriptFile="c:\Aligner\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  <CamerasCalibration StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <CamerasCalibration StepName="Calibrate down camera" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateDownCamera" MustRun="true" />
+  <CamerasCalibration StepName="Calibrate side camera" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateSideCamera" MustRun="true" />
+  <CamerasCalibration StepName="Finalize" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="Finalize" MustRun="true" />
 </PythonProcessSequences>
