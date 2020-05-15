@@ -116,6 +116,42 @@ def CheckProbe(StepName, SequenceObj, TestMetrics, TestResults):
         return 0
     else:
         return 1
+        
+def SnapDieText(StepName, SequenceObj, TestMetrics, TestResults):
+    probeposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ProbePresetPosition').DataItem #'BoardLoad'
+    die_text_position = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'die_text_position').DataItem #'FAUToBoardInitial'
+    
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(die_text_position)
+    
+    # set exposure
+    # HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(15)
+
+    # move things out of way for operator to load stuff
+    HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(probeposition)
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(probeposition)
+    
+    HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(probeposition)
+    HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState(probeposition)
+    
+    # acquire image for vision
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    # save to file
+    dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+    Utility.CreateDirectory(dir)
+    dir = IO.Path.Combine(dir, 'DieTopText.jpg')
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').SaveToFile(dir)
+
+    # turn on the cameras
+    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+
+    # go back to initial position
+    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+
+    if SequenceObj.Halt:
+        return 0
+    else:
+        return 1
 
 #-------------------------------------------------------------------------------
 # FindSubmount

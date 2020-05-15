@@ -140,6 +140,7 @@
   <FAU_to_Die_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Die_PD_Nanocube StepName="Snap Die Text" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
@@ -153,6 +154,7 @@
   <FAU_to_Board_PD_Nanocube StepName="Initialize" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
   <FAU_to_Board_PD_Nanocube StepName="Load components" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="Load" MustRun="true" />
   <FAU_to_Board_PD_Nanocube StepName="Check probe contacts" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Board_PD_Nanocube StepName="Snap Die Text" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
   <FAU_to_Board_PD_Nanocube StepName="Set first light position" StepScriptFile="c:\Aligner\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="ManualSetFirstLightPositionToBoard" MustRun="true" />
   <FAU_to_Board_PD_Nanocube StepName="Find first light" StepScriptFile="c:\Aligner\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
   <FAU_to_Board_PD_Nanocube StepName="Adjust polarization" StepScriptFile="c:\Aligner\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />
