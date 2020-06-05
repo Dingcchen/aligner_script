@@ -1,6 +1,7 @@
 ﻿# Include all necessary assemblies from the C# side
 # DO NOT REMOVE THESE REFERECES
 import clr
+import re
 clr.AddReference('System.Core')
 from System import IO
 from System import Action
@@ -163,7 +164,23 @@ def LoadLoopbackDie(StepName, SequenceObj, TestMetrics, TestResults):
         return 1
 
 
-#-------------------------------------------------------------------------------
+def GetAndCheckUserInput(title, message):
+    ret = False
+    clear = True
+    while ret == False:
+        ret = UserFormInputDialog.ShowDialog(title, message, clear)
+        if ret == True:
+            m = re.search('[ <>:\"\/\\\|?*]+', UserFormInputDialog.ReturnValue)
+            if(m != None):
+                if LogHelper.AskContinue('Cannot contain <>:\/\"|?* or space. Click Yes to continue, No to abort.'):
+                    clear = False
+                    ret = False
+                else:
+                    return None
+        else:
+            return None
+    return UserFormInputDialog.ReturnValue
+
 # Load PD
 # Ask operator for serial numbers of the components
 #-------------------------------------------------------------------------------
@@ -184,23 +201,23 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     # Wait for load complete and get serial number
     # possibly using a barcode scanner later    
-    ret = UserFormInputDialog.ShowDialog('Load GF die', 'Please load die (wave guides to the left) and enter serial number:', True)
-    if ret == True:
-        TestResults.AddTestResult('Die_SN', UserFormInputDialog.ReturnValue)
+    msg = GetAndCheckUserInput('Load GF die', 'Please load die (wave guides to the left) and enter serial number:')
+    if(msg != None):
+        TestResults.AddTestResult('Die_SN', msg)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
     else:
         return 0
 
-    ret = UserFormInputDialog.ShowDialog('Load FAU/MPO', 'Please load FAU/MPO and enter serial number:', True)
-    if ret == True:
-        TestResults.AddTestResult('MPO_SN', UserFormInputDialog.ReturnValue)
+    msg = GetAndCheckUserInput('Load FAU/MPO', 'Please load FAU/MPO and enter serial number:')
+    if msg != None:
+        TestResults.AddTestResult('MPO_SN', msg)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
     else:
         return 0
 
-    ret = UserFormInputDialog.ShowDialog('Enter assembly ID', 'Please enter assembly serial number:', True)
-    if ret == True:
-        TestResults.AddTestResult('Assembly_SN', UserFormInputDialog.ReturnValue)
+    msg = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
+    if msg != None:
+        TestResults.AddTestResult('Assembly_SN', msg)
     else:
         return 0
 
