@@ -208,7 +208,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
     else:
         return 0
 
-    msg = GetAndCheckUserInput('Load FAU/MPO', 'Please load FAU/MPO and enter serial number:')
+    msg = GetAndCheckUserInput('Load FAU', 'Please load FAU/MPO and enter serial number:')
     if msg != None:
         TestResults.AddTestResult('MPO_SN', msg)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
@@ -250,6 +250,8 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
     if SequenceObj.Halt:
         return 0
     else:
+        dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+        Utility.CreateDirectory(dir)
         return 1
 
 #-------------------------------------------------------------------------------
