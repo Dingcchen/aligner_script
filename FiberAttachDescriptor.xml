@@ -140,7 +140,6 @@
   <FAU_to_Die_PD_Nanocube StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
-  <FAU_to_Die_PD_Nanocube StepName="Snap Die Text" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SnapDieText" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
   <FAU_to_Die_PD_Nanocube StepName="Adjust polarization" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="AdjustPolarization" MustRun="true" />

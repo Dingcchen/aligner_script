@@ -452,7 +452,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     def vision_FAU_top():
         vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
         HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
@@ -462,11 +462,13 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
      
     def vision_die_top():
+        DieTopIOPreset = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopIOPreset').DataItem 
         vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #"MPOTop_2_7"
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #4
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
         HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState(DieTopIOPreset)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
         Utility.DelayMS(2000)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
@@ -484,7 +486,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         Utility.DelayMS(2000)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
 
     def vision_FAU_side():
@@ -492,14 +494,14 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #4
         HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamCoaxialLight', False)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
-        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().SetIlluminationOff()
+        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
         HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
         Utility.DelayMS(2000)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
-        HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
+        #HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
         
 
@@ -736,9 +738,9 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('V', mpoangle - dieangle, Motion.AxisMotionSpeeds.Normal, True)
 
     # now move x to put the mpo to process distance from die
-    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
-        return 0
+    #if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
+    #    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+    #    return 0
 
     if SequenceObj.Halt:
         return 0
@@ -828,7 +830,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     # move to a location far enough for side view vision to work better
     # the light causes the die to bleed into the MPO
-    processdist = dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignFinalGapX').DataItem
+    processdist = dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignGapX').DataItem
 
     if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
@@ -1104,8 +1106,9 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
         #ret = 0.25
         #width = TestResults.RetrieveTestResult('Outer_Channels_Width')
         h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-        if h < 0.005:
-           break    # we achieved the roll angle when the optical Z difference is less than 1 um
+
+		if h < 0.001:
+			return 1    # we achieved the roll angle when the optical Z difference is less than 1 um
 
         # calculate the roll angle
         r = Utility.RadianToDegree(Math.Atan(h / width))
@@ -1116,11 +1119,54 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
         # adjust the roll angle again
         HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
         # wait to settle
-        Utility.DelayMS(500)
+		Utility.DelayMS(2000)
+		# repeat adjustment if necessary
+		retries = 0
+		while retries < limit and not SequenceObj.Halt:
 
-        retries += 1
-    
+			# start the algorithms
+			scan.Channel = 1
+			scan.ExecuteNoneModal()
+			# check scan status
+			if scan.IsSuccess == False or SequenceObj.Halt:
+				return 0
 
+			# remember the final position
+			topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+
+			# repeat scan for the second channel
+			scan.Channel = 2
+			scan.ExecuteNoneModal()
+			# check scan status
+			if scan.IsSuccess == False or SequenceObj.Halt:
+				return 0
+
+			# get the final position of second channel
+			bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+
+			# double check and readjust roll if necessary
+			# calculate the roll angle
+			h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
+			if h < 0.005:
+			   break    # we achieved the roll angle when the optical Z difference is less than 1 um
+
+			# calculate the roll angle
+			r = Utility.RadianToDegree(Math.Atan(h / width))
+			rollangle = r
+			if topchanpos[2] > bottomchanpos[2]:
+			   rollangle = -r
+
+			# adjust the roll angle again
+			HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
+			# wait to settle
+			Utility.DelayMS(500)
+
+			retries += 1
+		
+		# check stop conditions
+		if retries >= limit:
+		   LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')       
+		   return 0
        
     TestResults.AddTestResult('first_light_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
     TestResults.AddTestResult('first_light_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
