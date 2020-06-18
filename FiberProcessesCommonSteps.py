@@ -513,17 +513,12 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     diesideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
     mposideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #10 """
     initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
-<<<<<<< HEAD
-    focusedposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem 
     #'FAUToBoardInitial'
     safe_approach = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'vision_align_safe_approach').DataItem #'FAUToBoardInitial'
-=======
     die_side_position = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem #'FAUToBoardInitial'
 	
 	#vision_interim_gap_X = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionInterimGapX').DataItem #'FAUToBoardInitial'
 	
-	
->>>>>>> 0cf1f6f374d355736350afb1d8e83d52e27cbb52
     # Move hexapod to root coordinate system
     HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
     
