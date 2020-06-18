@@ -2206,9 +2206,48 @@ def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults)
         return 1
 
 #-------------------------------------------------------------------------------
-# LineScans
-# Perform 2x LineScans and plot the results to see full-width half-max
+# NanocubeGradientClimb
+# Perform nanocube gradient scan
 #-------------------------------------------------------------------------------
+def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
+    climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
+    climb.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
+    climb.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
+    climb.ExecuteOnce = SequenceObj.AutoStep
+    
+    # run climb on channel 1
+    climb.Channel = 1
+    climb.ExecuteNoneModal()
+    if climb.IsSuccess == False or SequenceObj.Halt:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
+        return 0
+
+    climb1_position = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
+    climb1_ch1_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
+    climb1_ch2_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
+
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch1 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb1_position[0], climb1_position[1], climb1_position[2], climb1_ch1_peakV, climb1_ch2_peakV))
+
+    if SequenceObj.Halt:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Step aborted!')
+        return 0
+
+    # run climb on channel 2
+    climb.Channel = 2
+    climb.ExecuteNoneModal()
+    if climb.IsSuccess == False or SequenceObj.Halt:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
+        return 0
+
+    climb2_position = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
+    climb2_ch1_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
+    climb2_ch2_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
+
+
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch2 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb2_position[0], climb2_position[1], climb2_position[2], climb2_ch1_peakV, climb2_ch2_peakV))
+
+    return 1
+
 def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
     name_prefix = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_name_prefix').DataItem
     axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1').DataItem
