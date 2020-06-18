@@ -10,6 +10,7 @@ from System import Array
 from System import String
 from System import ValueTuple
 from System import Math
+import math as math
 from System.Diagnostics import Stopwatch
 from System.Collections.Generic import List
 clr.AddReferenceToFile('HAL.dll')
@@ -22,6 +23,8 @@ clr.AddReferenceToFile('CiscoAligner.exe')
 from CiscoAligner import PickAndPlace
 from CiscoAligner import Station
 from CiscoAligner import Alignments
+from time import sleep
+import csv
 
 
 def Template(StepName, SequenceObj, TestMetrics, TestResults):
@@ -459,11 +462,13 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
      
     def vision_die_top():
+        DieTopIOPreset = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopIOPreset').DataItem 
         vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #"MPOTop_2_7"
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #4
         HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
         HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState(DieTopIOPreset)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
         Utility.DelayMS(2000)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
@@ -510,10 +515,11 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     diesideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
     mposideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #10 """
     initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
+    #'FAUToBoardInitial'
+    safe_approach = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'vision_align_safe_approach').DataItem #'FAUToBoardInitial'
     die_side_position = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem #'FAUToBoardInitial'
 	
 	#vision_interim_gap_X = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionInterimGapX').DataItem #'FAUToBoardInitial'
-	
 	
     # Move hexapod to root coordinate system
     HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
@@ -560,6 +566,10 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
         return 0
 
+    if safe_approach:
+        if not LogHelper.AskContinue('Did the vision system correctly identify the die?'):
+            return 0
+
     inputx = res['X']
     inputy = res['Y']
     inputangle = Utility.RadianToDegree(res['Angle'])
@@ -597,6 +607,10 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
         return 0
 
+    if safe_approach:
+        if not LogHelper.AskContinue('Did the vision system correctly identify the FAU?'):
+            return 0
+
     # retreive vision results
     outputx = res['X']
     outputy = res['Y']
@@ -608,7 +622,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     end = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
 
     # calculate the distance between the first and last fiber channel in order to do pivot angle compensation
-    TestResults.AddTestResult('Outer_Channels_Width', Math.Round(Math.Sqrt(Math.Pow(end.Item1 - start.Item1, 2) + pow(end.Item2 - start.Item2, 2)), 5))
+    TestResults.AddTestResult('Outer_Channels_Width', round(((end.Item1 - start.Item1)**2 + (end.Item2 - start.Item2)**2)**0.5, 5))
 
     if SequenceObj.Halt:
         return 0
@@ -618,7 +632,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
         return 0 """
 
-    # move in x, but with 200um gap remain
+    # move in x, but with wider gap remaining
     if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignGapX').DataItem, Motion.AxisMotionSpeeds.Slow, True):
         Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
         return 0
@@ -715,9 +729,9 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     dest = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('SideCameraTransform', ValueTuple[float,float](diex, diey))
     start = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('SideCameraTransform', ValueTuple[float,float](mpox, mpoy))
 
-    # move the mpo height to match that of the die height
-    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move FAU to match die height position.')
+    # move the mpo height to match that of the die height, include the z-offset
+    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', dest.Item2 - start.Item2 + TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLightZOffsetFromVision').DataItem, Motion.AxisMotionSpeeds.Slow, True):
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
         return 0
 
     # adjust the yaw angle
@@ -732,12 +746,17 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         return 0
 
     # remember this postion as optical z zero
-    TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+    # if False: #Don't move in multiple axes at once for now as pivot point is not well-defined. Not even sure why this was here... NK 2020-06-17
+    #     # now move x to put the mpo to process distance from die
+    #     if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
+    #         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+    #         return 0
 
-    # adjust the starting Z position base on the recipe value
-    if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLightZOffsetFromVision').DataItem, Motion.AxisMotionSpeeds.Normal, True):
-        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Z direction during initial height offset adjustment.')
-        return 0
+    #     if SequenceObj.Halt:
+    #         return 0
+
+    #     # remember this postion as optical z zero
+    #     TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
     
     # Back to imaging the top
     #######################################################################################################################
@@ -750,7 +769,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     inputangle = Utility.RadianToDegree(res['Angle'])
 
-    # one more time for the FAU side
+    # one more time for the FAU top
     res = vision_FAU_top()
     if res['Result'] != 'Success':
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
@@ -774,6 +793,10 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
         return 0
 
+    if safe_approach:
+        if not LogHelper.AskContinue('Did the vision system correctly identify the die?'):
+            return 0
+
     inputx = res['X']
     inputy = res['Y']
     inputangle = Utility.RadianToDegree(res['Angle'])
@@ -783,6 +806,10 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     if res['Result'] != 'Success':
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
         return 0
+
+    if safe_approach:
+        if not LogHelper.AskContinue('Did the vision system correctly identify the FAU?'):
+            return 0
 
     outputx = res['X']
     outputy = res['Y']
@@ -1067,60 +1094,21 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
     # save bottom chan aligned position
     bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
-    # adjust the roll
-    #NK 2020-03-31 Forcing User To input channel distance
-    #ret = UserFormInputDialog.ShowDialog('Enter WG gap distance', 'Enter WG to WG distance in mm. Manually set initial first light position.', True)
-    #if ret == True:
-    #    TestResults.AddTestResult('Outer_Channels_Width', float(UserFormInputDialog.ReturnValue))
-    #else:
-    #    return 0
-    width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
-    #ret = 0.25
-    #width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-    h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-    if h < 0.001:
-        return 1    # we achieved the roll angle when the optical Z difference is less than 1 um
-
-    # calculate the roll angle
-    r = Utility.RadianToDegree(Math.Atan(h / width))
-    rollangle = r
-    if topchanpos[2] > bottomchanpos[2]:
-        rollangle = -r
-
-    # adjust the roll angle again
-    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-    # wait to settle
-    Utility.DelayMS(2000)
-
-    # repeat adjustment if necessary
-    retries = 0
-    while retries < limit and not SequenceObj.Halt:
-
-        # start the algorithms
-        scan.Channel = 1
-        scan.ExecuteNoneModal()
-        # check scan status
-        if scan.IsSuccess == False or SequenceObj.Halt:
-            return 0
-
-        # remember the final position
-        topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
-
-        # repeat scan for the second channel
-        scan.Channel = 2
-        scan.ExecuteNoneModal()
-        # check scan status
-        if scan.IsSuccess == False or SequenceObj.Halt:
-            return 0
-
-        # get the final position of second channel
-        bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
-
-        # double check and readjust roll if necessary
-        # calculate the roll angle
+    # adjust the roll - we will adjust the roll later as the area scan is a poor way to adjust roll
+    if False:
+        #NK 2020-03-31 Forcing User To input channel distance
+        #ret = UserFormInputDialog.ShowDialog('Enter WG gap distance', 'Enter WG to WG distance in mm. Manually set initial first light position.', True)
+        #if ret == True:
+        #    TestResults.AddTestResult('Outer_Channels_Width', float(UserFormInputDialog.ReturnValue))
+        #else:
+        #    return 0
+        width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
+        #ret = 0.25
+        #width = TestResults.RetrieveTestResult('Outer_Channels_Width')
         h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-        if h < 0.005:
-           break    # we achieved the roll angle when the optical Z difference is less than 1 um
+
+		if h < 0.001:
+			return 1    # we achieved the roll angle when the optical Z difference is less than 1 um
 
         # calculate the roll angle
         r = Utility.RadianToDegree(Math.Atan(h / width))
@@ -1131,14 +1119,54 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
         # adjust the roll angle again
         HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
         # wait to settle
-        Utility.DelayMS(500)
+		Utility.DelayMS(2000)
+		# repeat adjustment if necessary
+		retries = 0
+		while retries < limit and not SequenceObj.Halt:
 
-        retries += 1
-    
-    # check stop conditions
-    if retries >= limit:
-       LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')       
-       return 0
+			# start the algorithms
+			scan.Channel = 1
+			scan.ExecuteNoneModal()
+			# check scan status
+			if scan.IsSuccess == False or SequenceObj.Halt:
+				return 0
+
+			# remember the final position
+			topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+
+			# repeat scan for the second channel
+			scan.Channel = 2
+			scan.ExecuteNoneModal()
+			# check scan status
+			if scan.IsSuccess == False or SequenceObj.Halt:
+				return 0
+
+			# get the final position of second channel
+			bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+
+			# double check and readjust roll if necessary
+			# calculate the roll angle
+			h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
+			if h < 0.005:
+			   break    # we achieved the roll angle when the optical Z difference is less than 1 um
+
+			# calculate the roll angle
+			r = Utility.RadianToDegree(Math.Atan(h / width))
+			rollangle = r
+			if topchanpos[2] > bottomchanpos[2]:
+			   rollangle = -r
+
+			# adjust the roll angle again
+			HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
+			# wait to settle
+			Utility.DelayMS(500)
+
+			retries += 1
+		
+		# check stop conditions
+		if retries >= limit:
+		   LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')       
+		   return 0
        
     TestResults.AddTestResult('first_light_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
     TestResults.AddTestResult('first_light_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
@@ -2178,6 +2206,123 @@ def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults)
         return 1
 
 #-------------------------------------------------------------------------------
+# LineScans
+# Perform 2x LineScans and plot the results to see full-width half-max
+#-------------------------------------------------------------------------------
+def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
+    name_prefix = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_name_prefix').DataItem
+    axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1').DataItem
+    axis1_scan_width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1_scan_width_um').DataItem
+    axis1_scan_incr = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1_scan_increment_um').DataItem
+
+    axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis2').DataItem
+    axis1_scan_width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis2_scan_width_um').DataItem
+    axis1_scan_width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis2_scan_increment_um').DataItem
+
+    dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+
+    init_positions = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions
+
+    ### axis 1 linescan
+    # build array of positions to visit
+    ax1_positions = [HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(axis1) - axis1_scan_width/2]
+    while ax1_positions[-1] < (ax1_positions[0] + axis1_scan_width):
+        ax1_positions.append(ax1_positions[-1] + axis1_scan_incr)
+
+    X = []
+    Y = []
+    Z = []
+    ch1 = []
+    ch2 = []
+
+    #check if first and last position are within nanocube range of motion
+    if ax1_positions[0] < 0:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Axis 1 linescan causes nanocube position < 0.')
+    elif ax1_positions[0] < 5:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Axis 1 linescan causes nanocube position < 5.')
+    if ax1_positions[0] > 100:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Axis 1 linescan causes nanocube position > 100.')
+    elif ax1_positions[0] > 95:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Axis 1 linescan causes nanocube position > 95.')
+    
+    for position in ax1_positions:
+        if SequenceObj.Halt:
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('X', init_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Y', init_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', init_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+            return 0
+        HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute(axis1, position, Motion.AxisMotionSpeeds.Normal, True)
+        sleep(0.01)
+        current_pos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions
+        X.append(current_pos[0])
+        Y.append(current_pos[1])
+        Z.append(current_pos[2])
+
+        ch1.append(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5))
+        ch2.append(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5))
+
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('X', init_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Y', init_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', init_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+
+    # record data to csv file
+    with open(IO.Path.Combine(dir,name_prefix + '_' + axis1 + '_linescan.csv'),'wb') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['X_um','Y_um','Z_um','ch1_v','ch2_v'])
+        for i in range(len(ax1_positions)):
+            csvwriter.writerow(X[i],Y[i],Z[i],ch1[i],ch2[i]
+
+    ### axis 2 linescan
+    # build array of positions to visit
+    ax1_positions = [HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(axis2) - axis2_scan_width/2]
+    while ax2_positions[-1] < (ax2_positions[0] + axis2_scan_width):
+        ax2_positions.append(ax1_positions[-1] + axis2_scan_incr)
+
+    X = []
+    Y = []
+    Z = []
+    ch1 = []
+    ch2 = []
+
+    #check if first and last position are within nanocube range of motion
+    if ax2_positions[0] < 0:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Axis 2 linescan causes nanocube position < 0.')
+    elif ax2_positions[0] < 5:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Axis 2 linescan causes nanocube position < 5.')
+    if ax2_positions[0] > 100:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Axis 2 linescan causes nanocube position > 100.')
+    elif ax2_positions[0] > 95:
+        LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Axis 2 linescan causes nanocube position > 95.')
+    
+    for position in ax2_positions:
+        if SequenceObj.Halt:
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('X', init_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Y', init_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+            HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', init_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+            return 0
+        HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute(axis2, position, Motion.AxisMotionSpeeds.Normal, True)
+        sleep(0.01)
+        current_pos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions
+        X.append(current_pos[0])
+        Y.append(current_pos[1])
+        Z.append(current_pos[2])
+
+        ch1.append(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5))
+        ch2.append(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5))
+
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('X', init_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Y', init_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', init_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+
+    with open(IO.Path.Combine(dir,name_prefix + '_' + axis2 + '_linescan.csv'),'wb') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['X_um','Y_um','Z_um','ch1_v','ch2_v'])
+        for i in range(len(ax1_positions)):
+            csvwriter.writerow(X[i],Y[i],Z[i],ch1[i],ch2[i]
+
+    return 1
+
+#-------------------------------------------------------------------------------
 # UVCure
 # UV cure the epoxy bond
 #-------------------------------------------------------------------------------
@@ -2279,8 +2424,8 @@ def UVCure(StepName, SequenceObj, TestMetrics, TestResults):
     # acquire image for vision
     HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
     # save to file
-    dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
-    Utility.CreateDirectory(dir)
+    #dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+    #Utility.CreateDirectory(dir)
     dir = IO.Path.Combine(dir, 'ASM_Side_Post_UV.jpg')
     HardwareFactory.Instance.GetHardwareByName('SideCamera').SaveToFile(dir)
 
