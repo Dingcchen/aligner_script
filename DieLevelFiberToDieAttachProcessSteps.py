@@ -676,7 +676,10 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
                 
             if SequenceObj.Halt:
                 return 0
-
+	
+	
+	HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
+    Utility.DelayMS(500)
     hexapod_scan.Channel = 1
     climb.Channel = 1            
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)

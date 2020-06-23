@@ -4,6 +4,15 @@
     <xs:element name="PythonProcessSequences" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
       <xs:complexType>
         <xs:choice minOccurs="0" maxOccurs="unbounded">
+		
+		  <xs:element name="FAU_to_Die_PD_test">
+            <xs:complexType>
+              <xs:attribute name="StepName" type="xs:string" use="required" />
+              <xs:attribute name="StepScriptFile" type="xs:string" use="required" />
+              <xs:attribute name="StepMethod" type="xs:string" use="required" />
+              <xs:attribute name="MustRun" type="xs:boolean" use="required" />
+            </xs:complexType>
+          </xs:element>
 
           <xs:element name="BoardLevelPORFiberToDiePDRepeatability">
             <xs:complexType>
@@ -92,6 +101,19 @@
       </xs:complexType>
     </xs:element>
   </xs:schema>
+  <FAU_to_Die_PD_test StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Load components" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="LoadPDDie" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Check probe contacts" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="CheckProbe" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchDualChannels" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Dry balanced align" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="BalanceDryAlignmentNanocube" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Wet balanced align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="BalanceWetAlignNanocube" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Nanocube gradient climb" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="NanocubeGradientClimb" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
+  
+  
   <BoardLevelPORFiberToDiePDRepeatability StepName="Initialize" StepScriptFile="..\Scripts\BoardLevelFiberToDieAttachProcessSteps.py" StepMethod="InitializeRepeatability" MustRun="true" />
   <BoardLevelPORFiberToDiePDRepeatability StepName="Set first light position" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="SetFirstLightPositionToDie" MustRun="true" />
   <BoardLevelPORFiberToDiePDRepeatability StepName="Find first light" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="FirstLightSearchSingleChannel" MustRun="true" />
