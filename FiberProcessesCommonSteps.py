@@ -450,13 +450,15 @@ def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
 def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     
     def vision_FAU_top():
+        sleep(1)
         vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
+        #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
         HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
-        sleep(2)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState('FAU_top')
+        sleep(0.5)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
@@ -465,12 +467,12 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         DieTopIOPreset = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopIOPreset').DataItem 
         vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #"MPOTop_2_7"
         exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #4
-        HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
+        #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', False)
         ringlight_brightness = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
         HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
-        HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState(DieTopIOPreset)
+        HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState('GF7_Die9_top')
         HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(exposure)
-        sleep(2)
+        sleep(0.5)
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
@@ -483,7 +485,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
         HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
-        sleep(2)
+        sleep(0.5)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
         #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
@@ -497,12 +499,19 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(exposure)
         HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', True)
-        sleep(2)
+        sleep(0.5)
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
         HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
         #HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('SideCamBacklight', False)
         #HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState(ringlight_brightness)
         return HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(vision)
+    
+    def fix_angle(input_angle, expected_angle):
+        while (input_angle - expected_angle) > 90:
+            input_angle -= 180
+        while (input_angle - expected_angle) < 90:
+            input_angle += 180
+        return input_angle
         
 
     # define vision tool to use for easier editing
@@ -518,9 +527,9 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     #'FAUToBoardInitial'
     safe_approach = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'vision_align_safe_approach').DataItem #'FAUToBoardInitial'
     die_side_position = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieFocusedPresetPosition').DataItem #'FAUToBoardInitial'
-	
-	#vision_interim_gap_X = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionInterimGapX').DataItem #'FAUToBoardInitial'
-	
+    
+    #vision_interim_gap_X = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionInterimGapX').DataItem #'FAUToBoardInitial'
+    
     # Move hexapod to root coordinate system
     HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
     
@@ -550,7 +559,6 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     #turn off all lights and then set to recipe level
     HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
-
     # acquire image for vision
     HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
     # save to file
@@ -572,7 +580,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     inputx = res['X']
     inputy = res['Y']
-    inputangle = Utility.RadianToDegree(res['Angle'])
+    die_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90)
 
     # one more time for the MPO side
     res = vision_FAU_top()
@@ -582,12 +590,24 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     outputx = res['X']
     outputy = res['Y']
-    outputangle = Utility.RadianToDegree(res['Angle'])
-
-    move_angle = (outputangle - inputangle) % 180
-    if(move_angle > 90):
-        move_angle = move_angle - 180
-
+    FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+    FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
+    FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
+    
+    # calculate and record fiber endface to FAU angle error for top fiber
+    FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_top_fiber_to_face_angle_err_deg', round(FAU_top_fiber_to_face_angle_err_deg, 5))
+    
+    # calculate and record fiber endface to FAU angle error for bottom fiber
+    FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_bottom_fiber_to_face_angle_err_deg', round(FAU_bottom_fiber_to_face_angle_err_deg, 5))
+    
+    align_FAU_angle = FAU_front_face_angle
+    if TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Angle_align_using_fibers').DataItem:
+        align_FAU_angle = FAU_top_fiber_angle + 90
+        
+    move_angle = (align_FAU_angle - die_angle)
+        
     # adjust the yaw angle
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
 
@@ -626,7 +646,8 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     end = HardwareFactory.Instance.GetHardwareByName('MachineVision').ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
 
     # calculate the distance between the first and last fiber channel in order to do pivot angle compensation
-    TestResults.AddTestResult('Outer_Channels_Width', round(((end.Item1 - start.Item1)**2 + (end.Item2 - start.Item2)**2)**0.5, 5))
+    TestResults.AddTestResult('Measured_Channel_Pitch', round(((end.Item1 - start.Item1)**2 + (end.Item2 - start.Item2)**2)**0.5, 5))
+    
 
     if SequenceObj.Halt:
         return 0
@@ -650,7 +671,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
         return 0
 
-    inputangle = Utility.RadianToDegree(res['Angle'])
+    die_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90)
 
     # one more time for the FAU side   
     res = vision_FAU_top()
@@ -658,12 +679,26 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
         return 0
 
-    outputangle = Utility.RadianToDegree(res['Angle'])
+    #outputangle = Utility.RadianToDegree(res['Angle'])
+    
+    FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+    FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
+    FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
+    
+    # calculate and record fiber endface to FAU angle error for top fiber
+    FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_top_fiber_to_face_angle_err_deg2', round(FAU_top_fiber_to_face_angle_err_deg, 5))
+    
+    # calculate and record fiber endface to FAU angle error for bottom fiber
+    FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_bottom_fiber_to_face_angle_err_deg2', round(FAU_bottom_fiber_to_face_angle_err_deg, 5))
+    
+    align_FAU_angle = FAU_front_face_angle
+    if TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Angle_align_using_fibers').DataItem:
+        align_FAU_angle = FAU_top_fiber_angle + 90
+        
+    move_angle = (align_FAU_angle - die_angle)
 
-    # do angle adjustment one more time
-    move_angle = (outputangle - inputangle) % 180
-    if(move_angle > 90):
-        move_angle = move_angle - 180
 
     # adjust the yaw angle
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
@@ -724,7 +759,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     # find the FAU side
     HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState(initialposition)
-	
+    
     res = vision_FAU_side()
     if res['Result'] != 'Success':
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU side position.')
@@ -776,7 +811,9 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
         return 0
 
-    inputangle = Utility.RadianToDegree(res['Angle'])
+    #die_angle = Utility.RadianToDegree(res['Angle'])
+    die_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90)
+
 
     # one more time for the FAU top
     res = vision_FAU_top()
@@ -784,12 +821,28 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU top position.')
         return 0
 
-    outputangle = Utility.RadianToDegree(res['Angle'])
+    #outputangle = Utility.RadianToDegree(res['Angle'])
     
-    # done vision, back to live view
-    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+    FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
+    FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
+    
+    # calculate and record fiber endface to FAU angle error for top fiber
+    FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_top_fiber_to_face_angle_err_deg3', round(FAU_top_fiber_to_face_angle_err_deg, 5))
+    
+    # calculate and record fiber endface to FAU angle error for bottom fiber
+    FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
+    TestResults.AddTestResult('FAU_bottom_fiber_to_face_angle_err_deg3', round(FAU_bottom_fiber_to_face_angle_err_deg, 5))
+    
+    align_FAU_angle = FAU_front_face_angle
+    if TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Angle_align_using_fibers').DataItem:
+        align_FAU_angle = FAU_top_fiber_angle + 90
+        
+    move_angle = (align_FAU_angle - die_angle)
+    
     # do angle adjustment one more time
-    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', outputangle - inputangle, Motion.AxisMotionSpeeds.Normal, True)
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
     
     ###############################################################################################
     ### NK Correct Y Position after all other motion because it is consistently off 01-Apr-2020
@@ -852,6 +905,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
     TestResults.AddTestResult('vision_align_hexapod_final_V', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('V'))
     TestResults.AddTestResult('vision_align_hexapod_final_W', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('W'))
     
+    HardwareFactory.Instance.GetHardwareByName('IOControl').GetHardwareStateTree().ActivateState('default')
     
     if SequenceObj.Halt:
         return 0
@@ -961,10 +1015,11 @@ def FirstLightSearchSingleChannel(StepName, SequenceObj, TestMetrics, TestResult
 
 #-------------------------------------------------------------------------------
 def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults):
+    search_pos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
        
     # remember this postion as optical z zero
     # in case we aligned manually, get the z position here instead of previous step
-    TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
+    #TestResults.AddTestResult('Optical_Z_Zero_Position', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
     
     HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
 
@@ -1031,27 +1086,27 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
             return 0
 
     # rescan smaller area
-    scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
-    scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
-    scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
-    scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
+    #scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
+    #scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
+    #scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
+    #scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
     # start the scan again
-    scan.ExecuteNoneModal()
+    #scan.ExecuteNoneModal()
 
-    if scan.IsSuccess == False or SequenceObj.Halt:
-        return 0
+    #if scan.IsSuccess == False or SequenceObj.Halt:
+    #    return 0
 
     # save top chan aligned position
     topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
     # now do channel 2
-    scan.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanAxis1').DataItem
-    scan.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanAxis2').DataItem
-    scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange1').DataItem
-    scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
-    scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
-    scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
-    scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
+    #scan.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanAxis1').DataItem
+    #scan.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanAxis2').DataItem
+    #scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange1').DataItem
+    #scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
+    #scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
+    #scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
+    #scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
     scan.Channel = 2
     # one scan to get initial power
     #scan.ExecuteNoneModal()
@@ -1090,92 +1145,92 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
             return 0
 
     # rescan smaller area
-    scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
-    scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
-    scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
-    scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
+    #scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
+    #scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
+    #scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
+    #scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
     # start the scan again
-    scan.ExecuteNoneModal()
+    #scan.ExecuteNoneModal()
 
-    if scan.IsSuccess == False or SequenceObj.Halt:
-        return 0
+    #if scan.IsSuccess == False or SequenceObj.Halt:
+    #    return 0
 
     # save bottom chan aligned position
     bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
     # adjust the roll - we will adjust the roll later as the area scan is a poor way to adjust roll
     if False:
-		#NK 2020-03-31 Forcing User To input channel distance
-		#ret = UserFormInputDialog.ShowDialog('Enter WG gap distance', 'Enter WG to WG distance in mm. Manually set initial first light position.', True)
-		#if ret == True:
-		#    TestResults.AddTestResult('Outer_Channels_Width', float(UserFormInputDialog.ReturnValue))
-		#else:
-		#    return 0
-		width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
-		#ret = 0.25
-		#width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-		h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
+        #NK 2020-03-31 Forcing User To input channel distance
+        #ret = UserFormInputDialog.ShowDialog('Enter WG gap distance', 'Enter WG to WG distance in mm. Manually set initial first light position.', True)
+        #if ret == True:
+        #    TestResults.AddTestResult('Outer_Channels_Width', float(UserFormInputDialog.ReturnValue))
+        #else:
+        #    return 0
+        width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
+        #ret = 0.25
+        #width = TestResults.RetrieveTestResult('Outer_Channels_Width')
+        h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
 
-		if h < 0.001:
-			return 1    # we achieved the roll angle when the optical Z difference is less than 1 um
+        if h < 0.001:
+            return 1    # we achieved the roll angle when the optical Z difference is less than 1 um
 
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan(h / width))
-		rollangle = r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -r
+        # calculate the roll angle
+        r = Utility.RadianToDegree(Math.Atan(h / width))
+        rollangle = r
+        if topchanpos[2] > bottomchanpos[2]:
+           rollangle = -r
 
-		# adjust the roll angle again
-		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(2000)
-		# repeat adjustment if necessary
-		retries = 0
-		while retries < limit and not SequenceObj.Halt:
+        # adjust the roll angle again
+        HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
+        # wait to settle
+        Utility.DelayMS(2000)
+        # repeat adjustment if necessary
+        retries = 0
+        while retries < limit and not SequenceObj.Halt:
 
-			# start the algorithms
-			scan.Channel = 1
-			scan.ExecuteNoneModal()
-			# check scan status
-			if scan.IsSuccess == False or SequenceObj.Halt:
-				return 0
+            # start the algorithms
+            scan.Channel = 1
+            scan.ExecuteNoneModal()
+            # check scan status
+            if scan.IsSuccess == False or SequenceObj.Halt:
+                return 0
 
-			# remember the final position
-			topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+            # remember the final position
+            topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
-			# repeat scan for the second channel
-			scan.Channel = 2
-			scan.ExecuteNoneModal()
-			# check scan status
-			if scan.IsSuccess == False or SequenceObj.Halt:
-				return 0
+            # repeat scan for the second channel
+            scan.Channel = 2
+            scan.ExecuteNoneModal()
+            # check scan status
+            if scan.IsSuccess == False or SequenceObj.Halt:
+                return 0
 
-			# get the final position of second channel
-			bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+            # get the final position of second channel
+            bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
-			# double check and readjust roll if necessary
-			# calculate the roll angle
-			h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-			if h < 0.005:
-			   break    # we achieved the roll angle when the optical Z difference is less than 1 um
+            # double check and readjust roll if necessary
+            # calculate the roll angle
+            h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
+            if h < 0.005:
+               break    # we achieved the roll angle when the optical Z difference is less than 1 um
 
-			# calculate the roll angle
-			r = Utility.RadianToDegree(Math.Atan(h / width))
-			rollangle = r
-			if topchanpos[2] > bottomchanpos[2]:
-			   rollangle = -r
+            # calculate the roll angle
+            r = Utility.RadianToDegree(Math.Atan(h / width))
+            rollangle = r
+            if topchanpos[2] > bottomchanpos[2]:
+               rollangle = -r
 
-			# adjust the roll angle again
-			HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-			# wait to settle
-			Utility.DelayMS(500)
+            # adjust the roll angle again
+            HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
+            # wait to settle
+            Utility.DelayMS(500)
 
-			retries += 1
-		
-		# check stop conditions
-		if retries >= limit:
-		   LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')       
-		   return 0
+            retries += 1
+        
+        # check stop conditions
+        if retries >= limit:
+           LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')       
+           return 0
        
     TestResults.AddTestResult('first_light_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
     TestResults.AddTestResult('first_light_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
@@ -1183,6 +1238,10 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
     TestResults.AddTestResult('first_light_hexapod_final_U', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('U'))
     TestResults.AddTestResult('first_light_hexapod_final_V', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('V'))
     TestResults.AddTestResult('first_light_hexapod_final_W', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('W'))
+    
+    light_pos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
+    
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Light found [{0:.03f}, {1:.03f}, {2:.03f}]'.format(light_pos[0] - search_pos[0],light_pos[1] - search_pos[1],light_pos[2] - search_pos[2]))
 
     if SequenceObj.Halt:
         return 0
@@ -1584,9 +1643,9 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
     HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
 
     # retreive zero position
-    zero = TestResults.RetrieveTestResult('Optical_Z_Zero_Position')
+    #zero = TestResults.RetrieveTestResult('Optical_Z_Zero_Position')
     # move back to zero position
-    HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Normal, True)
+    #HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Normal, True)
 
     # here we do channel balance with Nanocube 2D scan
     # # # scan = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeRasterScan')
@@ -1689,14 +1748,14 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 
         # double check and readjust roll if necessary
         # calculate the roll angle
-        h = Math.Atan(Math.Abs(topchanpos[1] - bottomchanpos[1]))
+        h = Math.Abs(topchanpos[2] - bottomchanpos[2])
         if h < 1:
            break    # we achieved the roll angle when the optical Z difference is less than 1 um
 
         # calculate the roll angle
-        r = Utility.RadianToDegree(Math.Atan(h / (width*1000)))
-        rollangle = r
-        if topchanpos[1] > bottomchanpos[1]:
+        r = Utility.RadianToDegree(Math.Asin(h / (width*1000)))
+        rollangle = -r
+        if topchanpos[2] > bottomchanpos[2]:
            rollangle = -rollangle
 
         # adjust the roll angle again
@@ -1724,7 +1783,7 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
     TestResults.AddTestResult('Bottom_Channel_Dry_Align_Nanocube_Y', bottomchanpos[1])
     TestResults.AddTestResult('Bottom_Channel_Dry_Align_Nanocube_Z', bottomchanpos[2])
     TestResults.AddTestResult('Bottom_Channel_Dry_Align_Peak_Power', bottom_chan_peak_V)
-	
+    
     ### balance the Z (side to side) distance
     ##HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', middle, Motion.AxisMotionSpeeds.Normal, True)
 
@@ -2240,9 +2299,9 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
     if SequenceObj.Halt:
         LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Step aborted!')
         return 0
-    	
+        
     if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
-	    return 0
+        return 0
 
     # run climb on channel 2
     climb.Channel = 2
@@ -2257,7 +2316,7 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
     LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch2 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb2_position[0], climb2_position[1], climb2_position[2], climb2_ch1_peakV, climb2_ch2_peakV))
     
     if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
-	    return 0
+        return 0
     return 1
 
 def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
