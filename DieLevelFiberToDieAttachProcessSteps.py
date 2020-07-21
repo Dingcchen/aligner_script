@@ -194,23 +194,34 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
     HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
     HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState(loadposition)
     HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState(loadposition)
-	
-	#release vacuum
+    
+    #release vacuum
     # HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, False)
     # HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, False)
-
+    
+    
     # Wait for load complete and get serial number
-    # possibly using a barcode scanner later    
-    msg = GetAndCheckUserInput('Load GF die', 'Please load die (wave guides to the left) and enter serial number:')
-    if(msg != None):
-        TestResults.AddTestResult('Die_SN', msg)
+    # possibly using a barcode scanner later
+    Die_SN = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Die_SN').DataItem
+    if LogHelper.AskContinue('Please load die (wave guides to the left) and verify serial number:\n' + Die_SN + '\nClick Yes when done, No to update value.') == False:
+        Die_SN = GetAndCheckUserInput('Load GF die', 'Please load die (wave guides to the left) and enter serial number:')
+    if not Die_SN == None:
+        if not Die_SN == TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Die_SN').DataItem:
+            TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Die_SN').DataItem = Die_SN
+            TestMetrics.UpdateTestMetricTables()
+        TestResults.AddTestResult('Die_SN', Die_SN)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
     else:
         return 0
-
-    msg = GetAndCheckUserInput('Load FAU', 'Please load FAU/MPO and enter serial number:')
-    if msg != None:
-        TestResults.AddTestResult('MPO_SN', msg)
+    
+    FAU_SN = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAU_SN').DataItem
+    if LogHelper.AskContinue('Please load FAU and verify serial number:\n' + FAU_SN + '\nClick Yes when done, No to update value.') == False:
+        FAU_SN = GetAndCheckUserInput('Load FAU', 'Please load FAU and enter serial number:')
+    if not FAU_SN == None:
+        if not FAU_SN == TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAU_SN').DataItem:
+            TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAU_SN').DataItem = FAU_SN
+            TestMetrics.UpdateTestMetricTables()
+        TestResults.AddTestResult('FAU_SN', FAU_SN)
         HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
     else:
         return 0
@@ -223,29 +234,43 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 
     # epoxy related information
     # persist some of the values for next run
-    if 'EpoxyTubeNumber' in SequenceObj.ProcessPersistentData:
-        UserFormInputDialog.ReturnValue = SequenceObj.ProcessPersistentData['EpoxyTubeNumber']
-    else:
-        UserFormInputDialog.ReturnValue = ''
     
-    ret = UserFormInputDialog.ShowDialog('Epoxy tube number', 'Please enter epoxy tube number:')
-    if ret == False:
+    # if 'EpoxyTubeNumber' in SequenceObj.ProcessPersistentData:
+        # UserFormInputDialog.ReturnValue = SequenceObj.ProcessPersistentData['EpoxyTubeNumber']
+    # else:
+        # UserFormInputDialog.ReturnValue = ''
+    
+    EpoxyTubeNumber = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyTubeNumber').DataItem
+    if LogHelper.AskContinue('Please verify epoxy tube number:\n' + EpoxyTubeNumber + '\nClick Yes to accept, No to update value.') == False:
+        EpoxyTubeNumber = UserFormInputDialog.ShowDialog('Epoxy tube number', 'Please enter epoxy tube number:')
+    if not EpoxyTubeNumber == False:
+        if not EpoxyTubeNumber == TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyTubeNumber').DataItem:
+            TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyTubeNumber').DataItem = EpoxyTubeNumber
+            TestMetrics.UpdateTestMetricTables()
+        TestResults.AddTestResult('Epoxy_Tube_Number', UserFormInputDialog.ReturnValue)
+    else:
         return 0
     # save back to persistent data
-    SequenceObj.ProcessPersistentData['EpoxyTubeNumber'] = UserFormInputDialog.ReturnValue
-    TestResults.AddTestResult('Epoxy_Tube_Number', UserFormInputDialog.ReturnValue)
+    # SequenceObj.ProcessPersistentData['EpoxyTubeNumber'] = UserFormInputDialog.ReturnValue
+    # TestResults.AddTestResult('Epoxy_Tube_Number', UserFormInputDialog.ReturnValue)
 
-    if 'EpoxyExpirationDate' in SequenceObj.ProcessPersistentData:
-        UserFormInputDialog.ReturnValue = SequenceObj.ProcessPersistentData['EpoxyExpirationDate']
-    else:
-        UserFormInputDialog.ReturnValue = ''
+    # if 'EpoxyExpirationDate' in SequenceObj.ProcessPersistentData:
+        # UserFormInputDialog.ReturnValue = SequenceObj.ProcessPersistentData['EpoxyExpirationDate']
+    # else:
+        # UserFormInputDialog.ReturnValue = ''
     
-    ret = UserFormInputDialog.ShowDialog('Epoxy expiration date', 'Please enter epoxy expiration date (MM/DD/YYYY):')
-    if ret == False:
+    EpoxyExpirationDate = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyExpirationDate').DataItem
+    if LogHelper.AskContinue('Please verify epoxy expiration date:\n' + EpoxyExpirationDate + '\nClick Yes to accept, No to update value.') == False:
+        EpoxyExpirationDate = UserFormInputDialog.ShowDialog('Epoxy expiration date', 'Please enter epoxy expiration date (MM/DD/YYYY):')
+    if not EpoxyExpirationDate == False:
+        if not EpoxyExpirationDate == TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyExpirationDate').DataItem:
+            TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyExpirationDate').DataItem = EpoxyExpirationDate
+            TestMetrics.UpdateTestMetricTables()
+        TestResults.AddTestResult('Epoxy_Expiration_Date', UserFormInputDialog.ReturnValue)
+    else:
         return 0
     # save back to persistent data
-    SequenceObj.ProcessPersistentData['EpoxyExpirationDate'] = UserFormInputDialog.ReturnValue
-    TestResults.AddTestResult('Epoxy_Expiration_Date', UserFormInputDialog.ReturnValue)
+    # SequenceObj.ProcessPersistentData['EpoxyExpirationDate'] = UserFormInputDialog.ReturnValue
 
     if SequenceObj.Halt:
         return 0
@@ -676,9 +701,9 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
                 
             if SequenceObj.Halt:
                 return 0
-	
-	
-	HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
+    
+    
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
     Utility.DelayMS(500)
     hexapod_scan.Channel = 1
     climb.Channel = 1            
@@ -845,7 +870,7 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
         return 0
     else:
         return 1
-		
+        
 def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
    
     init_V = TestResults.RetrieveTestResult('apply_epoxy_hexapod_final_V')
@@ -981,9 +1006,9 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
                 
             if SequenceObj.Halt:
                 return 0
-	
-	
-	HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
+    
+    
+    HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
     Utility.DelayMS(500)
     hexapod_scan.Channel = 1
     climb.Channel = 1            
@@ -1065,7 +1090,7 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
     ###################################
     ##### End Nanocube scan setup #####
     ###################################
-	
+    
     # set up a loop to zero in on the roll angle
     width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
     #width = TestResults.RetrieveTestResult('Outer_Channels_Width')
@@ -1501,6 +1526,7 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
         return 0
     else:
         return 1
+
 
 #-------------------------------------------------------------------------------
 # Finalize

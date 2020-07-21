@@ -110,6 +110,8 @@
   <FAU_to_Die_PD_test StepName="Apply epoxy" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="ApplyEpoxy" MustRun="true" />
   <FAU_to_Die_PD_test StepName="Wet pitch align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="WetPitchAlign" MustRun="true" />
   <FAU_to_Die_PD_test StepName="Wet balance align" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="WetBalanceAlign" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Optimize Polarization" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="OptimizePolarizationsMPC201" MustRun="true" />
+  <FAU_to_Die_PD_test StepName="Align Loopback" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="LoopbackAlignPowermeter" MustRun="true" />
   <FAU_to_Die_PD_test StepName="Nanocube gradient climb" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="NanocubeGradientClimb" MustRun="true" />
   <FAU_to_Die_PD_test StepName="Unload" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="UnloadDie" MustRun="true" />
   <FAU_to_Die_PD_test StepName="Finalize" StepScriptFile="..\Scripts\DieLevelFiberToDieAttachProcessSteps.py" StepMethod="Finalize" MustRun="true" />
