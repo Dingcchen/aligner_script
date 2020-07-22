@@ -30,6 +30,7 @@ import csv
 #-------------------------------------------------------------------------------
 # OptimizePolarizationMPC201
 # Helper function to optimize polarization
+# Very slow, use FastOptimizePolarizationMPC201 instead
 #-------------------------------------------------------------------------------
 def OptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', step_size = .1, convergence_band_percent = 10):
 	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
@@ -105,6 +106,8 @@ def OptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationCo
 #-------------------------------------------------------------------------------
 def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', step_size = .1, convergence_band_percent = 10):
 	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
+	if feedback_device == 'Powermeter':
+		HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(False)
 	polarization_controller_channels = ['1','2','3','4']
 	peak_position = [2,2,2,2]
 
@@ -133,9 +136,11 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 			next_position = peak_position[channel]
 			while True:
 				if not polarization_controller.SetPolarization(next_position, polarization_controller_channels[channel]):
+					if feedback_device == 'Powermeter':
+						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 					return False
 				positions.append(next_position)
-				sleep(0.15)
+				#sleep(0.15)
 				
 				if feedback_device=='Powermeter':
 					if (feedback_channel == 1):
@@ -149,8 +154,12 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 				elif feedback_device=='NanocubeAnalogInput':
 					fb_signal.append(HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel))
 				else:
+					if feedback_device == 'Powermeter':
+						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 					return False
 				if SequenceObj.Halt:
+					if feedback_device == 'Powermeter':
+						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 					return False
 				
 				#decide where to search next
@@ -200,12 +209,16 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 			if mode == 'max':
 				peak_position[channel] = positions[fb_signal.index(max(fb_signal))]
 				if not polarization_controller.SetPolarization(peak_position[channel], polarization_controller_channels[channel]):
+						if feedback_device == 'Powermeter':
+							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 						return False
 			else:
 				peak_position[channel] = positions[fb_signal.index(min(fb_signal))]
 				if not polarization_controller.SetPolarization(peak_position[channel], polarization_controller_channels[channel]):
+						if feedback_device == 'Powermeter':
+							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 						return False
-		sleep(0.2)
+		#sleep(0.2)
 		if feedback_device=='Powermeter':
 			if (feedback_channel == 1):
 				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1'))[1][0]
@@ -218,6 +231,8 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		elif feedback_device=='NanocubeAnalogInput':
 			current_optimum = HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel)
 		else:
+			if feedback_device == 'Powermeter':
+				HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 			return False
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimum polarization found so far: {0:.02f} dBm'.format(current_optimum)) # add other devices!!!
 		if abs((current_optimum - last_optimum)/current_optimum) < convergence_band_percent/100.0:
@@ -226,7 +241,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		step_size = step_size/2
 		if step_size < 0.05:
 			step_size = 0.05
-
+	
 	return True
 
 #-------------------------------------------------------------------------------
@@ -691,7 +706,7 @@ def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
 def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	
 	def vision_FAU_top():
-		sleep(1)
+		sleep(0.5)
 		vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
 		exposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
 		#HardwareFactory.Instance.GetHardwareByName('IOControl').SetOutputValue('DownCamCoaxialLight', True)
@@ -756,14 +771,6 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 		
 
 	# define vision tool to use for easier editing
-	""" topdievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionTool').DataItem #'DieTopGF2NoGlassBlock'
-	topmpovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
-	sidedievision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionTool').DataItem #'DieSideGF2NoGlassBlock'
-	sidempovision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionTool').DataItem #'MPOSideNormal'
-	dietopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieTopVisionCameraExposure').DataItem #3
-	mpotopexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionCameraExposure').DataItem #4
-	diesideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DieSideVisionCameraExposure').DataItem #4
-	mposideexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUSideVisionCameraExposure').DataItem #10 """
 	initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
 	#'FAUToBoardInitial'
 	safe_approach = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'vision_align_safe_approach').DataItem #'FAUToBoardInitial'
@@ -908,14 +915,6 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	if SequenceObj.Halt:
 		return 0
 
-	# re-do vision one more time at close proximity to achieve better initial alignment
-	# res = vision_die_top()
-	# if res['Result'] != 'Success':
-		# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
-		# return 0
-
-	# die_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90)
-
 	# one more time for the FAU side   
 	res = vision_FAU_top()
 	if res['Result'] != 'Success':
@@ -946,11 +945,6 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	# adjust the yaw angle
 	HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
 
-	# re-do vision one more time at close proximity to achieve better initial alignment	   
-	# res = vision_die_top()
-	# if res['Result'] != 'Success':
-		# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the die top position.')
-		# return 0
 
 	inputx = die_res['X']
 	inputy = die_res['Y']
