@@ -319,7 +319,6 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
     scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanRange2').DataItem
     scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
-    scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
     SetScanChannel(scan, 1, UseOpticalSwitch)
     # scan.Channel = 1
 
@@ -443,7 +442,6 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
     while retries < 5 and not SequenceObj.Halt:
 
         # start the algorithms
-        scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
         SetScanChannel(scan, 1, UseOpticalSwitch)
         # scan.Channel = 1
         scan.ExecuteNoneModal()
@@ -458,7 +456,6 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
         topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
         # repeat scan for the second channel
-        scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
         SetScanChannel(scan, 2, UseOpticalSwitch)
         # scan.Channel = 2
 
@@ -549,7 +546,6 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanRange2').DataItem
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
-    hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
     SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
     # hexapod_scan.Channel = 1
 
@@ -901,7 +897,6 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanRange2').DataItem
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
-    hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
     SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
     # hexapod_scan.Channel = 1
 
@@ -1089,7 +1084,6 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanRange2').DataItem
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
-    hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
     SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
     # hexapod_scan.Channel = 1
 
@@ -1256,7 +1250,6 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
     hexapod_scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanRange2').DataItem
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
-    hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
     SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
     # hexapod_scan.Channel = 1
 

@@ -266,7 +266,6 @@ def NanocubeSpiralScan50(fb_channel, plot_output = False):
 	scan.Frequency = 4
 	scan.MidPosition1 = 50
 	scan.MidPosition2 = 50
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, fb_channel, UseOpticalSwitch)
 	scan.SaveRecordData = plot_output
 	# scan.ExecuteOnce = SequenceObj.AutoStep
@@ -1187,7 +1186,6 @@ def FirstLightSearchSingleChannel(StepName, SequenceObj, TestMetrics, TestResult
 	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
@@ -1285,7 +1283,6 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
@@ -1528,7 +1525,6 @@ def OptimizeRollAngleHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 	hscan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
 	hscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
 	hscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
-	hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	
 	SetScanChannel(hscan, 1, UseOpticalSwitch)
 	# hscan.Channel = 1
@@ -1611,7 +1607,6 @@ def OptimizeRollAngleNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 	nscan.Axis2Position = 50
 	nscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanVelocity').DataItem * 1000
 	nscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanFrequency').DataItem
-	nscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(nscan, 1, UseOpticalSwitch)
 	# nscan.Channel = 1
 	nscan.ExecuteOnce = SequenceObj.AutoStep
@@ -1807,7 +1802,6 @@ def BalanceDryAlignmentNanocube2(StepName, SequenceObj, TestMetrics, TestResults
 	while retries < 3 and not SequenceObj.Halt:
 
 		# start the algorithms
-		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 		SetScanChannel(hscan, 1, UseOpticalSwitch)
 		# hscan.Channel = 1
 		#hscan.ExecuteNoneModal() # use nanocube now
@@ -1826,7 +1820,6 @@ def BalanceDryAlignmentNanocube2(StepName, SequenceObj, TestMetrics, TestResults
 		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
 
 		# repeat scan for the second channel
-		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
 		SetScanChannel(hscan, 2, UseOpticalSwitch)
 		# hscan.Channel = 2
 
@@ -1961,10 +1954,8 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 		HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
 
 		# start the algorithms
-		scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 		SetScanChannel(scan, 1, UseOpticalSwitch)
 		# scan.Channel = 1
-		climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 		SetScanChannel(climb, 1, UseOpticalSwitch)
 		# climb.Channel = 1
 		#scan.ExecuteNoneModal()
@@ -2001,10 +1992,8 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 		
 
 		# repeat scan for the second channel
-		scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
 		SetScanChannel(scan, 2, UseOpticalSwitch)
 		# scan.Channel = 2
-		climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
 		SetScanChannel(climb, 2, UseOpticalSwitch)
 		# climb.Channel = 2
 
@@ -2158,10 +2147,8 @@ def NanocubeAlignLoop(StepName, SequenceObj, TestMetrics, TestResults):
 	axis2_sign = -1
 
 	# set channel to align
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
-	climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(climb, 1, UseOpticalSwitch)
 	# climb.Channel = 1
 	
@@ -2245,7 +2232,6 @@ def ApplyEpoxy(StepName, SequenceObj, TestMetrics, TestResults):
 	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
@@ -2339,7 +2325,6 @@ def BalanceWetAlignmentHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 	while retries < 3 and not SequenceObj.Halt:
 
 		# start the algorithms
-		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 		SetScanChannel(hscan, 1, UseOpticalSwitch)
 		# hscan.Channel = 1
 		hscan.ExecuteNoneModal()
@@ -2354,7 +2339,6 @@ def BalanceWetAlignmentHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 		topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
 		# repeat scan for the second channel
-		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
 		SetScanChannel(hscan, 2, UseOpticalSwitch)
 		# hscan.Channel = 2
 
@@ -3217,7 +3201,6 @@ def AreaScan(scanAlgorithm, SequenceObj, TestMetrics, TestResults):
 	scan.Frequency = 4
 	scan.MidPosition1 = 50
 	scan.MidPosition2 = 50
-	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
 	scan.SaveRecordData = True

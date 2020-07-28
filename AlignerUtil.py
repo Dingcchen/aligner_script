@@ -46,12 +46,19 @@ IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
 def SetScanChannel(scan, channel, useOpticalSwitch = False):
 	if(useOpticalSwitch):
 		scan.Channel = 1;
+		scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 		if(channel == 1):
 			IOController.SetOutputValue('OpticalSwitch', False)
 		else:
 			IOController.SetOutputValue('OpticalSwitch', True)
 	else:
 		scan.Channel = channel
+		if(channel == 1):
+			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
+			IOController.SetOutputValue('OpticalSwitch', False)
+		else:
+			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
+			IOController.SetOutputValue('OpticalSwitch', True)
 
 
 
