@@ -25,7 +25,6 @@ from time import sleep
 import csv
 
 
-IOControl = HardwareFactory.Instance.GetHardwareByName('IOControl')
 ChannelsAnalogSignals = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals')
 Nanocube = HardwareFactory.Instance.GetHardwareByName('Nanocube')
 Hexapod = HardwareFactory.Instance.GetHardwareByName('Hexapod')
@@ -38,6 +37,23 @@ DownCameraStages = HardwareFactory.Instance.GetHardwareByName('DownCameraStages'
 SideCamRingLightControl = HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl')
 SideCameraStages = HardwareFactory.Instance.GetHardwareByName('SideCameraStages')
 MachineVision = HardwareFactory.Instance.GetHardwareByName('MachineVision')
+IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
+
+#-------------------------------------------------------------------------------
+# SetScanChannel
+#
+#-------------------------------------------------------------------------------
+def SetScanChannel(scan, channel, useOpticalSwitch = False):
+	if(useOpticalSwitch):
+		scan.Channel = 1;
+		if(channel == 1):
+			IOController.SetOutputValue('OpticalSwitch', False)
+		else:
+			IOController.SetOutputValue('OpticalSwitch', True)
+	else:
+		scan.Channel = channel
+
+
 
 #-------------------------------------------------------------------------------
 # OptimizePolarizationScan
@@ -200,4 +216,25 @@ def FastOptimizePolarizationScan(SequenceObj, controller, feedback_device, feedb
 	
 	return True
 
+
+#-------------------------------------------------------------------------------
+# GradientSearch
+#-------------------------------------------------------------------------------
+TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
+BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
+
+def NanocubeGradientScan(monitor = TopChanMonitorSignal, channel = 1, axis1 = 'Y', axis2 = 'Z'):
+	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
+	climb.Axis1 = axis1
+	climb.Axis2 = axis2
+	climb.MonitorInstrument = monitor
+	climb.Channel = channel
+	climb.ExecuteOnce = SequenceObj.AutoStep
+	climb.ExecuteNoneModal()
+	Utility.DelayMS(500)
+	chanpos = Nanocube.GetAxesPositions()
+	num_IFF_samples = 5
+	chan_peak_V = monitor.ReadPower()
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(chanpos[0],chanpos[1],chanpos[2],chan_peak_V))
+	retrun (chanpos, chan_peak_V)
 

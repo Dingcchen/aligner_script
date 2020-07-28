@@ -23,6 +23,9 @@ clr.AddReferenceToFile('CiscoAligner.exe')
 from CiscoAligner import PickAndPlace
 from CiscoAligner import Station
 from CiscoAligner import Alignments
+from AlignerUtil import * 
+
+UseOpticalSwitch = True
 
 def Template(StepName, SequenceObj, TestMetrics, TestResults):
     # DO NOT DELETE THIS METHOD
@@ -317,7 +320,8 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
     scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
     scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-    scan.Channel = 1
+    SetScanChannel(scan, 1, UseOpticalSwitch)
+    # scan.Channel = 1
 
     Axis = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationAxis').DataItem
     
@@ -440,7 +444,8 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
 
         # start the algorithms
         scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-        scan.Channel = 1
+        SetScanChannel(scan, 1, UseOpticalSwitch)
+        # scan.Channel = 1
         scan.ExecuteNoneModal()
         # check scan status
         if scan.IsSuccess == False or SequenceObj.Halt:
@@ -454,7 +459,8 @@ def SweepOptimizedBalanceWetAlignment(StepName, SequenceObj, TestMetrics, TestRe
 
         # repeat scan for the second channel
         scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-        scan.Channel = 2
+        SetScanChannel(scan, 2, UseOpticalSwitch)
+        # scan.Channel = 2
 
         # start the algorithms again
         scan.ExecuteNoneModal()
@@ -544,7 +550,8 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
     hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-    hexapod_scan.Channel = 1
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
 
     ###############################
     ##### Nanocube scan setup #####
@@ -651,8 +658,10 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
             Utility.DelayMS(500)
             
             # start the Nanocube algorithms
-            hexapod_scan.Channel = 1
-            climb.Channel = 1
+            SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+            SetScanChannel(climb, 1, UseOpticalSwitch)
+            # hexapod_scan.Channel = 1
+            # climb.Channel = 1
             
             # # Move hexapod to middle so that climb doesnt cause walk-off from center as the routine continues to run
             HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
@@ -675,7 +684,8 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
             for i in range(num_IFF_samples):
                 top_sum_IFF = top_sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
                 
-            climb.Channel = 2
+            SetScanChannel(climb, 2, UseOpticalSwitch)
+            # climb.Channel = 2
             climb.ExecuteNoneModal()
             # check climb status
             if climb.IsSuccess == False or SequenceObj.Halt:
@@ -705,8 +715,10 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
     
     HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
     Utility.DelayMS(500)
-    hexapod_scan.Channel = 1
-    climb.Channel = 1            
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
+    SetScanChannel(climb, 1, UseOpticalSwitch)
+    # climb.Channel = 1            
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)
     Utility.DelayMS(2000)
     hexapod_scan.ExecuteNoneModal()
@@ -760,8 +772,10 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
     while retries < 5 and not SequenceObj.Halt:
 
         # start the Nanocube algorithms
-        hexapod_scan.Channel = 1
-        climb.Channel = 1
+        SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+        SetScanChannel(climb, 1, UseOpticalSwitch)
+        # hexapod_scan.Channel = 1
+        # climb.Channel = 1
 
         HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
         Utility.DelayMS(2000)
@@ -791,7 +805,8 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 
         # repeat scan for the second channel
         # start the Nanocube climb algorithm
-        climb.Channel = 2
+        SetScanChannel(climb, 2, UseOpticalSwitch)
+        # climb.Channel = 2
         climb.ExecuteNoneModal()
         # check climb status
         if climb.IsSuccess == False or SequenceObj.Halt:
@@ -887,7 +902,8 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
     hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-    hexapod_scan.Channel = 1
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
 
     ###############################
     ##### Nanocube scan setup #####
@@ -956,8 +972,10 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
             Utility.DelayMS(500)
             
             # start the Nanocube algorithms
-            hexapod_scan.Channel = 1
-            climb.Channel = 1
+            SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+            SetScanChannel(climb, 1, UseOpticalSwitch)
+            # hexapod_scan.Channel = 1
+            # climb.Channel = 1
             
             # # Move hexapod to middle so that climb doesnt cause walk-off from center as the routine continues to run
             HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
@@ -980,7 +998,8 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
             for i in range(num_IFF_samples):
                 top_sum_IFF = top_sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
                 
-            climb.Channel = 2
+            SetScanChannel(climb, 2, UseOpticalSwitch)
+            # climb.Channel = 2
             climb.ExecuteNoneModal()
             # check climb status
             if climb.IsSuccess == False or SequenceObj.Halt:
@@ -1010,8 +1029,10 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
     
     HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
     Utility.DelayMS(500)
-    hexapod_scan.Channel = 1
-    climb.Channel = 1            
+    SetScanChannel(climb, 1, UseOpticalSwitch)
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
+    # climb.Channel = 1            
     HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)
     Utility.DelayMS(2000)
     hexapod_scan.ExecuteNoneModal()
@@ -1069,7 +1090,8 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
     hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-    hexapod_scan.Channel = 1
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
 
     ###############################
     ##### Nanocube scan setup #####
@@ -1101,8 +1123,10 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
     while retries < 5 and not SequenceObj.Halt:
 
         # start the Nanocube algorithms
-        hexapod_scan.Channel = 1
-        climb.Channel = 1
+        SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+        SetScanChannel(climb, 1, UseOpticalSwitch)
+        # hexapod_scan.Channel = 1
+        # climb.Channel = 1
 
         HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
         Utility.DelayMS(2000)
@@ -1132,7 +1156,8 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
 
         # repeat scan for the second channel
         # start the Nanocube climb algorithm
-        climb.Channel = 2
+        SetScanChannel(climb, 2, UseOpticalSwitch)
+        # climb.Channel = 2
         climb.ExecuteNoneModal()
         # check climb status
         if climb.IsSuccess == False or SequenceObj.Halt:
@@ -1232,7 +1257,8 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
     hexapod_scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanVelocity').DataItem
     hexapod_scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PitchOptimizationHexapodScanFrequency').DataItem
     hexapod_scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-    hexapod_scan.Channel = 1
+    SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+    # hexapod_scan.Channel = 1
 
     ###############################
     ##### Nanocube scan setup #####
@@ -1305,8 +1331,10 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
             Utility.DelayMS(500)
             
             # start the Nanocube algorithms
-            hexapod_scan.Channel = 1
-            climb.Channel = 1
+            SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+            SetScanChannel(climb, 1, UseOpticalSwitch)
+            # hexapod_scan.Channel = 1
+            # climb.Channel = 1
             
             # # Move hexapod to middle so that climb doesnt cause walk-off from center as the routine continues to run
             HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
@@ -1329,7 +1357,8 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
             for i in range(num_IFF_samples):
                 top_sum_IFF = top_sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
                 
-            climb.Channel = 2
+            SetScanChannel(climb, 2, UseOpticalSwitch)
+            # climb.Channel = 2
             climb.ExecuteNoneModal()
             # check climb status
             if climb.IsSuccess == False or SequenceObj.Halt:
@@ -1356,8 +1385,10 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
             if SequenceObj.Halt:
                 return 0
 
-        hexapod_scan.Channel = 1
-        climb.Channel = 1            
+        SetScanChannel(climb, 1, UseOpticalSwitch)
+        SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+        # hexapod_scan.Channel = 1
+        # climb.Channel = 1            
         HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)
         Utility.DelayMS(2000)
         hexapod_scan.ExecuteNoneModal()
@@ -1411,8 +1442,10 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
     while retries < 5 and not SequenceObj.Halt:
 
         # start the Nanocube algorithms
-        hexapod_scan.Channel = 1
-        climb.Channel = 1
+        SetScanChannel(climb, 1, UseOpticalSwitch)
+        SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
+        # hexapod_scan.Channel = 1
+        # climb.Channel = 1
 
         HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
         Utility.DelayMS(2000)
@@ -1444,7 +1477,8 @@ def BalanceWetAlignNanocubeNoPitch(StepName, SequenceObj, TestMetrics, TestResul
 
         # repeat scan for the second channel
         # start the Nanocube climb algorithm
-        climb.Channel = 2        
+        SetScanChannel(climb, 2, UseOpticalSwitch)
+        # climb.Channel = 2        
         climb.ExecuteNoneModal()
         # check climb status
         if climb.IsSuccess == False or SequenceObj.Halt:

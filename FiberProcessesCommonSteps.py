@@ -25,7 +25,9 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
+from AlignerUtil import * 
 
+UseOpticalSwitch = True
 
 #-------------------------------------------------------------------------------
 # OptimizePolarizationMPC201
@@ -265,7 +267,7 @@ def NanocubeSpiralScan50(fb_channel, plot_output = False):
 	scan.MidPosition1 = 50
 	scan.MidPosition2 = 50
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = fb_channel
+	SetScanChannel(scan, fb_channel, UseOpticalSwitch)
 	scan.SaveRecordData = plot_output
 	# scan.ExecuteOnce = SequenceObj.AutoStep
 
@@ -314,6 +316,7 @@ def Template(StepName, SequenceObj, TestMetrics, TestResults):
 #-------------------------------------------------------------------------------
 def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	# for quick test.
+	# IOController.SetOutputValue('OpticalSwitch', False)
 	# AreaScan('NanocubeSpiralCVScan', SequenceObj, TestMetrics, TestResults)
 	# return 1
 
@@ -1185,7 +1188,8 @@ def FirstLightSearchSingleChannel(StepName, SequenceObj, TestMetrics, TestResult
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = 1
+	SetScanChannel(scan, 1, UseOpticalSwitch)
+	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
 
 	# one scan to get initial power
@@ -1282,7 +1286,8 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = 1
+	SetScanChannel(scan, 1, UseOpticalSwitch)
+	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
 
 	# one scan to get initial power
@@ -1299,6 +1304,7 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 		while retries < limit:
 			scan.ExecuteNoneModal()
 			if scan.IsSuccess == False or SequenceObj.Halt:
+				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 coarse scan failed!')
 				return 0
 
 			# wait to settle
@@ -1329,6 +1335,7 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	# start the scan again
 	scan.ExecuteNoneModal()
 	if scan.IsSuccess == False or SequenceObj.Halt:
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
 		return 0
 
 	# save top chan aligned position
@@ -1342,17 +1349,22 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	#scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	#scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
 	#scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-	scan.Channel = 2
+	SetScanChannel(scan, 2, UseOpticalSwitch)
+	# scan.Channel = 2
 	# one scan to get initial power
 	scan.ExecuteNoneModal()
 	if scan.IsSuccess == False or  SequenceObj.Halt:
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
 		return 0
 	# wait to settle
 	#Utility.DelayMS(500)
-
-	bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
+	if UseOpticalSwitch:
+		bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
+	else:	
+		bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
 	retries = 0
 	if bottominitpower < minpower:
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to find min power on Ch2.')
 		return 0
 		# # do a few scans to make sure we are in the closest range possible
 		# while retries < limit:
@@ -1425,7 +1437,8 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 		while retries < limit and not SequenceObj.Halt:
 
 			# start the algorithms
-			scan.Channel = 1
+			SetScanChannel(scan, 1, UseOpticalSwitch)
+			# scan.Channel = 1
 			scan.ExecuteNoneModal()
 			# check scan status
 			if scan.IsSuccess == False or SequenceObj.Halt:
@@ -1435,7 +1448,8 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 			topchanpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
 
 			# repeat scan for the second channel
-			scan.Channel = 2
+			SetScanChannel(scan, 2, UseOpticalSwitch)
+			# scan.Channel = 2
 			scan.ExecuteNoneModal()
 			# check scan status
 			if scan.IsSuccess == False or SequenceObj.Halt:
@@ -1516,7 +1530,8 @@ def OptimizeRollAngleHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 	hscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
 	hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
 	
-	hscan.Channel = 1
+	SetScanChannel(hscan, 1, UseOpticalSwitch)
+	# hscan.Channel = 1
 	hscan.ExecuteOnce = SequenceObj.AutoStep
 
 	# Load the simplex search parameter to optimize roll angle
@@ -1597,7 +1612,8 @@ def OptimizeRollAngleNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 	nscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanVelocity').DataItem * 1000
 	nscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanFrequency').DataItem
 	nscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	nscan.Channel = 1
+	SetScanChannel(nscan, 1, UseOpticalSwitch)
+	# nscan.Channel = 1
 	nscan.ExecuteOnce = SequenceObj.AutoStep
 
 	# Load the simplex search parameter to optimize roll angle
@@ -1792,7 +1808,8 @@ def BalanceDryAlignmentNanocube2(StepName, SequenceObj, TestMetrics, TestResults
 
 		# start the algorithms
 		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-		hscan.Channel = 1
+		SetScanChannel(hscan, 1, UseOpticalSwitch)
+		# hscan.Channel = 1
 		#hscan.ExecuteNoneModal() # use nanocube now
 		if retries == 0:
 			NanocubeSpiralScan50(1,plot_output = True)
@@ -1810,7 +1827,8 @@ def BalanceDryAlignmentNanocube2(StepName, SequenceObj, TestMetrics, TestResults
 
 		# repeat scan for the second channel
 		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-		hscan.Channel = 2
+		SetScanChannel(hscan, 2, UseOpticalSwitch)
+		# hscan.Channel = 2
 
 		# start the algorithms again
 		hscan.ExecuteNoneModal()
@@ -1944,9 +1962,11 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 
 		# start the algorithms
 		scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-		scan.Channel = 1
+		SetScanChannel(scan, 1, UseOpticalSwitch)
+		# scan.Channel = 1
 		climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-		climb.Channel = 1
+		SetScanChannel(climb, 1, UseOpticalSwitch)
+		# climb.Channel = 1
 		#scan.ExecuteNoneModal()
 		if retries == -1:
 			if not NanocubeSpiralScan50(1,plot_output = True):
@@ -1982,9 +2002,11 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 
 		# repeat scan for the second channel
 		scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-		scan.Channel = 2
+		SetScanChannel(scan, 2, UseOpticalSwitch)
+		# scan.Channel = 2
 		climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-		climb.Channel = 2
+		SetScanChannel(climb, 2, UseOpticalSwitch)
+		# climb.Channel = 2
 
 		# start the algorithms again
 		#scan.ExecuteNoneModal()
@@ -2137,9 +2159,11 @@ def NanocubeAlignLoop(StepName, SequenceObj, TestMetrics, TestResults):
 
 	# set channel to align
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = 1
+	SetScanChannel(scan, 1, UseOpticalSwitch)
+	# scan.Channel = 1
 	climb.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	climb.Channel = 1
+	SetScanChannel(climb, 1, UseOpticalSwitch)
+	# climb.Channel = 1
 	
 	for n in range(num_scans):
 		if SequenceObj.Halt:
@@ -2222,7 +2246,8 @@ def ApplyEpoxy(StepName, SequenceObj, TestMetrics, TestResults):
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = 1
+	SetScanChannel(scan, 1, UseOpticalSwitch)
+	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
 	scan.ExecuteNoneModal()
 	if scan.IsSuccess == False or SequenceObj.Halt:
@@ -2315,7 +2340,8 @@ def BalanceWetAlignmentHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 
 		# start the algorithms
 		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-		hscan.Channel = 1
+		SetScanChannel(hscan, 1, UseOpticalSwitch)
+		# hscan.Channel = 1
 		hscan.ExecuteNoneModal()
 		# check scan status
 		if hscan.IsSuccess == False or SequenceObj.Halt:
@@ -2329,7 +2355,8 @@ def BalanceWetAlignmentHexapod(StepName, SequenceObj, TestMetrics, TestResults):
 
 		# repeat scan for the second channel
 		hscan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('BottomChanMonitorSignal')
-		hscan.Channel = 2
+		SetScanChannel(hscan, 2, UseOpticalSwitch)
+		# hscan.Channel = 2
 
 		# start the algorithms again
 		hscan.ExecuteNoneModal()
@@ -2441,8 +2468,10 @@ def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults)
 	while retries < 5 and not SequenceObj.Halt:
 
 		# start the algorithms
-		scan.Channel = 1
-		climb.Channel = 1
+		SetScanChannel(scan, 1, UseOpticalSwitch)
+		SetScanChannel(climb, 1, UseOpticalSwitch)
+		# scan.Channel = 1
+		# climb.Channel = 1
 		scan.ExecuteNoneModal()
 		# check scan status
 		if scan.IsSuccess == False or SequenceObj.Halt:
@@ -2457,8 +2486,10 @@ def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults)
 		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
 
 		# repeat scan for the second channel
-		scan.Channel = 2
-		climb.Channel = 2
+		SetScanChannel(scan, 2, UseOpticalSwitch)
+		SetScanChannel(climb, 2, UseOpticalSwitch)
+		# scan.Channel = 2
+		# climb.Channel = 2
 		scan.ExecuteNoneModal()
 		# check scan status
 		if scan.IsSuccess == False or SequenceObj.Halt:
@@ -2554,7 +2585,8 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
 	climb.ExecuteOnce = SequenceObj.AutoStep
 	
 	# run climb on channel 1
-	climb.Channel = 1
+	SetScanChannel(climb, 1, UseOpticalSwitch)
+	# climb.Channel = 1
 	climb.ExecuteNoneModal()
 	if climb.IsSuccess == False or SequenceObj.Halt:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
@@ -2574,7 +2606,8 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
 		return 0
 
 	# run climb on channel 2
-	climb.Channel = 2
+	SetScanChannel(climb, 2, UseOpticalSwitch)
+	# climb.Channel = 2
 	climb.ExecuteNoneModal()
 	if climb.IsSuccess == False or SequenceObj.Halt:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
@@ -3185,7 +3218,8 @@ def AreaScan(scanAlgorithm, SequenceObj, TestMetrics, TestResults):
 	scan.MidPosition1 = 50
 	scan.MidPosition2 = 50
 	scan.MonitorInstrument = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').FindByName('TopChanMonitorSignal')
-	scan.Channel = 1
+	SetScanChannel(scan, 1, UseOpticalSwitch)
+	# scan.Channel = 1
 	scan.SaveRecordData = True
 	# scan.ExecuteOnce = SequenceObj.AutoStep
 
