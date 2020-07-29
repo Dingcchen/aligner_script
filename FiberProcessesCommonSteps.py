@@ -2630,6 +2630,65 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 # "slow" align using the nanocube to move and powermeter for feedback
 #-------------------------------------------------------------------------------
 def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
+	def GridScanPowermeter(SequenceObj, axes, meter, channel, step_size = 1., scan_width = 10.):
+		starting_position = Nanocube.GetAxisPosition(axis)
+		max_signal = -999.0
+		i_pos = starting_position - scan_width/2
+		j_pos = starting_position - scan_width/2
+		max_positions = [i_pos, j_pos]
+		for i in range(num_steps):
+			for j in range(num_steps):
+				Nanocube.MoveAxesAbsolute(axes, [i_pos, j_pos], Motion.AxisMotionSpeeds.Fast, True)
+				sleep(0.15)
+				signal = meter.ReadPower(channel)
+				if(signal > max_signal):
+				    max_positions = [i_pos, j_pos]
+				j_pos += step_size
+				if SequenceObj.Halt:
+					return False
+			i_pos += step_size
+		Nanocube.MoveAxesAbsolute(axes, max_positions, Motion.AxisMotionSpeeds.Fast, True)
+		return True
+		
+	step_size = 0.5 #um
+	scan_width = 10. #um
+	num_steps = int(round(scan_width/step_size)) + 1
+	
+	starting_positions = Nanocube.GetAxesPositions()
+	channel = 1
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+		return 0
+	
+	axes = ['Y', 'Z']
+	if not GridScanPowermeter(SequenceObj, axes, Powermeter, channel, step_size, scan_width):
+			return 0	
+	
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+		return 0
+	
+	if LogHelper.AskContinue('Channel 1 loopback is peaked!') == False:
+		return 0
+	
+	channel = 2
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+		return 0
+	
+	axes = ['Y', 'Z']
+	if not GridScanPowermeter(SequenceObj, axes, Powermeter, channel, step_size, scan_width):
+			return 0	
+	
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+		return 0
+
+	if LogHelper.AskContinue('Channel 2 loopback is peaked!') == False:
+		return 0
+	return 1
+	
+#-------------------------------------------------------------------------------
+# LoopbackAlignPowermeter
+# "slow" align using the nanocube to move and powermeter for feedback
+#-------------------------------------------------------------------------------
+def LoopbackAlignPowermeter_cross(StepName, SequenceObj, TestMetrics, TestResults):
 	def LineScanPowermeter(SequenceObj, axis, feedback_channel, step_size = 1., scan_width = 10.):
 		starting_position = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(axis)
 		fb_signal = []
@@ -2699,7 +2758,6 @@ def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
 	return 1
 	
-
 def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
 	name_prefix = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_name_prefix').DataItem
 	axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1').DataItem
