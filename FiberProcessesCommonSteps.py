@@ -17,6 +17,7 @@ clr.AddReferenceToFile('HAL.dll')
 from HAL import Motion
 from HAL import HardwareFactory
 from HAL import HardwareInitializeState
+from HAL.SourceController import ScrambleMethodType
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
 clr.AddReferenceToFile('CiscoAligner.exe')
@@ -28,223 +29,6 @@ import csv
 from AlignerUtil import * 
 
 UseOpticalSwitch = True
-
-#-------------------------------------------------------------------------------
-# OptimizePolarizationMPC201
-# Helper function to optimize polarization
-# Very slow, use FastOptimizePolarizationMPC201 instead
-#-------------------------------------------------------------------------------
-def OptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', step_size = .1, convergence_band_percent = 10):
-	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
-	polarization_controller_channels = ['1','2','3','4']
-
-	#set all polarization controller channels to a predefined value (because reasons???)
-	for channel in polarization_controller_channels:
-		if not polarization_controller.SetPolarization(1, channel):
-			return False
-	
-	num_steps = int(2*round(1/step_size,0)) + 1
-
-	converged = False
-	if mode == 'max':
-		last_optimum = -99
-	else:
-		last_optimum = 99
-
-	while not converged:
-		for channel in polarization_controller_channels:
-			#loop through the polarization states on this channel and record the feedback signal
-			fb_signal = []
-			for i in range(num_steps):
-				if not polarization_controller.SetPolarization(i*step_size, channel):
-					return False
-				sleep(0.15)
-				if feedback_device=='Powermeter':
-					if (feedback_channel == 1):
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1')[1][0])
-					elif (feedback_channel == 2):
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('2:1')[1][0])
-					else:
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers(feedback_channel)[1][0])
-				elif feedback_device=='HexapodAnalogInput':
-					fb_signal.append(HardwareFactory.Instance.GetHardwareByName('Hexapod').ReadAnalogInput(feedback_channel))
-				elif feedback_device=='NanocubeAnalogInput':
-					fb_signal.append(HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel))
-				else:
-					return False
-				if SequenceObj.Halt:
-					return False
-			#set the channel to the max (or min) polarization value found
-			if mode == 'max':
-				if not polarization_controller.SetPolarization(step_size*fb_signal.index(max(fb_signal)), channel):
-						return False
-			else:
-				if not polarization_controller.SetPolarization(step_size*fb_signal.index(min(fb_signal)), channel):
-						return False
-		sleep(0.2)
-		if feedback_device=='Powermeter':
-			if (feedback_channel == 1):
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1'))[1][0]
-			elif (feedback_channel == 2):
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('2:1'))[1][0]
-			else:
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers(feedback_channel))[1][0]
-		elif feedback_device=='HexapodAnalogInput':
-			current_optimum = HardwareFactory.Instance.GetHardwareByName('Hexapod').ReadAnalogInput(feedback_channel)
-		elif feedback_device=='NanocubeAnalogInput':
-			current_optimum = HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel)
-		else:
-			return False
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimum polarization found so far: {0:.02f} dBm'.format(current_optimum)) # add other devices!!!
-		if abs((current_optimum - last_optimum)/current_optimum) < convergence_band_percent/100.0:
-			converged = True
-		last_optimum = current_optimum
-
-	return True
-	
-#-------------------------------------------------------------------------------
-# FastOptimizePolarizationMPC201
-# Helper function to optimize polarization
-#-------------------------------------------------------------------------------
-def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', step_size = .1, convergence_band_percent = 10):
-	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
-	if feedback_device == 'Powermeter':
-		HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(False)
-	polarization_controller_channels = ['1','2','3','4']
-	peak_position = [2,2,2,2]
-
-	#set all polarization controller channels to a predefined value (because reasons???)
-	for channel in range(len(polarization_controller_channels)):
-		# if not polarization_controller.SetPolarization(1, channel):
-			# return False
-		peak_position[channel] = polarization_controller.ReadPolarization(polarization_controller_channels[channel])[0]
-	
-	num_steps = int(2*round(1/step_size,0)) + 1
-
-	converged = False
-	if mode == 'max':
-		last_optimum = -99
-	else:
-		last_optimum = 99
-
-	while not converged:
-		for channel in range(len(polarization_controller_channels)):
-			#loop through the polarization states on this channel and record the feedback signal
-			fb_signal = []
-			positions = []
-			i=0
-			search_positive = True
-			search_negative = True
-			next_position = peak_position[channel]
-			while True:
-				if not polarization_controller.SetPolarization(next_position, polarization_controller_channels[channel]):
-					if feedback_device == 'Powermeter':
-						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-					return False
-				positions.append(next_position)
-				#sleep(0.15)
-				
-				if feedback_device=='Powermeter':
-					if (feedback_channel == 1):
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1')[1][0])
-					elif (feedback_channel == 2):
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('2:1')[1][0])
-					else:
-						fb_signal.append(HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers(feedback_channel)[1][0])
-				elif feedback_device=='HexapodAnalogInput':
-					fb_signal.append(HardwareFactory.Instance.GetHardwareByName('Hexapod').ReadAnalogInput(feedback_channel))
-				elif feedback_device=='NanocubeAnalogInput':
-					fb_signal.append(HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel))
-				else:
-					if feedback_device == 'Powermeter':
-						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-					return False
-				if SequenceObj.Halt:
-					if feedback_device == 'Powermeter':
-						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-					return False
-				
-				#decide where to search next
-				if search_positive:
-					next_position = positions[-1] + step_size
-				elif search_negative:
-					next_position = positions[-1] - step_size
-				else:
-					break
-				
-				# wrap paddle values between 0 and 4
-				if next_position < 0:
-					next_position += 4
-				elif next_position > 4:
-					next_position -= 4
-				
-				#check if signal is increasing or decreasing and update search direction if needed
-				if len(positions) >= 3:
-					if mode == 'max':
-						if search_positive:
-							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]):
-								search_positive = False
-						elif search_negative:
-							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]):
-								search_negative = False
-						else:
-							break
-					else:
-						if search_positive:
-							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] > fb_signal[-2]) and (fb_signal[-2] > fb_signal[-3]):
-								search_positive = False
-						elif search_negative:
-							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] > fb_signal[-2]) and (fb_signal[-2] > fb_signal[-3]):
-								search_negative = False
-						else:
-							break
-				if len(positions) > 30:
-					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many tries on channel ' + polarization_controller_channels[channel] + "!") # add other devices!!!
-					return 0
-					
-				i += 1
-			#set the channel to the max (or min) polarization value found
-			if mode == 'max':
-				peak_position[channel] = positions[fb_signal.index(max(fb_signal))]
-				if not polarization_controller.SetPolarization(peak_position[channel], polarization_controller_channels[channel]):
-						if feedback_device == 'Powermeter':
-							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-						return False
-			else:
-				peak_position[channel] = positions[fb_signal.index(min(fb_signal))]
-				if not polarization_controller.SetPolarization(peak_position[channel], polarization_controller_channels[channel]):
-						if feedback_device == 'Powermeter':
-							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-						return False
-		#sleep(0.2)
-		if feedback_device=='Powermeter':
-			if (feedback_channel == 1):
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1'))[1][0]
-			elif (feedback_channel == 2):
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('2:1'))[1][0]
-			else:
-				current_optimum = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers(feedback_channel))[1][0]
-		elif feedback_device=='HexapodAnalogInput':
-			current_optimum = HardwareFactory.Instance.GetHardwareByName('Hexapod').ReadAnalogInput(feedback_channel)
-		elif feedback_device=='NanocubeAnalogInput':
-			current_optimum = HardwareFactory.Instance.GetHardwareByName('Nanocube').ReadAnalogInput(feedback_channel)
-		else:
-			if feedback_device == 'Powermeter':
-				HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-			return False
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimum polarization found so far: {0:.02f} dBm'.format(current_optimum)) # add other devices!!!
-		if abs((current_optimum - last_optimum)/current_optimum) < convergence_band_percent/100.0:
-			converged = True
-		last_optimum = current_optimum
-		step_size = step_size/2
-		if step_size < 0.05:
-			step_size = 0.05
-	
-	return True
 
 #-------------------------------------------------------------------------------
 # NanocubeSpiralScan50
@@ -1131,10 +915,13 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	# move to a location far enough for side view vision to work better
 	# the light causes the die to bleed into the MPO
 	processdist = dest.Item1 - start.Item1 - TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignGapX').DataItem
+	TestResults.AddTestResult('optical_z0', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
 
 	if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
 		return 0
+	
+	TestResults.AddTestResult('optical_z0', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X') + TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'VisionDryAlignGapX').DataItem)
 	
 	TestResults.AddTestResult('vision_align_hexapod_final_X', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'))
 	TestResults.AddTestResult('vision_align_hexapod_final_Y', HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Y'))
@@ -1264,6 +1051,16 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+	
+	#PolarizationControl = HardwareFactory.Instance.GetHardwareByName('PolarizationControl')
+	
+	PolarizationControl.SetScrambleMethod(ScrambleMethodType.Tornado)
+	PolarizationControl.SetScrambleRate(2000) #Hz
+	PolarizationControl.SetScrambleEnableState(True)
+	if not PolarizationControl.ReadScrambleEnableState():
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to enable polarization scramble!')
+		return 0
+	
 
 	# declare variables we will use
 	retries = 0
@@ -1271,6 +1068,7 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	
 	#Ask operator to fire the lasers
 	if LogHelper.AskContinue('Fire the lasers! Click Yes when done, No to abort.') == False:
+		PolarizationControl.SetScrambleEnableState(False)
 		return 0
 
 	# get the hexapod alignment algorithm
@@ -1283,6 +1081,7 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanRange2').DataItem
 	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanVelocity').DataItem
 	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodRoughScanFrequency').DataItem
+	# scan.Threshold = minpower # Volts
 	SetScanChannel(scan, 1, UseOpticalSwitch)
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
@@ -1773,132 +1572,15 @@ def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
 
 #-------------------------------------------------------------------------------
 # BalanceDryAlignment
-# Balanced dry alignment using Nanocube and Hexapod only
-#-------------------------------------------------------------------------------
-def BalanceDryAlignmentNanocube2(StepName, SequenceObj, TestMetrics, TestResults):
-	#assume we are "balance aligned" between channels 1 and 2
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# retreive zero position
-	zero = TestResults.RetrieveTestResult('Optical_Z_Zero_Position')
-	# move back to zero position
-	HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Normal, True)
-
-	# get the alignment algorithms
-	hscan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-
-	hscan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
-	hscan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
-	hscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
-	hscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
-	hscan.ExecuteOnce = SequenceObj.AutoStep
-
-	# set up a loop to zero in on the roll angle
-	width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-	retries = 0
-
-	while retries < 3 and not SequenceObj.Halt:
-
-		# start the algorithms
-		SetScanChannel(hscan, 1, UseOpticalSwitch)
-		# hscan.Channel = 1
-		#hscan.ExecuteNoneModal() # use nanocube now
-		if retries == 0:
-			NanocubeSpiralScan50(1,plot_output = True)
-		else: 
-			NanocubeSpiralScan50(1,plot_output = False)
-		# check scan status
-		#if hscan.IsSuccess == False or SequenceObj.Halt:
-		 #	 return 0
-
-		# wait to settle
-		#Utility.DelayMS(500)
-
-		# remember the final position
-		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-
-		# repeat scan for the second channel
-		SetScanChannel(hscan, 2, UseOpticalSwitch)
-		# hscan.Channel = 2
-
-		# start the algorithms again
-		hscan.ExecuteNoneModal()
-		NanocubeSpiralScan50(2,plot_output = False)
-		# check scan status
-		#if hscan.IsSuccess == False or SequenceObj.Halt:
-		 #	 return 0
-
-		# wait to settle
-		#Utility.DelayMS(500)
-
-		# get the final position of second channel
-		bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan((h/1000) / width))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(500)
-
-		retries += 1
-
-	if retries >= 3 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	
-	#hexpos = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
-	HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Y', (50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
-	HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('Z', (50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
-
-	# record the final dry align hexapod position
-	hposition = HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxesPositions()
-	TestResults.AddTestResult('Dry_Align_Hexapod_X', hposition[0])
-	TestResults.AddTestResult('Dry_Align_Hexapod_Y', hposition[1])
-	TestResults.AddTestResult('Dry_Align_Hexapod_Z', hposition[2])
-	TestResults.AddTestResult('Dry_Align_Hexapod_U', hposition[3])
-	TestResults.AddTestResult('Dry_Align_Hexapod_V', hposition[4])
-	TestResults.AddTestResult('Dry_Align_Hexapod_W', hposition[5])
-
-	# save powers
-	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
-
-	# save process values
-	TestResults.AddTestResult('Dry_Align_Power_Top_Outer_Chan', toppow)
-	TestResults.AddTestResult('Dry_Align_Power_Bottom_Outer_Chan', bottompow)
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return 1
-
-#-------------------------------------------------------------------------------
-# BalanceDryAlignment
 # Balanced dry alignment using Nanocube
 #-------------------------------------------------------------------------------
 def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults):
+	
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimizing polarization on ch1...')
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, feedback_device = 'HexapodAnalogInput'):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to optimize polarization on ch1!')
+		return 0
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Polarization optimized on ch1!')
 
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
@@ -1963,7 +1645,7 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 			if not NanocubeSpiralScan50(1,plot_output = True):
 				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1.')
 				return 0
-		else: 
+		elif ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) < minpower: 
 			if not NanocubeSpiralScan50(1,plot_output = False):
 				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1.')
 				return 0
@@ -1986,7 +1668,7 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
 		top_chan_peak_V = 0 
 		for i in range(num_IFF_samples):
-			top_chan_peak_V = top_chan_peak_V + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
+			top_chan_peak_V = top_chan_peak_V + ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument)
 		top_chan_peak_V = top_chan_peak_V/num_IFF_samples
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_chan_peak_V))
 		
@@ -1999,9 +1681,10 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 
 		# start the algorithms again
 		#scan.ExecuteNoneModal()
-		if not NanocubeSpiralScan50(2,plot_output = False):
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 2.')
-			return 0
+		if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) < minpower:
+			if not NanocubeSpiralScan50(2,plot_output = False):
+				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 2.')
+				return 0
 		# check scan status
 		#if scan.IsSuccess == False or SequenceObj.Halt:
 		#	 return 0
@@ -2018,7 +1701,7 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position ({0:.2f}, {1:.2f}, {2:.2f}) um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2]))
 		bottom_chan_peak_V = 0 
 		for i in range(num_IFF_samples):
-			bottom_chan_peak_V = bottom_chan_peak_V + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
+			bottom_chan_peak_V = bottom_chan_peak_V + ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument)
 		bottom_chan_peak_V = bottom_chan_peak_V/num_IFF_samples
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V))
 		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position: ' + str(bottomchanpos))
@@ -2617,6 +2300,14 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 		
 	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
 		return 0
+		
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1,mode='min'):
+		return 0
+		
+	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
+		return 0
+	
+	return 1
 
 	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=2):
 		return 0
@@ -2631,7 +2322,11 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 #-------------------------------------------------------------------------------
 def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
 	def GridScanPowermeter(SequenceObj, axes, meter, channel, step_size = 1., scan_width = 10.):
-		starting_position = Nanocube.GetAxisPosition(axis)
+		if(channel == 1):
+			IOController.SetOutputValue('OpticalSwitch', False)
+		else:
+			IOController.SetOutputValue('OpticalSwitch', True)
+		starting_position = Nanocube.GetAxesPosition(axes)
 		max_signal = -999.0
 		i_pos = starting_position - scan_width/2
 		j_pos = starting_position - scan_width/2
