@@ -388,10 +388,10 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 
 	scan.ExecuteNoneModal()
 	if not scan.IsSuccess:
-		Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
-		Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
-		Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-		#Nanocube.MoveAxesAbsolute(['X', 'Y', 'Z'], starting_positions, Motion.AxisMotionSpeeds.Normal, True)
+		# Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+		# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+		# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+		Nanocube.MoveAxesAbsolute(array(['X', 'Y', 'Z']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
 		return False
 
 	
@@ -557,4 +557,15 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 	Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 
+	return True
+
+def load_alignment_results(SequenceObj):
+	filename = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	with open(filename, 'r') as outfile:
+		return json.load(outfile)
+	
+def save_alignment_results(SequenceObj, alignment_results):
+	filename = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	with open(filename, 'w') as outfile:
+		json.dump(output, outfile, indent=2 , sort_keys=True)
 	return True

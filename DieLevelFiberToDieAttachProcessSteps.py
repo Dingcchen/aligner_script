@@ -62,7 +62,7 @@ def Template(StepName, SequenceObj, TestMetrics, TestResults):
 # Ask operator for serial numbers of the components
 #-------------------------------------------------------------------------------
 def LoadLoopbackDie(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	loadposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'LoadPresetPosition').DataItem #'BoardLoad'
 	fauvac = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUVaccumPortName').DataItem
 	dievac = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'TargetVaccumPortName').DataItem
@@ -160,6 +160,10 @@ def LoadLoopbackDie(StepName, SequenceObj, TestMetrics, TestResults):
 			return 0
 	else:
 		return 0
+	
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 
 	if SequenceObj.Halt:
 		return 0
@@ -171,7 +175,9 @@ def LoadLoopbackDie(StepName, SequenceObj, TestMetrics, TestResults):
 # Ask operator for serial numbers of the components
 #-------------------------------------------------------------------------------
 def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
+	
+	# loadposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'LoadPresetPosition').DataItem #'BoardLoad'
 	loadposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'LoadPresetPosition').DataItem #'BoardLoad'
 	fauvac = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUVaccumPortName').DataItem
 	dievac = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'TargetVaccumPortName').DataItem
@@ -196,6 +202,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 			TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Die_SN').DataItem = Die_SN
 			TestMetrics.UpdateTestMetricTables()
 		TestResults.AddTestResult('Die_SN', Die_SN)
+		alignment_results['Die_SN'] = Die_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
 	else:
 		return 0
@@ -208,6 +215,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 			TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAU_SN').DataItem = FAU_SN
 			TestMetrics.UpdateTestMetricTables()
 		TestResults.AddTestResult('FAU_SN', FAU_SN)
+		alignment_results['FAU_SN'] = FAU_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
 	else:
 		return 0
@@ -215,6 +223,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 	msg = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
 	if msg != None:
 		TestResults.AddTestResult('Assembly_SN', msg)
+		alignment_results['Assembly_SN'] = msg
 	else:
 		return 0
 
@@ -234,6 +243,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 			TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyTubeNumber').DataItem = EpoxyTubeNumber
 			TestMetrics.UpdateTestMetricTables()
 		TestResults.AddTestResult('Epoxy_Tube_Number', UserFormInputDialog.ReturnValue)
+		alignment_results['Epoxy_Tube_Number'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
 	# save back to persistent data
@@ -253,6 +263,7 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 			TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'EpoxyExpirationDate').DataItem = EpoxyExpirationDate
 			TestMetrics.UpdateTestMetricTables()
 		TestResults.AddTestResult('Epoxy_Expiration_Date', UserFormInputDialog.ReturnValue)
+		alignment_results['Epoxy_Expiration_Date'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
 	# save back to persistent data
@@ -261,8 +272,11 @@ def LoadPDDie(StepName, SequenceObj, TestMetrics, TestResults):
 	if SequenceObj.Halt:
 		return 0
 	else:
-		dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, TestResults.RetrieveTestResult('Assembly_SN'))
+		dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 		Utility.CreateDirectory(dir)
+		if not save_alignment_results(SequenceObj, alignment_results):
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+			return 0
 		return 1
 
 """
@@ -854,6 +868,7 @@ def BalanceWetAlignNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 # Scan pitch (V) to maximize photodiode current
 #-------------------------------------------------------------------------------
 def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	use_polarization_controller = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'use_polarization_controller').DataItem
 	init_V = TestResults.RetrieveTestResult('apply_epoxy_hexapod_final_V')
 	use_hexapod_area_scan = False
@@ -1027,7 +1042,9 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
 	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed at pitch scan final!')
 	# 	return 0
 	# Utility.DelayMS(500)
-
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	return 1
 
 
@@ -1038,6 +1055,7 @@ def WetPitchAlign(StepName, SequenceObj, TestMetrics, TestResults):
 # Uses much tighter spec for roll align
 #-------------------------------------------------------------------------------
 def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	##############################
 	##### Hexapod scan setup #####
 	##############################
@@ -1235,6 +1253,9 @@ def WetBalanceAlign(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('Wet_Align_Balanced_Power_Top_Chan', round(toppower,3))
 	TestResults.AddTestResult('Wet_Align_Balanced_Power_Bottom_Chan', round(bottompower,3))
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -1279,4 +1300,7 @@ def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
 	#save the data file
 	TestResults.SaveTestResultsToStorage(TestResults.RetrieveTestResult('Assembly_SN'))
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	return 1

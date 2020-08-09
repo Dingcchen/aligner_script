@@ -69,6 +69,7 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	# IOController.SetOutputValue('OpticalSwitch', False)
 	# AreaScan('NanocubeSpiralCVScan', SequenceObj, TestMetrics, TestResults)
 	# return 1
+	alignment_results = {}
 
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
@@ -79,8 +80,11 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	Utility.ShowProcessTextOnMainUI() # clear message
 
 	TestResults.AddTestResult('Start_Time', DateTime.Now)
+	alignment_results['Start_Time'] = DateTime.Now
 	TestResults.AddTestResult('Operator', UserManager.CurrentUser.Name)
+	alignment_results['Operator'] = UserManager.CurrentUser.Name
 	TestResults.AddTestResult('Software_Version', Utility.GetApplicationVersion())
+	alignment_results['Software_Version'] = Utility.GetApplicationVersion()
 	
 	# turn on coax lights on lenses and turn off side backlight
 	IOController.SetOutputValue('DownCamCoaxialLight', True)
@@ -90,6 +94,10 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute(['X', 'Y', 'Z'], [50, 50, 50], Motion.AxisMotionSpeeds.Normal, True)
 	HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
 	
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	return 1
 
 #-------------------------------------------------------------------------------
@@ -97,7 +105,8 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 # Ask the user to visually check probe contact to the die
 #-------------------------------------------------------------------------------
 def CheckProbe(StepName, SequenceObj, TestMetrics, TestResults):
-	
+	alignment_results = load_alignment_results(SequenceObj)
+
 	probeposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ProbePresetPosition').DataItem #'BoardLoad'
 	initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
 
@@ -123,6 +132,9 @@ def CheckProbe(StepName, SequenceObj, TestMetrics, TestResults):
 
 	# go back to initial position
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 
 	if SequenceObj.Halt:
 		return 0
@@ -130,6 +142,7 @@ def CheckProbe(StepName, SequenceObj, TestMetrics, TestResults):
 		return 1
 		
 def SnapDieText(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	probeposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'ProbePresetPosition').DataItem #'BoardLoad'
 	die_text_position = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'die_text_position').DataItem #'FAUToBoardInitial'
 	
@@ -160,6 +173,10 @@ def SnapDieText(StepName, SequenceObj, TestMetrics, TestResults):
 	# go back to initial position
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -170,7 +187,7 @@ def SnapDieText(StepName, SequenceObj, TestMetrics, TestResults):
 # Use vision to find the location of the die
 #-------------------------------------------------------------------------------
 def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# define vision tool to use for easier editing
 	pmfautopvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'PowermeterFAUDownVisionTool').DataItem #'DieTopGF2NoGlassBlock'
 	laserfautopvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'LaserFAUDownVisionTool').DataItem #"MPOTop_2_7"
@@ -447,6 +464,10 @@ def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
 		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move laser FAU to match powermeter FAU height position.')
 		return 0
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -457,7 +478,7 @@ def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
 # Use vision to find the location of the die
 #-------------------------------------------------------------------------------
 def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
-	
+	alignment_results = load_alignment_results(SequenceObj)
 	def vision_FAU_top():
 		sleep(0.5)
 		vision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FAUTopVisionTool').DataItem #"MPOTop_2_7"
@@ -522,7 +543,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 			input_angle += 180
 		return input_angle
 		
-
+	
 	# define vision tool to use for easier editing
 	initialposition = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'InitialPresetPosition').DataItem #'FAUToBoardInitial'
 	#'FAUToBoardInitial'
@@ -898,6 +919,10 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('vision_align_hexapod_final_W', Hexapod.GetAxisPosition('W'))
 	
 	IOController.GetHardwareStateTree().ActivateState('default')
+
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	
 	if SequenceObj.Halt:
 		return 0
@@ -910,6 +935,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 # Note: This routine find power on top and bottom channels
 #-------------------------------------------------------------------------------
 def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	search_pos = Hexapod.GetAxesPositions()
 	   
 	# remember this postion as optical z zero
@@ -1043,6 +1069,10 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Light found [{0:.03f}, {1:.03f}, {2:.03f}]'.format(light_pos[0] - search_pos[0],light_pos[1] - search_pos[1],light_pos[2] - search_pos[2]))
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -1158,7 +1188,7 @@ def OptimizeRollAngleNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 # Find the pitch pivot point
 #-------------------------------------------------------------------------------
 def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# <FiberToDiePDAttach Name="PitchPivotOffsetFromZero" Value="0.05" />
 	# <FiberToDiePDAttach Name="PitchPivotNMax" Value="30" />
 	# <FiberToDiePDAttach Name="PitchPivotRTol" Value="0.0065" />
@@ -1235,6 +1265,10 @@ def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
 	pivot = Hexapod.PivotPoint
 	TestResults.AddTestResult('Pitch_Pivot_X', Hexapod.PivotPoint['X'])
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -1245,6 +1279,7 @@ def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
 # Balanced dry alignment using Nanocube
 #-------------------------------------------------------------------------------
 def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	"""
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimizing polarization on ch1...')
 	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, feedback_device = 'HexapodAnalogInput'):
@@ -1426,6 +1461,10 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 	TestResults.AddTestResult('Dry_Align_Balanced_Power_Top_Chan', toppow)
 	TestResults.AddTestResult('Dry_Align_Balanced_Power_Bottom_Chan', bottompow)
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	return 1
 		
 """
@@ -1530,6 +1569,7 @@ def NanocubeAlignLoop(StepName, SequenceObj, TestMetrics, TestResults):
 # Manually apply epoxy and establish contact point
 #-------------------------------------------------------------------------------
 def ApplyEpoxy(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
@@ -1620,6 +1660,10 @@ def ApplyEpoxy(StepName, SequenceObj, TestMetrics, TestResults):
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieSideEpoxy.jpg')
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').SaveToFile(dir)
+
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 
 	if SequenceObj.Halt:
 		return 0
@@ -1892,6 +1936,7 @@ def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults)
 # Perform nanocube gradient scan
 #-------------------------------------------------------------------------------
 def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
 	climb.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
 	climb.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
@@ -1931,6 +1976,10 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
 	climb2_ch2_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch2 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb2_position[0], climb2_position[1], climb2_position[2], climb2_ch1_peakV, climb2_ch2_peakV))
 	
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
 		return 0
 	return 1
@@ -1941,6 +1990,7 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
 # Optimize polarizations on both channels sequentially
 #-------------------------------------------------------------------------------
 def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
 		return 0
 		
@@ -1959,6 +2009,11 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 		return 0
 	if LogHelper.AskContinue('Channel 2 plarization is peaked!') == False:
 		return 0
+
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+	
 	return 1
 
 
@@ -1967,6 +2022,7 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 # "slow" align using the nanocube to move and powermeter for feedback
 #-------------------------------------------------------------------------------
 def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	def GridScanPowermeter(SequenceObj, axes, meter, channel, step_size = 1., scan_width = 10.):
 		if(channel == 1):
 			IOController.SetOutputValue('OpticalSwitch', False)
@@ -2023,6 +2079,11 @@ def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
 
 	if LogHelper.AskContinue('Channel 2 loopback is peaked!') == False:
 		return 0
+
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
+
 	return 1
 	
 #-------------------------------------------------------------------------------
@@ -2030,6 +2091,7 @@ def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
 # "slow" align using the nanocube to move and powermeter for feedback
 #-------------------------------------------------------------------------------
 def LoopbackAlignPowermeter_cross(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	def LineScanPowermeter(SequenceObj, axis, feedback_channel, step_size = 1., scan_width = 10.):
 		starting_position = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(axis)
 		fb_signal = []
@@ -2094,12 +2156,15 @@ def LoopbackAlignPowermeter_cross(StepName, SequenceObj, TestMetrics, TestResult
 	if LogHelper.AskContinue('Channel 2 loopback is peaked!') == False:
 		return 0
 		
-	
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisRelative('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
 	return 1
 	
 def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
+	alignment_results = load_alignment_results(SequenceObj)
 	name_prefix = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_name_prefix').DataItem
 	axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1').DataItem
 	axis1_scan_width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'linescan_axis1_scan_width_um').DataItem
@@ -2209,7 +2274,9 @@ def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
 		csvwriter.writerow(['X_um','Y_um','Z_um','ch1_v','ch2_v'])
 		for i in range(len(ax1_positions)):
 			csvwriter.writerow([X[i],Y[i],Z[i],ch1[i],ch2[i]])
-
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	return 1
 
 #-------------------------------------------------------------------------------
@@ -2217,7 +2284,7 @@ def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
 # UV cure the epoxy bond
 #-------------------------------------------------------------------------------
 def UVCure(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# acquire image for vision
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
 	# save to file
@@ -2319,6 +2386,9 @@ def UVCure(StepName, SequenceObj, TestMetrics, TestResults):
 	dir = IO.Path.Combine(dir, 'ASM_Side_Post_UV.jpg')
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').SaveToFile(dir)
 
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -2329,7 +2399,7 @@ def UVCure(StepName, SequenceObj, TestMetrics, TestResults):
 # Release gripper and unload FAU
 #-------------------------------------------------------------------------------
 def UnloadFAU(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
@@ -2369,7 +2439,8 @@ def UnloadFAU(StepName, SequenceObj, TestMetrics, TestResults):
 	HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(pmfauvacuumport, False)
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
-	if SequenceObj.Halt:
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2382,7 +2453,7 @@ def UnloadFAU(StepName, SequenceObj, TestMetrics, TestResults):
 # Release gripper and unload die
 #-------------------------------------------------------------------------------
 def UnloadDie(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
@@ -2454,7 +2525,8 @@ def UnloadDie(StepName, SequenceObj, TestMetrics, TestResults):
 
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
-	if SequenceObj.Halt:
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2467,7 +2539,7 @@ def UnloadDie(StepName, SequenceObj, TestMetrics, TestResults):
 # Release gripper and unload die
 #-------------------------------------------------------------------------------
 def UnloadBoard(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# turn on the cameras
 	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
@@ -2528,7 +2600,8 @@ def UnloadBoard(StepName, SequenceObj, TestMetrics, TestResults):
 
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
-	if SequenceObj.Halt:
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2542,7 +2615,7 @@ def UnloadBoard(StepName, SequenceObj, TestMetrics, TestResults):
 # Save data to the file
 #-------------------------------------------------------------------------------
 def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
-
+	alignment_results = load_alignment_results(SequenceObj)
 	# get process values
 	#inputtop = TestResults.RetrieveTestResult('Optical_Input_Power_Top_Outer_Chan')
 	#inputbottom = TestResults.RetrieveTestResult('Optical_Input_Power_Bottom_Outer_Chan')
@@ -2580,6 +2653,10 @@ def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
 
 	#save the data file
 	TestResults.SaveTestResultsToStorage(TestResults.RetrieveTestResult('Assembly_SN'))
+
+	if not save_alignment_results(SequenceObj, alignment_results):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		return 0
 
 	return 1
 
