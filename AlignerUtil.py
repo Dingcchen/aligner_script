@@ -24,6 +24,7 @@ from CiscoAligner import Alignments
 from time import sleep
 import csv
 import statistics
+import os.path
 
 #UseOpticalSwitch = True
 
@@ -560,12 +561,12 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 	return True
 
 def load_alignment_results(SequenceObj):
-	filename = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
 	with open(filename, 'r') as outfile:
 		return json.load(outfile)
 	
 def save_alignment_results(SequenceObj, alignment_results):
-	filename = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
 	with open(filename, 'w') as outfile:
 		json.dump(output, outfile, indent=2 , sort_keys=True)
 	return True
