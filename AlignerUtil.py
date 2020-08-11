@@ -23,8 +23,9 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
-import statistics
+#import statistics
 import os.path
+import json
 
 #UseOpticalSwitch = True
 
@@ -470,7 +471,8 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 		bottom_ch_polarization_position = []
 
 	while retries < 5 and not SequenceObj.Halt:
-		Nanocube.GetHardwareStateTree().ActivateState('Center')LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
+		Nanocube.GetHardwareStateTree().ActivateState('Center')
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
 		#SetScanChannel(scan, 1, UseOpticalSwitch)
 		#scan_ch = SetScanChannel(climb, 1, UseOpticalSwitch)
 
@@ -561,12 +563,13 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 	return True
 
 def load_alignment_results(SequenceObj):
-	filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	#filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	filename = '..\\Data\\temp_alignment_results.json'
 	with open(filename, 'r') as outfile:
 		return json.load(outfile)
 	
 def save_alignment_results(SequenceObj, alignment_results):
-	filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
+	filename = '..\\Data\\temp_alignment_results.json'
 	with open(filename, 'w') as outfile:
-		json.dump(output, outfile, indent=2 , sort_keys=True)
+		json.dump(alignment_results, outfile, indent=2 , sort_keys=True)
 	return True

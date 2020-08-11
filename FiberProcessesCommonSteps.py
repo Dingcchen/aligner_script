@@ -27,6 +27,8 @@ from CiscoAligner import Alignments
 from time import sleep
 import csv
 from AlignerUtil import * 
+from datetime import datetime
+
 
 UseOpticalSwitch = True
 
@@ -80,7 +82,7 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	Utility.ShowProcessTextOnMainUI() # clear message
 
 	TestResults.AddTestResult('Start_Time', DateTime.Now)
-	alignment_results['Start_Time'] = DateTime.Now
+	alignment_results['Start_Time'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 	TestResults.AddTestResult('Operator', UserManager.CurrentUser.Name)
 	alignment_results['Operator'] = UserManager.CurrentUser.Name
 	TestResults.AddTestResult('Software_Version', Utility.GetApplicationVersion())
@@ -95,10 +97,11 @@ def Initialize(StepName, SequenceObj, TestMetrics, TestResults):
 	HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
 	
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	return 1
+
 
 #-------------------------------------------------------------------------------
 # CheckProbe
@@ -174,7 +177,7 @@ def SnapDieText(StepName, SequenceObj, TestMetrics, TestResults):
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(initialposition)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -464,8 +467,8 @@ def SetFirstLightPositionToFAU(StepName, SequenceObj, TestMetrics, TestResults):
 		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, Utility.LogEventSeverity.Warning, 'Failed to move laser FAU to match powermeter FAU height position.')
 		return 0
 
-	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+	if not AlignerUtil.save_alignment_results(SequenceObj, alignment_results):
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -675,9 +678,9 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 		return 0
 
 	# resume the translational motion again
-	""" if not Hexapod.MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
-		return 0 """
+	# if not Hexapod.MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
+	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+	# 	return 0 
 
 	# move in x, but with wider gap remaining
 	hexapod = Hexapod
@@ -921,7 +924,7 @@ def SetFirstLightPositionToDie(StepName, SequenceObj, TestMetrics, TestResults):
 	IOController.GetHardwareStateTree().ActivateState('default')
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 	
 	if SequenceObj.Halt:
@@ -1070,7 +1073,7 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Light found [{0:.03f}, {1:.03f}, {2:.03f}]'.format(light_pos[0] - search_pos[0],light_pos[1] - search_pos[1],light_pos[2] - search_pos[2]))
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -1078,110 +1081,6 @@ def FirstLightSearchDualChannels(StepName, SequenceObj, TestMetrics, TestResults
 	else:
 		return 1
 
-"""
-#-------------------------------------------------------------------------------
-# OptimizeRollAngle
-# Find the optimal roll angle for loop back on both channels
-# NOTE: This routine is designed for loop back, not PD signal
-#-------------------------------------------------------------------------------
-def OptimizeRollAngleNanocube(StepName, SequenceObj, TestMetrics, TestResults):
-	
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# get the alignment algorithms
-	nscan = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeRasterScan')
-	optimalrollsearch = Alignments.AlignmentFactory.Instance.SelectAlignment('SimplexMaximumSearch')
-  
-	# get nanocube scan parameters
-	nscan.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanAxis1').DataItem
-	nscan.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanAxis2').DataItem
-	# we are working in um when dealing with Nanocube
-	nscan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanRange1').DataItem * 1000
-	nscan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanRange2').DataItem * 1000
-	# start at the middle position
-	nscan.Axis1Position = 50
-	nscan.Axis2Position = 50
-	nscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanVelocity').DataItem * 1000
-	nscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'NanocubeScanFrequency').DataItem
-	SetScanChannel(nscan, 1, UseOpticalSwitch)
-	# nscan.Channel = 1
-	nscan.ExecuteOnce = SequenceObj.AutoStep
-
-	# Load the simplex search parameter to optimize roll angle
-	optimalrollsearch.NMax = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollNMax').DataItem
-	optimalrollsearch.RTol = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollRTol').DataItem
-	optimalrollsearch.MinRes = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollMinRes').DataItem
-	optimalrollsearch.Lambda = (str)(TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollLambda').DataItem)
-	optimalrollsearch.MaxRestarts = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollMaxRestarts').DataItem
-	optimalrollsearch.MaxTinyMoves = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'RollMaxTinyMoves').DataItem
-	optimalrollsearch.ExecuteOnce = SequenceObj.AutoStep
-
-	startangle = Hexapod.GetAxisPosition('U')	  # get the starting pitch angle
-	# Now we will start the optimal roll angle search using the Nanocube for speed and accuracy
-	# define the delegate for algo feedback
-	def EvalRoll(a):
-		# tweak the roll angle then optimize power with Nanocube
-		Hexapod.MoveAxisAbsolute('U', startangle + a[0], Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(500)
-		# scan for optimal
-		nscan.ExecuteNoneModal()
-		# wait to settle
-		Utility.DelayMS(500)
-
-		# double check Nanocube position and make sure it's always within the motion range
-		axis1offset = (float)(HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(nscan.Axis1) - nscan.Axis1Position)
-		axis2offset = (float)(HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxisPosition(nscan.Axis2) - nscan.Axis2Position)
-
-		if Math.Abs(axis1offset) >= nscan.Range1 / 2 or Math.Abs(axis2offset) >= nscan.Range2 / 2:
-			if Math.Abs(axis1offset) > nscan.Range1 / 2:
-				HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisRelative(nscan.Axis1, -axis1offset, Motion.AxisMotionSpeeds.Normal, True)
-				Hexapod.MoveAxisRelative(nscan.Axis1, axis1offset / 1000, Motion.AxisMotionSpeeds.Normal, True)
-
-			if Math.Abs(axis2offset) > nscan.Range2 / 2:
-				HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisRelative(nscan.Axis2, -axis2offset, Motion.AxisMotionSpeeds.Normal, True)
-				Hexapod.MoveAxisRelative(nscan.Axis2, axis2offset / 1000, Motion.AxisMotionSpeeds.Normal, True)
-
-				# wait to settle
-			Utility.DelayMS(500)
-
-			# optimize again
-			nscan.ExecuteNoneModal()
-
-			# wait to settle
-			Utility.DelayMS(500)
-
-		return HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)	# we want to maximize the bottom channel power since doing so means we are aligned in roll
-
-	# connect the call back function
-	optimalrollsearch.EvalFunction = Func[Array[float],float](EvalRoll)
-	# start roll optimization
-	optimalrollsearch.ExecuteNoneModal()
-
-	if optimalrollsearch.IsSuccess == False or	SequenceObj.Halt:
-		return 0
-
-	# wait to settle
-	Utility.DelayMS(500)
-
-	#save the final data for bottom channel
-	position = Hexapod.GetAxesPositions()
-	TestResults.AddTestResult('First_Light_Top_Channel_Power', round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6))
-	TestResults.AddTestResult('First_Light_Bottom_Channel_Power', round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6))
-	TestResults.AddTestResult('First_Light_Hexapod_X', position[0])
-	TestResults.AddTestResult('First_Light_Hexapod_Y', position[1])
-	TestResults.AddTestResult('First_Light_Hexapod_Z', position[2])
-	TestResults.AddTestResult('First_Light_Hexapod_U', position[3])
-	TestResults.AddTestResult('First_Light_Hexapod_V', position[4])
-	TestResults.AddTestResult('First_Light_Hexapod_W', position[5])
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return 1
-"""
 
 #-------------------------------------------------------------------------------
 # PitchPivotSearch
@@ -1266,7 +1165,7 @@ def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('Pitch_Pivot_X', Hexapod.PivotPoint['X'])
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -1280,147 +1179,7 @@ def PitchPivotSearch(StepName, SequenceObj, TestMetrics, TestResults):
 #-------------------------------------------------------------------------------
 def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults):
 	alignment_results = load_alignment_results(SequenceObj)
-	"""
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimizing polarization on ch1...')
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, feedback_device = 'HexapodAnalogInput'):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to optimize polarization on ch1!')
-		return 0
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Polarization optimized on ch1!') """
-
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-
-	# Reload parameters from recipe file
-	use_polarization_controller = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'use_polarization_controller').DataItem
-	minpower = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'scan_min_power_threshold_v').DataItem # volts
-
-	if not OptimizeRollAngle(SequenceObj, TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem, use_polarization_controller, max_z_difference_um = 1, UseOpticalSwtich = UseOpticalSwitch):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
-		return 0
-
-	"""
-	climb.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
-	climb.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
-	climb.ExecuteOnce = SequenceObj.AutoStep
-
-
 	
-	# set up a loop to zero in on the roll angle
-	width = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'FirstLight_WG2WG_dist_mm').DataItem
-	#idth = TestResults.RetrieveTestResult('Outer_Channels_Width')
-	topchanpos = [ 50.0, 50.0, 50.0 ]
-	bottomchanpos = [ 50.0, 50.0, 50.0 ]
-	retries = 0
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Start roll (U) adjust...')
-	num_IFF_samples = 5
-	while retries < 5 and not SequenceObj.Halt:
-		HardwareFactory.Instance.GetHardwareByName('Nanocube').GetHardwareStateTree().ActivateState('Center')
-
-		# start the algorithms
-		SetScanChannel(scan, 1, UseOpticalSwitch)
-		# scan.Channel = 1
-		scan_ch = SetScanChannel(climb, 1, UseOpticalSwitch)
-		# climb.Channel = 1
-		#scan.ExecuteNoneModal()
-		if retries == -1:
-			if not NanocubeSpiralScan(scan_ch, plot_output = True):
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1.')
-				return 0
-		elif ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) < minpower: 
-			if not NanocubeSpiralScan(scan_ch, plot_output = False):
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1.')
-				return 0
-				
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube spiral scan succeeded on channel 1!')
-		# check scan status
-		#if scan.IsSuccess == False or SequenceObj.Halt:
-		#	 return 0
-		#Utility.DelayMS(500)
-		
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube climb scan failed on channel 1!')
-			return 0
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube climb scan succeeded on channel 1!')
-		Utility.DelayMS(500)
-		
-		# remember the final position
-		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-		top_chan_peak_V = 0 
-		for i in range(num_IFF_samples):
-			top_chan_peak_V = top_chan_peak_V + ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument)
-		top_chan_peak_V = top_chan_peak_V/num_IFF_samples
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_chan_peak_V))
-		
-
-		# repeat scan for the second channel
-		SetScanChannel(scan, 2, UseOpticalSwitch)
-		# scan.Channel = 2
-		scan_ch = SetScanChannel(climb, 2, UseOpticalSwitch)
-		# climb.Channel = 2
-
-		# start the algorithms again
-		#scan.ExecuteNoneModal()
-		if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) < minpower:
-			if not NanocubeSpiralScan(scan_ch,plot_output = False):
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 2.')
-				return 0
-		# check scan status
-		#if scan.IsSuccess == False or SequenceObj.Halt:
-		#	 return 0
-		#Utility.DelayMS(500)
-
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			return 0
-		Utility.DelayMS(500)
-		
-		# get the final position of second channel
-		bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position ({0:.2f}, {1:.2f}, {2:.2f}) um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2]))
-		bottom_chan_peak_V = 0 
-		for i in range(num_IFF_samples):
-			bottom_chan_peak_V = bottom_chan_peak_V + ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument)
-		bottom_chan_peak_V = bottom_chan_peak_V/num_IFF_samples
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V))
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position: ' + str(bottomchanpos))
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Abs(topchanpos[2] - bottomchanpos[2])
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Asin(h / (width*1000)))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(500)
-
-		retries += 1
-
-	if retries >= 5 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
-	HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
-	
-	#hexpos = Hexapod.GetAxesPositions()
-	Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
-	""""
 
 	# log the aligned position 
 	TestResults.AddTestResult('Top_Channel_Dry_Align_Nanocube_X', topchanpos[0])
@@ -1462,107 +1221,11 @@ def BalanceDryAlignmentNanocube(StepName, SequenceObj, TestMetrics, TestResults)
 	TestResults.AddTestResult('Dry_Align_Balanced_Power_Bottom_Chan', bottompow)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	return 1
 		
-"""
-def NanocubeAlignLoop(StepName, SequenceObj, TestMetrics, TestResults):
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# retreive zero position
-	zero = TestResults.RetrieveTestResult('Optical_Z_Zero_Position')
-	# move back to zero position
-	Hexapod.MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Normal, True)
-
-	# here we do channel balance with Nanocube 2D scan
-	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeRasterScan')
-	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-
-	# get nanocube scan parameters
-	scan.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
-	scan.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
-	# we are working in um when dealing with Nanocube
-	scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Range1').DataItem * 1000
-	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Range2').DataItem * 1000
-	# start at the middle position
-	scan.Axis1Position = 50
-	scan.Axis2Position = 50
-	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Velocity').DataItem * 1000
-	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Frequency').DataItem
-	scan.ExecuteOnce = SequenceObj.AutoStep
-
-	climb.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
-	climb.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
-	climb.ExecuteOnce = SequenceObj.AutoStep
-
-	# set up a loop to zero in on the roll angle
-	width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-	topchanpos = [ 50.0, 50.0, 50.0 ]
-	bottomchanpos = [ 50.0, 50.0, 50.0 ]
-	
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Start scanning...')
-	
-	num_scans = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'number_of_scans').DataItem
-	axis1_max_offset = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'axis1_max_start_offset').DataItem
-	axis1_sign = -1
-	axis2_max_offset = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'axis2_max_start_offset').DataItem
-	axis2_sign = -1
-
-	# set channel to align
-	SetScanChannel(scan, 1, UseOpticalSwitch)
-	# scan.Channel = 1
-	SetScanChannel(climb, 1, UseOpticalSwitch)
-	# climb.Channel = 1
-	
-	for n in range(num_scans):
-		if SequenceObj.Halt:
-			break
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Executing scan {0:d}/{1:d}'.format(n+1,num_scans))
-
-		
-		if (n%axis1_max_offset) == 0: 
-			axis1_sign = -axis1_sign
-			
-		if (n%axis2_max_offset) == 0: 
-			axis2_sign = -axis2_sign
-		
-		scan.Axis1Position = 50 + (n%axis1_max_offset) * axis1_sign
-		scan.Axis2Position = 50 + (n%axis2_max_offset) * axis2_sign
-
-		scan.ExecuteNoneModal()
-		# check scan status
-		if scan.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube area scan failed!')
-			return 0
-			
-		Utility.DelayMS(500)
-		#time.sleep(0.5)
-
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube gradient climb scan failed!')
-			return 0
-		
-		Utility.DelayMS(500)
-		
-		sum_IFF = 0
-		num_IFF_samples = 5
-		for i in range(num_IFF_samples):
-			sum_IFF = sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-			
-		# display peak aligned position
-		peak_align_position = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Completed scan {0:d}/{1:d} | starting position |{2:.3f}|{3:.3f}| Final position |{4:.3f}|{5:.3f}|{6:.3f}| Peak singal |{7:.3f}'.format(n+1, num_scans,scan.Axis1Position, scan.Axis2Position, peak_align_position[0],peak_align_position[1],peak_align_position[2],sum_IFF/num_IFF_samples))
-		
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Done scanning!')
-
-	return 0
-"""
 
 #-------------------------------------------------------------------------------
 # ApplyEpoxy
@@ -1662,274 +1325,13 @@ def ApplyEpoxy(StepName, SequenceObj, TestMetrics, TestResults):
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').SaveToFile(dir)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
 		return 0
 	else:
 		return 1
-
-"""
-#-------------------------------------------------------------------------------
-# BalanceWedAlignment
-# Balance alignment of the channels in epoxy using Hexapod only
-#-------------------------------------------------------------------------------
-def BalanceWetAlignmentHexapod(StepName, SequenceObj, TestMetrics, TestResults):
-
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# get the alignment algorithms
-	hscan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-
-	hscan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange1').DataItem
-	hscan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanRange2').DataItem
-	hscan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanVelocity').DataItem
-	hscan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'HexapodFineScanFrequency').DataItem
-	hscan.ExecuteOnce = SequenceObj.AutoStep
-
-	# set up a loop to zero in on the roll angle
-	width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-	retries = 0
-
-	while retries < 3 and not SequenceObj.Halt:
-
-		# start the algorithms
-		SetScanChannel(hscan, 1, UseOpticalSwitch)
-		# hscan.Channel = 1
-		hscan.ExecuteNoneModal()
-		# check scan status
-		if hscan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		 # wait to settle
-		Utility.DelayMS(500)
-
-		# remember the final position
-		topchanpos = Hexapod.GetAxesPositions()
-
-		# repeat scan for the second channel
-		SetScanChannel(hscan, 2, UseOpticalSwitch)
-		# hscan.Channel = 2
-
-		# start the algorithms again
-		hscan.ExecuteNoneModal()
-		# check scan status
-		if hscan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		# wait to settle
-		Utility.DelayMS(500)
-
-		# get the final position of second channel
-		bottomchanpos = Hexapod.GetAxesPositions()
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[1] - bottomchanpos[1]))
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan(h / width))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(500)
-
-		retries += 1
-	
-	# check stop conditions
-	if retries >= 3 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	Hexapod.MoveAxisAbsolute('Y', ymiddle, Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('Z', zmiddle, Motion.AxisMotionSpeeds.Normal, True)
-
-	# record final wet align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	TestResults.AddTestResult('Wet_Align_Hexapod_X', hposition[0])
-	TestResults.AddTestResult('Wet_Align_Hexapod_Y', hposition[1])
-	TestResults.AddTestResult('Wet_Align_Hexapod_Z', hposition[2])
-	TestResults.AddTestResult('Wet_Align_Hexapod_U', hposition[3])
-	TestResults.AddTestResult('Wet_Align_Hexapod_V', hposition[4])
-	TestResults.AddTestResult('Wet_Align_Hexapod_W', hposition[5])
-
-	# save powers
-	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
-
-	# save process values
-	TestResults.AddTestResult('Wet_Align_Power_Top_Outer_Chan', toppow)
-	TestResults.AddTestResult('Wet_Align_Power_Bottom_Outer_Chan', bottompow)
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return 1
-
-#-------------------------------------------------------------------------------
-# BalanceWedAlignment
-# Balance alignment of the channels in epoxy using Nanocube
-#-------------------------------------------------------------------------------
-def BalanceWetAlignmentNanoCube(StepName, SequenceObj, TestMetrics, TestResults):
-
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# here we do channel balance with Nanocube 2D scan
-	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeRasterScan')
-	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-
-	# get nanocube scan parameters
-	scan.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
-	scan.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
-	# we are working in um when dealing with Nanocube
-	scan.Range1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Range1').DataItem * 1000
-	scan.Range2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Range2').DataItem * 1000
-	# start at the middle position
-	scan.Axis1Position = 50
-	scan.Axis2Position = 50
-	scan.Velocity = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Velocity').DataItem * 1000
-	scan.Frequency = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Frequency').DataItem
-	scan.ExecuteOnce = SequenceObj.AutoStep
-
-	climb.Axis1 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis1').DataItem
-	climb.Axis2 = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'Nanocube_Scan_Axis2').DataItem
-	climb.ExecuteOnce = SequenceObj.AutoStep
-	
-	
-	# set up a loop to zero in on the roll angle
-	width = TestResults.RetrieveTestResult('Outer_Channels_Width')
-	topchanpos = [ 50.0, 50.0, 50.0 ]
-	bottomchanpos = [ 50.0, 50.0, 50.0 ]
-	retries = 0
-
-	while retries < 5 and not SequenceObj.Halt:
-
-		# start the algorithms
-		SetScanChannel(scan, 1, UseOpticalSwitch)
-		SetScanChannel(climb, 1, UseOpticalSwitch)
-		# scan.Channel = 1
-		# climb.Channel = 1
-		scan.ExecuteNoneModal()
-		# check scan status
-		if scan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		#climb.ExecuteNoneModal()
-		# check climb status
-		#if scan.IsSuccess == False or SequenceObj.Halt:
-		#	 return 0
-
-		# remember the final position
-		topchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-
-		# repeat scan for the second channel
-		SetScanChannel(scan, 2, UseOpticalSwitch)
-		SetScanChannel(climb, 2, UseOpticalSwitch)
-		# scan.Channel = 2
-		# climb.Channel = 2
-		scan.ExecuteNoneModal()
-		# check scan status
-		if scan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		#climb.ExecuteNoneModal()
-		# check climb status
-		#if scan.IsSuccess == False or SequenceObj.Halt:
-		#	 return 0
-
-		# get the final position of second channel
-		bottomchanpos = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[1] - bottomchanpos[1]))
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan(h / width))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		Utility.DelayMS(500)
-
-		retries += 1
-	
-	# check stop conditions
-	if retries >= 5 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	middle = (topchanpos[2] + bottomchanpos[2]) / 2
-
-	# log the aligned position 
-	TestResults.AddTestResult('Top_Channel_Wet_Align_Nanocube_X', topchanpos[0])
-	TestResults.AddTestResult('Top_Channel_Wet_Align_Nanocube_Y', topchanpos[1])
-	TestResults.AddTestResult('Top_Channel_Wet_Align_Nanocube_Z', topchanpos[2])
-	TestResults.AddTestResult('Bottom_Channel_Wet_Align_Nanocube_X', bottomchanpos[0])
-	TestResults.AddTestResult('Bottom_Channel_Wet_Align_Nanocube_Y', bottomchanpos[1])
-	TestResults.AddTestResult('Bottom_Channel_Wet_Align_Nanocube_Z', bottomchanpos[2])
-
-	# record final wet align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	TestResults.AddTestResult('Wet_Align_Hexapod_X', hposition[0])
-	TestResults.AddTestResult('Wet_Align_Hexapod_Y', hposition[1])
-	TestResults.AddTestResult('Wet_Align_Hexapod_Z', hposition[2])
-	TestResults.AddTestResult('Wet_Align_Hexapod_U', hposition[3])
-	TestResults.AddTestResult('Wet_Align_Hexapod_V', hposition[4])
-	TestResults.AddTestResult('Wet_Align_Hexapod_W', hposition[5])
-
-	# record the final wet align nanocube position
-	nposition = HardwareFactory.Instance.GetHardwareByName('Nanocube').GetAxesPositions()
-	TestResults.AddTestResult('Wet_Align_Nanocube_X', nposition[0])
-	TestResults.AddTestResult('Wet_Align_Nanocube_Y', nposition[1])
-	TestResults.AddTestResult('Wet_Align_Nanocube_Z', nposition[2])
-
-	# balance the Z (side to side) distance
-	HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', (topchanpos[2] + bottomchanpos[2]) / 2, Motion.AxisMotionSpeeds.Normal, True)
-
-		# save powers
-	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
-
-	# save process values
-	TestResults.AddTestResult('Wet_Align_Power_Top_Outer_Chan', toppow)
-	TestResults.AddTestResult('Wet_Align_Power_Bottom_Outer_Chan', bottompow)
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return 1
-"""
 
 #-------------------------------------------------------------------------------
 # NanocubeGradientClimb
@@ -1977,7 +1379,7 @@ def NanocubeGradientClimb(StepName, SequenceObj, TestMetrics, TestResults):
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch2 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb2_position[0], climb2_position[1], climb2_position[2], climb2_ch1_peakV, climb2_ch2_peakV))
 	
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
@@ -2011,7 +1413,7 @@ def OptimizePolarizationsMPC201(StepName, SequenceObj, TestMetrics, TestResults)
 		return 0
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 	
 	return 1
@@ -2081,7 +1483,7 @@ def LoopbackAlignPowermeter(StepName, SequenceObj, TestMetrics, TestResults):
 		return 0
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	return 1
@@ -2157,7 +1559,7 @@ def LoopbackAlignPowermeter_cross(StepName, SequenceObj, TestMetrics, TestResult
 		return 0
 		
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisRelative('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
 	#HardwareFactory.Instance.GetHardwareByName('Nanocube').MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
@@ -2275,7 +1677,7 @@ def LineScans(StepName, SequenceObj, TestMetrics, TestResults):
 		for i in range(len(ax1_positions)):
 			csvwriter.writerow([X[i],Y[i],Z[i],ch1[i],ch2[i]])
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 	return 1
 
@@ -2387,7 +1789,7 @@ def UVCure(StepName, SequenceObj, TestMetrics, TestResults):
 	HardwareFactory.Instance.GetHardwareByName('SideCamera').SaveToFile(dir)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 	if SequenceObj.Halt:
 		return 0
@@ -2440,7 +1842,7 @@ def UnloadFAU(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2526,7 +1928,7 @@ def UnloadDie(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2601,7 +2003,7 @@ def UnloadBoard(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.AddTestResult('End_Time', DateTime.Now)
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	if SequenceObj.Halt:
@@ -2655,7 +2057,7 @@ def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
 	TestResults.SaveTestResultsToStorage(TestResults.RetrieveTestResult('Assembly_SN'))
 
 	if not save_alignment_results(SequenceObj, alignment_results):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed save alignment results!')
 		return 0
 
 	return 1
@@ -2689,6 +2091,5 @@ def AreaScan(scanAlgorithm, SequenceObj, TestMetrics, TestResults):
 
 	# wait to settle
 	Utility.DelayMS(500)
-
 
 
