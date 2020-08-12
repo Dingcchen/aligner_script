@@ -23,9 +23,8 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
-#import statistics
+import statistics
 import os.path
-import json
 
 #UseOpticalSwitch = True
 
@@ -560,16 +559,4 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 	Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 
-	return True
-
-def load_alignment_results(SequenceObj):
-	#filename = os.path.join(SequenceObj.TestResults.OutputDestinationConfiguration, 'temp_alignment_results.json')
-	filename = '..\\Data\\temp_alignment_results.json'
-	with open(filename, 'r') as outfile:
-		return json.load(outfile)
-	
-def save_alignment_results(SequenceObj, alignment_results):
-	filename = '..\\Data\\temp_alignment_results.json'
-	with open(filename, 'w') as outfile:
-		json.dump(alignment_results, outfile, indent=2 , sort_keys=True)
 	return True
