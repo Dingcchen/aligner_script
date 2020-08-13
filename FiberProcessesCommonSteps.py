@@ -27,6 +27,7 @@ from time import sleep
 import csv
 from AlignerUtil import *
 from datetime import datetime
+from step_manager  import *
 
 
 UseOpticalSwitch = True
@@ -99,7 +100,7 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	# IOController.SetOutputValue('SideCamBacklight', False)
 	IOController.GetHardwareStateTree().ActivateState('Default')
 
-	Nanocube.MoveAxisAbsolute(array(['X', 'Y', 'Z']), array([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
+	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float]([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
 	#Nanocube.GetHardwareStateTree().ActivateState('Center')
 
 	return alignment_results
@@ -163,7 +164,7 @@ def SnapDieText(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTopText.jpg')
 	DownCamera.SaveToFile(dir)
@@ -227,7 +228,7 @@ def SetFirstLightPositionToFAU(SequenceObj, alignment_parameters, alignment_resu
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'FAUTop.jpg')
 	DownCamera.SaveToFile(dir)
@@ -579,7 +580,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTop.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1287,7 +1288,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTopEpoxy.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1295,7 +1296,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	SideCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieSideEpoxy.jpg')
 	SideCamera.SaveToFile(dir)
@@ -1533,7 +1534,7 @@ def LineScans(SequenceObj, alignment_parameters, alignment_results):
 	axis1_scan_width = alignment_parameters['linescan_axis2_scan_width_um']
 	axis1_scan_width = alignment_parameters['linescan_axis2_scan_increment_um']
 
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 
 	init_positions = Nanocube.GetAxesPositions
 
@@ -1645,7 +1646,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Top_Pre_UV.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1653,7 +1654,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	SideCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Pre_UV.jpg')
 	SideCamera.SaveToFile(dir)
@@ -1671,7 +1672,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	profile = alignment_parameters['UVCureStepProfiles']
 	# this is a hack, here we sum up the time of all the steps
 	# and display count down timer
-	uvtime = sum(map(lambda x: float(x.split(':')[0]), TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile].split(',')))
+	uvtime = sum(map(lambda x: float(x.split(':')[0]), TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile).split(',')))
 	# log the profile used
 	alignment_results['UV_Cure_Profile'] = profile
 
@@ -1686,7 +1687,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 		Utility.ShowProcessTextOnMainUI('UV cure time ' + str(uvtime - int(stopwatch.ElapsedMilliseconds / 1000)) + ' seconds remaining.')
 
 	# start UV exposure
-	ret = HardwareFactory.Instance.GetHardwareByName('UVSource').StartStepUVExposures(TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile], '', Action[int](LogPower))
+	ret = HardwareFactory.Instance.GetHardwareByName('UVSource').StartStepUVExposures(TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile), '', Action[int](LogPower))
 
 	# stop timer when UV done
 	stopwatch.Stop()
@@ -1715,7 +1716,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 
 	# save the power tracking to a file
 	# save uv cure power tracking
-	TestResults.SaveArrayResultsToStorage(alignment_results['Assembly_SN'), 'UVCureChannelPowers', 'Elapsed Time(s),Top Chan Signal(V),Bottom Chan Signal(V)', UVPowerTracking]
+	TestResults.SaveArrayResultsToStorage(alignment_results['Assembly_SN', 'UVCureChannelPowers', 'Elapsed Time(s),Top Chan Signal(V),Bottom Chan Signal(V)', UVPowerTracking])
 	Utility.ShowProcessTextOnMainUI()
 
 
@@ -1730,7 +1731,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Top_Post_UV.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1738,7 +1739,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	SideCamera.Snap()
 	# save to file
-	#dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN')]
+	#dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	#Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Post_UV.jpg')
 	SideCamera.SaveToFile(dir)
@@ -1995,7 +1996,7 @@ def Finalize(SequenceObj, alignment_parameters, alignment_results):
 			alignment_results['Comment'] = alignment_results['Comment']
 
 	#save the data file
-	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN')]
+	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN'])
 
 	return alignment_results
 

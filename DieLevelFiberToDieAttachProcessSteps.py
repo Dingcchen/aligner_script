@@ -50,7 +50,7 @@ def Template(SequenceObj, alignment_parameters, alignment_results):
 	if Stop:
 		return 0
 
-	pivot = TestMetrics.GetTestMetricItem(SequenceObj.SequenceName, 'InitialPivotPoint']
+	pivot = TestMetrics.GetTestMetricItem(SequenceObj.SequenceName, 'InitialPivotPoint')
 	alignment_results['Pivot'] = pivot
 
 	sleep(.001*2000)
@@ -278,7 +278,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	else:
 		dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 		Utility.CreateDirectory(dir)
-		return alignment_results
+	return alignment_results
 
 """
 #-------------------------------------------------------------------------------
@@ -909,12 +909,12 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	# get the pitch search X pull back distance
 	# first perform a pull back, we will need to re-do the contact point again afterwards
-	Hexapod.MoveAxisAbsolute('X', alignment_results['apply_epoxy_hexapod_final_X') + alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('Y', alignment_results['apply_epoxy_hexapod_final_Y'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('Z', alignment_results['apply_epoxy_hexapod_final_Z'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('U', alignment_results['apply_epoxy_hexapod_final_U'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('V', alignment_results['apply_epoxy_hexapod_final_V'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('W', alignment_results['apply_epoxy_hexapod_final_W'), Motion.AxisMotionSpeeds.Normal, True]
+	Hexapod.MoveAxisAbsolute('X', alignment_results['apply_epoxy_hexapod_final_X'] + alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisAbsolute('Y', alignment_results['apply_epoxy_hexapod_final_Y'], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisAbsolute('Z', alignment_results['apply_epoxy_hexapod_final_Z'], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisAbsolute('U', alignment_results['apply_epoxy_hexapod_final_U'], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisAbsolute('V', alignment_results['apply_epoxy_hexapod_final_V'], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisAbsolute('W', alignment_results['apply_epoxy_hexapod_final_W'], Motion.AxisMotionSpeeds.Normal, True)
 
 	Nanocube.GetHardwareStateTree().ActivateState('Center')
 	sleep(.001*500)
@@ -1293,6 +1293,6 @@ def Finalize(SequenceObj, alignment_parameters, alignment_results):
 			alignment_results['Comment'] = alignment_results['Comment']
 
 	#save the data file
-	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN')]
+	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN'])
 
 	return alignment_results

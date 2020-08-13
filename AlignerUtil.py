@@ -23,7 +23,7 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
-import statistics
+# import statistics
 import os.path
 
 #UseOpticalSwitch = True

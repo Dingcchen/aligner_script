@@ -1,7 +1,9 @@
+import clr
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
 import os.path
 import json
+import re
 
 
 
@@ -9,28 +11,31 @@ def step_manager(SequenceObj, step):
 	# This method loads alignment_parameters and alignment_results files
 
 	# load the alignment parameters file
-	parameters_filename = os.path.join(SequenceObj.TestResults.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
+	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
 	if os.path.exists(parameters_filename):
 		with open(parameters_filename, 'r') as f:
 			alignment_parameters = json.load(f)
 	else:
-		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
 		return 0
 
 	# load the alignment results file if we're not starting a new sequence, otherwise create a new dictionary
-	results_filename = os.path.join(SequenceObj.TestResults.RootPath, 'Data', 'temp_alignment_results.json') # store the temporary results file here
+	results_filename = os.path.join(SequenceObj.RootPath, 'Data', 'temp_alignment_results.json') # store the temporary results file here
 	if step != 'Initialize':
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f)
 	else:
 		alignment_results = {'_file format':'JSON'}
 
-	filename = os.path.basename(SequenceObj.scriptFilePath) # just get the filename
+	filename = os.path.basename(SequenceObj.ScriptFilePath) # just get the filename
 	filename = filename.split('.')[0] # get rid of the extension
 
 	#import(file_name) as f
+	"""
 	exec('import ' + filename + ' as f2')
 	alignment_results = exec('f2.' + step + '(SequenceObj, alignment_parameters, alignment_results)')
+	"""
+	alignment_results = step(SequenceObj, alignment_parameters, alignment_results)
 
 	if (alignment_results == 0) or (alignment_results is False):
 		return 0
@@ -45,7 +50,7 @@ def step_manager(SequenceObj, step):
 
 def update_alignment_parameter(SequenceObj, key, value):
 	# load the alignment parameters file
-	parameters_filename = os.path.join(SequenceObj.TestResults.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
+	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
 	if os.path.exists(parameters_filename):
 		with open(parameters_filename, 'r') as f:
 			alignment_parameters = json.load(f)
