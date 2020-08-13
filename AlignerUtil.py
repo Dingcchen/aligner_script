@@ -25,6 +25,7 @@ from time import sleep
 import csv
 # import statistics
 import os.path
+import re
 
 #UseOpticalSwitch = True
 
