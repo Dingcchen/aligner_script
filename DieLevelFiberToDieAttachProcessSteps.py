@@ -25,6 +25,7 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from AlignerUtil import *
 from time import sleep
+from step_manager import *
 
 UseOpticalSwitch = True
 
@@ -180,7 +181,6 @@ def LoadLoopbackDie(SequenceObj, alignment_parameters, alignment_results):
 #-------------------------------------------------------------------------------
 def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 
-
 	# loadposition = alignment_parameters['LoadPresetPosition'] #'BoardLoad'
 	loadposition = alignment_parameters['LoadPresetPosition'] #'BoardLoad'
 	fauvac = alignment_parameters['FAUVaccumPortName']
@@ -206,7 +206,6 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			alignment_parameters['Die_SN'] = Die_SN
 			TestMetrics.UpdateTestMetricTables()
 		alignment_results['Die_SN'] = Die_SN
-		alignment_results['Die_SN'] = Die_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
 	else:
 		return 0
@@ -219,14 +218,12 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			alignment_parameters['FAU_SN'] = FAU_SN
 			TestMetrics.UpdateTestMetricTables()
 		alignment_results['FAU_SN'] = FAU_SN
-		alignment_results['FAU_SN'] = FAU_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
 	else:
 		return 0
 
 	msg = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
 	if msg != None:
-		alignment_results['Assembly_SN'] = msg
 		alignment_results['Assembly_SN'] = msg
 	else:
 		return 0
@@ -247,7 +244,6 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			alignment_parameters['EpoxyTubeNumber'] = EpoxyTubeNumber
 			TestMetrics.UpdateTestMetricTables()
 		alignment_results['Epoxy_Tube_Number'] = UserFormInputDialog.ReturnValue
-		alignment_results['Epoxy_Tube_Number'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
 	# save back to persistent data
@@ -266,7 +262,6 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 		if not EpoxyExpirationDate == alignment_parameters['EpoxyExpirationDate']:
 			alignment_parameters['EpoxyExpirationDate'] = EpoxyExpirationDate
 			TestMetrics.UpdateTestMetricTables()
-		alignment_results['Epoxy_Expiration_Date'] = UserFormInputDialog.ReturnValue
 		alignment_results['Epoxy_Expiration_Date'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
