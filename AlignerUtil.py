@@ -438,7 +438,7 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 		# Hexapod.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
 		# Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 		# Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-		Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
+		Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
 		return False
 
 	
@@ -452,7 +452,7 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 	LogHelper.Log('AlignerUtil.HexapodSpiralScan', LogEventSeverity.Warning, 'Hexapod sprial scan did not achieve minimum required power ({0:.03f} < {1:.03f}).'.format(ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument),threshold))
 	# Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 	# Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
 def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, max_z_difference_um = 1, UseOpticalSwtich = False, threshold = 0, speed = 50):

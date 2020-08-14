@@ -538,7 +538,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 			input_angle += 180
 		return input_angle
 
-	# TestResults = SequenceObj.TestResults
+	TestResults = SequenceObj.TestResults
 	# define vision tool to use for easier editing
 	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
 	#'FAUToBoardInitial'
@@ -967,7 +967,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
-	scan.UseCurrentPosition = True
+	# scan.UseCurrentPosition = True
 
 	# one scan to get initial power
 	#scan.ExecuteNoneModal()
@@ -1011,7 +1011,9 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
 		# 	return 0
 
-		
+	
+	positions = Hexapod.GetAxesPositions()
+	LogHelper.Log('RastScan', LogEventSeverity.Warning, 'Hexapod found first light at [{0:.3f}, {1:.3f}, {2:.3f}].'.format(positions[0],positions[1],positions[2]))
 
 	# rescan smaller area
 	# scan.Range1 = alignment_parameters['HexapodFineScanRange1']
@@ -1180,6 +1182,7 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 
 
 	# log the aligned position
+	"""
 	alignment_results['Top_Channel_Dry_Align_Nanocube_X'] = topchanpos[0]
 	alignment_results['Top_Channel_Dry_Align_Nanocube_Y'] = topchanpos[1]
 	alignment_results['Top_Channel_Dry_Align_Nanocube_Z'] = topchanpos[2]
@@ -1188,6 +1191,7 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Y'] = bottomchanpos[1]
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
 	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
+	"""
 
 	# record the final dry align hexapod position
 	hposition = Hexapod.GetAxesPositions()
