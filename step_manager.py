@@ -6,7 +6,6 @@ import json
 import re
 
 
-
 def step_manager(SequenceObj, step):
 	# This method loads alignment_parameters and alignment_results files
 
@@ -37,7 +36,8 @@ def step_manager(SequenceObj, step):
 	"""
 	alignment_results = step(SequenceObj, alignment_parameters, alignment_results)
 
-	if (alignment_results == 0) or (alignment_results is False):
+	# or (alignment_results is False):
+	if (alignment_results == 0) :
 		return 0
 
 	# save the alignment results
@@ -76,7 +76,7 @@ def save_pretty_json(variable, filename):
 	output_string = json.dumps(variable, indent=2 , sort_keys=True)
 
 	# find the arrays by splitting by square brackets
-	split_output_string = re.split('\[|\]',output_string)
+	split_output_string = re.split(r'\[|\]',output_string)
 	output_string = ''
 	# reassemble string, but removing whitepace and newline chars inside square brackets
 	for i in range(len(split_output_string)):
@@ -84,11 +84,13 @@ def save_pretty_json(variable, filename):
 		if i % 2 == 0:
 			output_string += split_output_string[i]
 		else:
-			output_string += '[' + re.sub('[\s\n]','',split_output_string[i]) + ']'
+			output_string += '[' + re.sub(r'[\s\n]','',split_output_string[i]) + ']'
 
-	with open('filename', 'w') as f:
+	with open(filename, 'w+') as f:
 		f.write(output_string)
 
+	f.close()
+	# LogHelper.Log('save_pretty_json', LogEventSeverity.Warning, 'Save alignement_results to ' + output_string )
 	return True
 
 

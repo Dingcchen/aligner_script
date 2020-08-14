@@ -16,7 +16,6 @@ clr.AddReferenceToFile('HAL.dll')
 from HAL import Motion
 from HAL import HardwareFactory
 from HAL import HardwareInitializeState
-from HAL.SourceController import ScrambleMethodType
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
 clr.AddReferenceToFile('CiscoAligner.exe')
@@ -30,7 +29,7 @@ from datetime import datetime
 from step_manager  import *
 
 
-UseOpticalSwitch = True
+# UseOpticalSwitch = True
 
 
 def Template(SequenceObj, alignment_parameters, alignment_results):
@@ -539,7 +538,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 			input_angle += 180
 		return input_angle
 
-
+	# TestResults = SequenceObj.TestResults
 	# define vision tool to use for easier editing
 	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
 	#'FAUToBoardInitial'
@@ -572,7 +571,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		return 0
 
 	# set the hexapod pivot point for this process
-	initpivot = list(map(lambda x: float(x), alignment_parameters['InitialPivotPoint'].split(',')))
+	#initpivot = list(map(lambda x: float(x), alignment_parameters['InitialPivotPoint'].split(',')))
+	initpivot = alignment_parameters['InitialPivotPoint']
 	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 
 	#turn off all lights and then set to recipe level
@@ -580,7 +580,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+	sn = alignment_results['Assembly_SN']
+	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration,  sn)
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTop.jpg')
 	DownCamera.SaveToFile(dir)
@@ -678,7 +679,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	# move in x, but with wider gap remaining
 	hexapod = Hexapod
 	# if not hexapod.MoveAxisRelative('X', dest.Item1 - start.Item1 - 0.02, Motion.AxisMotionSpeeds.Slow, True):
-	if not hexapod.MoveAxisRelative('X', dest.Item1 - start.Item1 - alignment_parameters['VisionDryAlignGapX'], Motion.AxisMotionSpeeds.Slow, True):
+	if not hexapod.MoveAxisRelative('X', dest.Item1 - start.Item1 - alignment_parameters['VisionDryAlignGapX'], Motion.AxisMotionSpeeds.Normal, True): # slow times out
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
 		return 0
 
@@ -963,9 +964,10 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	scan.Velocity = alignment_parameters['HexapodRoughScanVelocity']
 	scan.Frequency = alignment_parameters['HexapodRoughScanFrequency']
 	# scan.Threshold = minpower # Volts
-	SetScanChannel(scan, 1, UseOpticalSwitch)
+	SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
+	scan.UseCurrentPosition = True
 
 	# one scan to get initial power
 	#scan.ExecuteNoneModal()
@@ -975,43 +977,55 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# wait to settle
 	#sleep(.001*500)
 
+	found_light_ch1 = False
 	topinitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
 	if topinitpower < minpower:
 		# do a few scans to make sure we are in the closest range possible
-		while retries < limit:
-			scan.ExecuteNoneModal()
-			if scan.IsSuccess == False or SequenceObj.Halt:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 coarse scan failed!')
-				return 0
 
-			# wait to settle
-			sleep(.001*2000)
-
-			# check return condition
-			p = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-			if p > topinitpower or abs(p - topinitpower) / abs(p) < 0.2:
-				break  # power close enough, good alignment
-			if p > topinitpower:
-				topinitpower = p
-
-			retries += 1
-
-		if retries >= limit:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Too many retries.')
-			return 0	# error condition
-
-		if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
+		scan.ExecuteNoneModal()
+		if scan.IsSuccess == False or SequenceObj.Halt:
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 coarse scan failed!')
 			return 0
 
+		# wait to settle
+		sleep(.001*2000)
+
+		# check return condition
+		# p = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
+		# if p > topinitpower or abs(p - topinitpower) / abs(p) < 0.2:
+		# 	break  # power close enough, good alignment
+		# if p > topinitpower:
+		# 	topinitpower = p
+		
+		for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
+			if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= minpower:
+				found_light_ch1 = True
+				break
+			sleep(0.01)
+
+	if not found_light_ch1:
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
+		return 0
+
+		# if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
+		# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
+		# 	return 0
+
+		
+
 	# rescan smaller area
-	scan.Range1 = alignment_parameters['HexapodFineScanRange1']
-	scan.Range2 = alignment_parameters['HexapodFineScanRange2']
-	scan.Velocity = alignment_parameters['HexapodFineScanVelocity']
-	scan.Frequency = alignment_parameters['HexapodFineScanFrequency']
+	# scan.Range1 = alignment_parameters['HexapodFineScanRange1']
+	# scan.Range2 = alignment_parameters['HexapodFineScanRange2']
+	# scan.Velocity = alignment_parameters['HexapodFineScanVelocity']
+	# scan.Frequency = alignment_parameters['HexapodFineScanFrequency']
 	# start the scan again
-	scan.ExecuteNoneModal()
-	if scan.IsSuccess == False or SequenceObj.Halt:
+	# scan.ExecuteNoneModal()
+	# if scan.IsSuccess == False or SequenceObj.Halt:
+	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
+	# 	return 0
+	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(alignment_parameters['UseOpticalSwitch']))
+	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(type(alignment_parameters['UseOpticalSwitch'])))
+	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .05, threshold = minpower, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
 		return 0
 
@@ -1019,16 +1033,19 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	topchanpos = Hexapod.GetAxesPositions()
 
 
-	SetScanChannel(scan, 2, UseOpticalSwitch)
+	# SetScanChannel(scan, 2, alignment_parameters['UseOpticalSwitch'])
 	# scan.Channel = 2
 	# one scan to get initial power
-	scan.ExecuteNoneModal()
-	if scan.IsSuccess == False or  SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
-		return 0
+	# scan.ExecuteNoneModal()
+	# if scan.IsSuccess == False or  SequenceObj.Halt:
+	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
+	# 	return 0
 	# wait to settle
 	#sleep(.001*500)
-	if UseOpticalSwitch:
+	if not	HexapodSpiralScan(SequenceObj, 2, scan_dia_mm = .05, threshold = minpower, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
+		return 0
+	if alignment_parameters['UseOpticalSwitch']:
 		bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
 	else:
 		bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
@@ -1239,7 +1256,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	scan.Range2 = alignment_parameters['HexapodRoughScanRange2']
 	scan.Velocity = alignment_parameters['HexapodRoughScanVelocity']
 	scan.Frequency = alignment_parameters['HexapodRoughScanFrequency']
-	SetScanChannel(scan, 1, UseOpticalSwitch)
+	SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
 	# scan.Channel = 1
 	scan.ExecuteOnce = SequenceObj.AutoStep
 	scan.ExecuteNoneModal()
@@ -1318,7 +1335,7 @@ def NanocubeGradientClimb(SequenceObj, alignment_parameters, alignment_results):
 	climb.ExecuteOnce = SequenceObj.AutoStep
 
 	# run climb on channel 1
-	SetScanChannel(climb, 1, UseOpticalSwitch)
+	SetScanChannel(climb, 1, alignment_parameters['UseOpticalSwitch'])
 	# climb.Channel = 1
 	climb.ExecuteNoneModal()
 	if climb.IsSuccess == False or SequenceObj.Halt:
@@ -1339,7 +1356,7 @@ def NanocubeGradientClimb(SequenceObj, alignment_parameters, alignment_results):
 		return 0
 
 	# run climb on channel 2
-	SetScanChannel(climb, 2, UseOpticalSwitch)
+	SetScanChannel(climb, 2, alignment_parameters['UseOpticalSwitch'])
 	# climb.Channel = 2
 	climb.ExecuteNoneModal()
 	if climb.IsSuccess == False or SequenceObj.Halt:
@@ -2017,7 +2034,7 @@ def AreaScan(scanAlgorithm, SequenceObj, TestMetrics, TestResults):
 	scan.Frequency = 4
 	scan.MidPosition1 = 50
 	scan.MidPosition2 = 50
-	SetScanChannel(scan, 1, UseOpticalSwitch)
+	SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
 	# scan.Channel = 1
 	scan.SaveRecordData = True
 	# scan.ExecuteOnce = SequenceObj.AutoStep

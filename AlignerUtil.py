@@ -15,6 +15,7 @@ clr.AddReferenceToFile('HAL.dll')
 from HAL import Motion
 from HAL import HardwareFactory
 from HAL import HardwareInitializeState
+from HAL.SourceController import ScrambleMethodType
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
 clr.AddReferenceToFile('CiscoAligner.exe')
@@ -71,8 +72,8 @@ def GetAndCheckUserInput(title, message):
 # SetScanChannel
 #
 #-------------------------------------------------------------------------------
-def SetScanChannel(scan, channel, useOpticalSwitch = False):
-	if(useOpticalSwitch):
+def SetScanChannel(scan, channel, UseOpticalSwitch = False):
+	if(UseOpticalSwitch):
 		if scan is not None:
 			scan.Channel = 1
 			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
@@ -330,7 +331,7 @@ def SetPolarizationsMPC201(SequenceObj, polarization):
 # NanocubeGradientClimb
 # set up and execute Nanocube gradient climb with standard parameters
 #-------------------------------------------------------------------------------
-def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', axis2 = 'Z', UseOpticalSwtich = False):
+def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', axis2 = 'Z', UseOpticalSwitch = False):
 	starting_positions = Nanocube.GetAxesPositions()
 
 	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
@@ -369,7 +370,7 @@ def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', a
 	#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(chanpos[0],chanpos[1],chanpos[2],chan_peak_V))
 	return True
 
-def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = 50, plot_output = False, UseOpticalSwtich = False):
+def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = 50, plot_output = False, UseOpticalSwitch = False):
 	starting_positions = Nanocube.GetAxesPositions()
 
 	# get the alignment algorithm
@@ -414,8 +415,8 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 # HexapodSpiralScan
 # set up and execute hexapod gradient climb with standard parameters
 #-------------------------------------------------------------------------------
-def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False):
-	starting_positions = hexapod.GetAxesPositions()
+def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False):
+	starting_positions = Hexapod.GetAxesPositions()
 
 	# get the hexapod alignment algorithm
 	scan = Hexapod.GetPIAreaScan(Motion.AreaScanType.SPIRAL_CV)
@@ -434,10 +435,10 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 
 	scan.ExecuteNoneModal()
 	if not scan.IsSuccess:
-		Hexapod.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
-		Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
-		Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-		#Hexapod.MoveAxesAbsolute(['X', 'Y', 'Z'], starting_positions, Motion.AxisMotionSpeeds.Normal, True)
+		# Hexapod.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+		# Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+		# Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+		Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
 		return False
 
 	
@@ -447,11 +448,11 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 			return True
 		sleep(0.01)
 
-	Hexapod.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
-	LogHelper.Log('AlignerUtil.NanocubeSpiralScan', LogEventSeverity.Warning, 'Nanocube sprial scan did not achieve minimum required power ({0:.03f} < {1:.03f}).'.format(ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument),threshold))
-	Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-	#Hexapod.MoveAxesAbsolute(['X', 'Y', 'Z'], starting_positions, Motion.AxisMotionSpeeds.Normal, True)
+	# Hexapod.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
+	LogHelper.Log('AlignerUtil.HexapodSpiralScan', LogEventSeverity.Warning, 'Hexapod sprial scan did not achieve minimum required power ({0:.03f} < {1:.03f}).'.format(ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument),threshold))
+	# Hexapod.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
+	# Hexapod.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), starting_positions, Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
 def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, max_z_difference_um = 1, UseOpticalSwtich = False, threshold = 0, speed = 50):

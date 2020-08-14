@@ -204,7 +204,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not Die_SN == None:
 		if not Die_SN == alignment_parameters['Die_SN']:
 			alignment_parameters['Die_SN'] = Die_SN
-			TestMetrics.UpdateTestMetricTables()
+			if not 	update_alignment_parameter(SequenceObj, 'Die_SN', Die_SN):
+				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Die_SN in aligment_parameters!')
 		alignment_results['Die_SN'] = Die_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
 	else:
@@ -216,7 +217,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not FAU_SN == None:
 		if not FAU_SN == alignment_parameters['FAU_SN']:
 			alignment_parameters['FAU_SN'] = FAU_SN
-			TestMetrics.UpdateTestMetricTables()
+			if not update_alignment_parameter(SequenceObj, 'FAU_SN', FAU_SN):
+				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update FAU_SN in aligment_parameters!')
 		alignment_results['FAU_SN'] = FAU_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
 	else:
@@ -242,7 +244,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not EpoxyTubeNumber == False:
 		if not EpoxyTubeNumber == alignment_parameters['EpoxyTubeNumber']:
 			alignment_parameters['EpoxyTubeNumber'] = EpoxyTubeNumber
-			TestMetrics.UpdateTestMetricTables()
+			if not update_alignment_parameter(SequenceObj, 'EpoxyTubeNumber', EpoxyTubeNumber):
+				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update EpoxyTubeNumber in aligment_parameters!')
 		alignment_results['Epoxy_Tube_Number'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
@@ -261,7 +264,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not EpoxyExpirationDate == False:
 		if not EpoxyExpirationDate == alignment_parameters['EpoxyExpirationDate']:
 			alignment_parameters['EpoxyExpirationDate'] = EpoxyExpirationDate
-			TestMetrics.UpdateTestMetricTables()
+			if not update_alignment_parameter(SequenceObj, 'EpoxyExpirationDate', EpoxyTubeNumber):
+				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update EpoxyExpirationDate in aligment_parameters!')
 		alignment_results['Epoxy_Expiration_Date'] = UserFormInputDialog.ReturnValue
 	else:
 		return 0
