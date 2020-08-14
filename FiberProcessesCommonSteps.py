@@ -908,12 +908,14 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	alignment_results['optical_z0'] = Hexapod.GetAxisPosition('X') + alignment_parameters['VisionDryAlignGapX']
 
-	alignment_results['vision_align_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
-	alignment_results['vision_align_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
-	alignment_results['vision_align_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
-	alignment_results['vision_align_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
-	alignment_results['vision_align_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
-	alignment_results['vision_align_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
+	# alignment_results['vision_align_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
+	# alignment_results['vision_align_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
+	# alignment_results['vision_align_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
+	# alignment_results['vision_align_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
+	# alignment_results['vision_align_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
+	# alignment_results['vision_align_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
+
+	alignment_results['vision_align_position'] = get_positions(SequenceObj)
 
 	IOController.GetHardwareStateTree().ActivateState('default')
 
@@ -929,6 +931,9 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 #-------------------------------------------------------------------------------
 def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_results):
 
+	if not set_positions(SequenceObj, alignment_results['vision_align_position']):
+		return 0
+	
 	search_pos = Hexapod.GetAxesPositions()
 
 	# remember this postion as optical z zero
@@ -1069,16 +1074,18 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Z direction.')
 		return 0
 
-	alignment_results['first_light_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
-	alignment_results['first_light_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
-	alignment_results['first_light_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
-	alignment_results['first_light_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
-	alignment_results['first_light_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
-	alignment_results['first_light_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
+	# alignment_results['first_light_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
+	# alignment_results['first_light_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
+	# alignment_results['first_light_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
+	# alignment_results['first_light_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
+	# alignment_results['first_light_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
+	# alignment_results['first_light_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
 
 	light_pos = Hexapod.GetAxesPositions()
 
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Light found [{0:.03f}, {1:.03f}, {2:.03f}]'.format(light_pos[0] - search_pos[0],light_pos[1] - search_pos[1],light_pos[2] - search_pos[2]))
+
+	alignment_results['first_light_position'] = get_positions(SequenceObj)
 
 	if SequenceObj.Halt:
 		return 0

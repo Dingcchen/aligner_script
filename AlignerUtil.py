@@ -562,3 +562,22 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 
 	return True
+
+def get_positions(SequenceObj):
+    output = {}
+    if Hexapod in not None:
+        output['Hexapod'] = map(lambda x: round(x,4), Hexapod.GetAxesPositions())
+    if Nanocube is not None:
+        output['Nanocube'] = map(lambda x: round(x,3), Nanocube.GetAxesPositions())
+    return output
+
+def set_position(SequenceObj, positions):
+    if 'Hexapod' is in positions.keys():
+        if not Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), positions['Hexapod'], Motion.AxisMotionSpeeds.Normal, True):
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Hexapod to {0:s}.'.format(str(positions['Hexapod'])))
+			return False
+    if 'Nanocube' is in positions.keys():
+        if not Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), positions['Nanocube'], Motion.AxisMotionSpeeds.Normal, True):
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Nanocube to {0:s}.'.format(str(positions['Nanocube'])))
+			return False
+	return True
