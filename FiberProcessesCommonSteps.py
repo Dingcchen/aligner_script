@@ -392,11 +392,11 @@ def SetFirstLightPositionToFAU(SequenceObj, alignment_parameters, alignment_resu
 	forcesensor = HardwareFactory.Instance.GetHardwareByName('ForceSensorIOSource').FindByName('ForceSensor')
 	startforce = forcesensor.ReadValueImmediate()
 	# start force monitor
-	threshold = alignment_parameters['ForceSensorContactThreshold']
+	# threshold = alignment_parameters['ForceSensorContactThreshold']
 	backoff = alignment_parameters['BackOffFromContactDetection']
 	farfieldgap = alignment_parameters['FarFieldGap']
 	# Monitor force change
-	while (forcesensor.ReadValueImmediate() - startforce) < threshold:
+	while (forcesensor.ReadValueImmediate() - startforce) < alignment_parameters['ForceSensorContactThreshold']:
 		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
 		sleep(.010)
 		# check for user interrupt
@@ -961,7 +961,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# get the hexapod alignment algorithm
 	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
 	# Reload parameters from recipe file
-	minpower = alignment_parameters['ScanMinPowerThreshold'] # this value will be in hexapod analog input unit.
+	# minpower = alignment_parameters['ScanMinPowerThreshold'] # this value will be in hexapod analog input unit.
 	scan.Axis1 = 'Y'
 	scan.Axis2 = 'Z'
 	scan.Range1 = alignment_parameters['HexapodRoughScanRange1']
@@ -984,7 +984,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 
 	found_light_ch1 = False
 	topinitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-	if topinitpower < minpower:
+	if topinitpower < alignment_parameters['ScanMinPowerThreshold']:
 		# do a few scans to make sure we are in the closest range possible
 
 		scan.ExecuteNoneModal()
@@ -1003,13 +1003,13 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		# 	topinitpower = p
 		
 		for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
-			if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= minpower:
+			if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= alignment_parameters['ScanMinPowerThreshold']:
 				found_light_ch1 = True
 				break
 			sleep(0.01)
 
 	if not found_light_ch1:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power {0:.3f} for top channel not achieved.'.format(minpower))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power {0:.3f} for top channel not achieved.'.format(alignment_parameters['ScanMinPowerThreshold']))
 		return 0
 
 		# if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
@@ -1032,7 +1032,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# 	return 0
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(alignment_parameters['UseOpticalSwitch']))
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(type(alignment_parameters['UseOpticalSwitch'])))
-	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .05, threshold = minpower, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
+	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
 		return 0
 
@@ -1049,7 +1049,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# 	return 0
 	# wait to settle
 	#sleep(.001*500)
-	if not	HexapodSpiralScan(SequenceObj, 2, scan_dia_mm = .05, threshold = minpower, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
+	if not	HexapodSpiralScan(SequenceObj, 2, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
 		return 0
 	if alignment_parameters['UseOpticalSwitch']:
@@ -1057,7 +1057,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	else:
 		bottominitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
 	retries = 0
-	if bottominitpower < minpower:
+	if bottominitpower < alignment_parameters['ScanMinPowerThreshold']:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to find min power on Ch2.')
 		return 0
 
@@ -1260,7 +1260,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# get the hexapod alignment algorithm
 	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
 	# Reload parameters from recipe file
-	minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
+	# minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
 	scan.Axis1 = alignment_parameters['HexapodRoughScanAxis1']
 	scan.Axis2 = alignment_parameters['HexapodRoughScanAxis2']
 	scan.Range1 = alignment_parameters['HexapodRoughScanRange1']
@@ -1283,12 +1283,12 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	forcesensor = HardwareFactory.Instance.GetHardwareByName('ForceSensorIOSource').FindByName('ForceSensor')
 	startforce = forcesensor.ReadValueImmediate()
 	# start force monitor
-	threshold = alignment_parameters['ForceSensorContactThreshold']
+	# threshold = alignment_parameters['ForceSensorContactThreshold']
 	backoff = alignment_parameters['BackOffFromContactDetection']
 	bondgap = alignment_parameters['EpoxyBondGap']
 	# Monitor force change
 	hexapod_initial_x = Hexapod.GetAxesPositions()[0]
-	while (forcesensor.ReadValueImmediate() - startforce) < threshold:
+	while (forcesensor.ReadValueImmediate() - startforce) < alignment_parameters['ForceSensorContactThreshold']:
 		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
 		sleep(.001*5)
 		# check for user interrupt
