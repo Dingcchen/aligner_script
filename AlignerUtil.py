@@ -111,7 +111,13 @@ def ReadMonitorSignal(channel, n_measurements = 10):
 			measurements.append(ChannelsAnalogSignals.ReadValue(ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')))
 		sleep(.01)
 	
-	return (mean(measurements), stdev(measurements),min(measurements),max(measurements))
+	mean = sum(measurements)/len(measurements)
+	if(n_measurements > 1):
+		stdev = (sum(map(lambda x: (x-mean)**2, measurements))/(len(measurements)-1))**0.5
+	else:
+		stdev = None
+
+	return (mean, stdev, min(measurements),max(measurements))
 
 	
 #-------------------------------------------------------------------------------
@@ -294,7 +300,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		if step_size < 0.01:
 			step_size = 0.01
 	
-	return MPC201.ReadPolarization('1,2,3,4')
+	return polarization_controller.ReadPolarization('1,2,3,4')
 
 def ScramblePolarizationMPC201(SequenceObj):
 	PolarizationControl.SetScrambleMethod(ScrambleMethodType.Tornado)

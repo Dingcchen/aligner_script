@@ -919,7 +919,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	sleep(.001*500)
 	current_scan_channel = 1
 	UseOpticalSwtich = alignment_parameters['UseOpticalSwitch']
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich),1)[0] < minpower:
+	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich))[0] < minpower:
 		if use_hexapod_area_scan:
 			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False)
 			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
@@ -972,7 +972,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
 		sleep(.001*500)
 
-		if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich),1)[0] < minpower:
+		if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich))[0] < minpower:
 			if use_hexapod_area_scan:
 				# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False)
 				if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
