@@ -571,13 +571,14 @@ def get_positions(SequenceObj):
         output['Nanocube'] = map(lambda x: round(x,3), Nanocube.GetAxesPositions())
     return output
 
-def set_position(SequenceObj, positions):
+def set_positions(SequenceObj, positions):
 	if 'Hexapod' in positions.keys():
-		if not Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), positions['Hexapod'], Motion.AxisMotionSpeeds.Normal, True):
+		# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(positions['Hexapod']) + str(type(positions['Hexapod'][0])))
+		if not Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), Array[float](positions['Hexapod']), Motion.AxisMotionSpeeds.Normal, True):
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Hexapod to {0:s}.'.format(str(positions['Hexapod'])))
 			return False
 	if 'Nanocube' in positions.keys():
-		if not Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), positions['Nanocube'], Motion.AxisMotionSpeeds.Normal, True):
+		if not Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float](positions['Nanocube']), Motion.AxisMotionSpeeds.Normal, True):
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Nanocube to {0:s}.'.format(str(positions['Nanocube'])))
 			return False
 	return True

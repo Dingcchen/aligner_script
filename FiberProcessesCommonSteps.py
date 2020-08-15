@@ -1009,7 +1009,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 			sleep(0.01)
 
 	if not found_light_ch1:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power {0:.3f} for top channel not achieved.'.format(minpower))
 		return 0
 
 		# if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
@@ -1316,6 +1316,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
+	TestResults = SequenceObj.TestResults
 	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTopEpoxy.jpg')
