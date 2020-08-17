@@ -301,7 +301,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		if step_size < 0.01:
 			step_size = 0.01
 	
-	return MPC201.ReadPolarization('1,2,3,4')
+	return PolarizationControl.ReadPolarization('1,2,3,4')
 
 def ScramblePolarizationMPC201(SequenceObj):
 	PolarizationControl.SetScrambleMethod(ScrambleMethodType.Tornado)
@@ -322,13 +322,13 @@ def SetPolarizationsMPC201(SequenceObj, polarization):
 
 	#set all polarization controller channels to a predefined value (because reasons???)
 	for i in range(4):
-		if not polarization_controller.SetPolarization(polarization[i], polarization_controller_channels[i]):
+		if not PolarizationControl.SetPolarization(polarization[i], polarization_controller_channels[i]):
 			return None
-		if not polarization_controller.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
+		if not PolarizationControl.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
 			sleep(0.2)
-			if not polarization_controller.SetPolarization(polarization[i], polarization_controller_channels[i]):
+			if not PolarizationControl.SetPolarization(polarization[i], polarization_controller_channels[i]):
 				return None
-			if not polarization_controller.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
+			if not PolarizationControl.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
 				return False
 		sleep(0.2)
 	return True
@@ -349,11 +349,11 @@ def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', a
 	#climb.Channel = channel
 	#climb.ExecuteOnce = SequenceObj.AutoStep
 	climb.ExecuteNoneModal()
-	if not scan.IsSuccess:
+	if not climb.IsSuccess:
 		# Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-		Nanocube.MoveAxesAbsolute(Array[String]['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+		Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 		return False
 
 	sleep(0.500) # wait to settle
@@ -363,11 +363,11 @@ def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', a
 		sleep(0.01)
 
 
-	LogHelper.Log('AlignerUtil.NanocubeGradientClimb', LogEventSeverity.Warning, 'Nanocube gradient climb did not achieve minimum required power ({0:.03f} V < {1:.03f} V).'.format(ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument),threshold))
+	LogHelper.Log('AlignerUtil.NanocubeGradientClimb', LogEventSeverity.Warning, 'Nanocube gradient climb did not achieve minimum required power ({0:.03f} V < {1:.03f} V).'.format(ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument),threshold))
 	# Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
 	# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 	# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-	Nanocube.MoveAxesAbsolute(Array[String]['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
 	
@@ -401,7 +401,7 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 		# Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-		Nanocube.MoveAxesAbsolute(Array[String]['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+		Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 		return False
 
 	
@@ -415,7 +415,7 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 	LogHelper.Log('AlignerUtil.NanocubeSpiralScan', LogEventSeverity.Warning, 'Nanocube sprial scan did not achieve minimum required power ({0:.03f} < {1:.03f}).'.format(ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument),threshold))
 	# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 	# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
-	Nanocube.MoveAxesAbsolute(Array[String]['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
 #-------------------------------------------------------------------------------
@@ -462,7 +462,7 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), Array[Float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
-def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, max_z_difference_um = 1, UseOpticalSwtich = False, threshold = 0, speed = 50):
+def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, max_z_difference_um = 1, UseOpticalSwitch = False, threshold = 0, speed = 50):
 
 	# set up a loop to zero in on the roll angle
 	topchanpos = []
@@ -480,13 +480,13 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 
 	while retries < 5 and not SequenceObj.Halt:
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
+		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
 		#SetScanChannel(scan, 1, UseOpticalSwitch)
 		#scan_ch = SetScanChannel(climb, 1, UseOpticalSwitch)
 
-		if ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwtich))[3] < minpower: #check max signal found when using scrambler
-			if not NanocubeSpiralScan(SequenceObj, 1, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
-				if not NanocubeSpiralScan(SequenceObj, 1,scan_dia_um=90, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
+		if ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwitch))[3] < threshold: #check max signal found when using scrambler
+			if not NanocubeSpiralScan(SequenceObj, 1, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, 1,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1.')
 					return False
 		
@@ -498,13 +498,13 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 				return False
 
 
-		if not NanocubeGradientClimb(SequenceObj, 1, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich) or SequenceObj.Halt:
+		if not NanocubeGradientClimb(SequenceObj, 1, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 			return False
 		
 		# remember the peak top channel position
 		topchanpos = Nanocube.GetAxesPositions()
-		top_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwtich))
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
+		top_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwitch))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2], top_chan_peak_V[0], top_chan_peak_V[1]))
 		
 
 		# repeat scan for the second channel
@@ -515,9 +515,9 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 			if not ScramblePolarizationMPC201(SequenceObj):
 				return False
 
-		if ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwtich))[3] < minpower: #check max signal found when using scrambler
-			if not NanocubeSpiralScan(SequenceObj, 2, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
-				if not NanocubeSpiralScan(SequenceObj, 2,scan_dia_um=90, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich):
+		if ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch))[3] < threshold: #check max signal found when using scrambler
+			if not NanocubeSpiralScan(SequenceObj, 2, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, 2,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 2.')
 					return False
 		
@@ -528,12 +528,12 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller, m
 				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to set the polarization!')
 				return False
 
-		if not NanocubeGradientClimb(SequenceObj, 2, threshold = threshold, UseOpticalSwtich = UseOpticalSwtich) or SequenceObj.Halt:
+		if not NanocubeGradientClimb(SequenceObj, 2, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 			return False
 		
 		# get the final position of second channel
 		bottomchanpos = Nanocube.GetAxesPositions()
-		bottom_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwtich))
+		bottom_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch))
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V[0],bottom_chan_peak_V[1]))
 
 		# double check and readjust roll if necessary
@@ -578,9 +578,9 @@ def get_positions(SequenceObj):
         output['Nanocube'] = map(lambda x: round(x,3), Nanocube.GetAxesPositions())
     return output
 
-def set_position(SequenceObj, positions):
+def set_positions(SequenceObj, positions):
 	if 'Hexapod' in positions.keys():
-		if not Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), positions['Hexapod'], Motion.AxisMotionSpeeds.Normal, True):
+		if not Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), Array[float](positions['Hexapod']), Motion.AxisMotionSpeeds.Normal, True):
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Hexapod to {0:s}.'.format(str(positions['Hexapod'])))
 			return False
 	if 'Nanocube' in positions.keys():

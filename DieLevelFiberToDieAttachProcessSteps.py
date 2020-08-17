@@ -917,18 +917,18 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	Nanocube.GetHardwareStateTree().ActivateState('Center')
 	sleep(.001*500)
-	current_scan_channel = 1
-	UseOpticalSwtich = alignment_parameters['UseOpticalSwitch']
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich))[0] < alignment_parameters['ScanMinPowerThreshold']:
+	current_scan_channel = 1 
+	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
+	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
 		if use_hexapod_area_scan:
-			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False)
-			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
+			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 					return False
 		else:
-			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 					return False
 		# hexapod_scan.ExecuteNoneModal()
@@ -938,7 +938,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 		# sleep(.001*500)
 
 	if use_polarization_controller:
-		top_ch_polarization_position = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = SetScanChannel(None, current_scan_channel, UseOpticalSwtich), coarse_scan = False)
+		top_ch_polarization_position = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = SetScanChannel(None, current_scan_channel, UseOpticalSwitch), coarse_scan = False)
 
 	# Hexapod.PivotPoint['X'] = zeropitch + offset
 	# enable the new pivot point
@@ -972,23 +972,23 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
 		sleep(.001*500)
 
-		if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich))[0] < alignment_parameters['ScanMinPowerThreshold']:
+		if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
 			if use_hexapod_area_scan:
-				# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False)
-				if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-					if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+				# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
+				if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+					if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 						LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 						return False
 			else:
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-					if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+					if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 						LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 						return False
 
-		if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich) or SequenceObj.Halt:
+		if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 			return False
 
-		top_channel_power = ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich),n_measurements)
+		top_channel_power = ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch),n_measurements)
 
 
 
@@ -1013,16 +1013,16 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	sleep(.001*2000)
 	# SetScanChannel(climb, 1, UseOpticalSwitch)
 	# SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwtich),1)[0] < alignment_parameters['ScanMinPowerThreshold']:
+	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch),1)[0] < alignment_parameters['ScanMinPowerThreshold']:
 		if use_hexapod_area_scan:
-			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwtich = False)
-			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
+			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 					return False
 		else:
-			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich):
+			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 					return False
 	# hexapod_scan.Channel = 1
@@ -1035,8 +1035,8 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	# 	return 0
 	# sleep(.001*500)
 
-	if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwtich = UseOpticalSwtich) or SequenceObj.Halt:
-			return False
+	if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
+		return False
 	# climb.ExecuteNoneModal()
 	# # check climb status
 	# if climb.IsSuccess == False or SequenceObj.Halt:
@@ -1110,7 +1110,7 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
 
 
-	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, max_z_difference_um = 0.2, speed = 5, UseOpticalSwtich = UseOpticalSwitch):
+	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, max_z_difference_um = 0.2, speed = 5, UseOpticalSwitch = UseOpticalSwitch):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
 
@@ -1234,10 +1234,12 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	# alignment_results['Wet_Align_Nanocube_Z'] = nposition[2]
 
 	# get power based on instrument
-	SetScanChannel(climb, 1, UseOpticalSwitch)
-	toppower = ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument)
-	SetScanChannel(climb, 2, UseOpticalSwitch)
-	bottompower = ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument)
+	# Channel 1
+	IOController.SetOutputValue('OpticalSwitch', False)
+	toppower = ChannelsAnalogSignals.ReadValue("TopChanMonitorSignal")
+	# Channel 2
+	IOController.SetOutputValue('OpticalSwitch', True)
+	bottompower = ChannelsAnalogSignals.ReadValue("BottomChanMonitorSignal")
 
 	"""
 	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
@@ -1246,8 +1248,8 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 		bottompower = pm.ReadPowers().Item2[1]
 	"""
 	# save process values
-	alignment_results['Wet_Align_Peak_Power_Top_Chan'] = round(top_chan_peak_V,3)
-	alignment_results['Wet_Align_Peak_Power_Bottom_Chan'] = round(bottom_chan_peak_V,3)
+	# alignment_results['Wet_Align_Peak_Power_Top_Chan'] = round(top_chan_peak_V,3)
+	# alignment_results['Wet_Align_Peak_Power_Bottom_Chan'] = round(bottom_chan_peak_V,3)
 	alignment_results['Wet_Align_Balanced_Power_Top_Chan'] = round(toppower,3)
 	alignment_results['Wet_Align_Balanced_Power_Bottom_Chan'] = round(bottompower,3)
 
