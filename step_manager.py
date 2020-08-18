@@ -4,6 +4,7 @@ from Utility import *
 import os.path
 import json
 import re
+from AlignerUtil import get_positions
 
 
 def step_manager(SequenceObj, step):
@@ -29,20 +30,14 @@ def step_manager(SequenceObj, step):
 	filename = os.path.basename(SequenceObj.ScriptFilePath) # just get the filename
 	filename = filename.split('.')[0] # get rid of the extension
 
-	#import(file_name) as f
-	"""
-	exec('import ' + filename + ' as f2')
-	alignment_results = exec('f2.' + step + '(SequenceObj, alignment_parameters, alignment_results)')
-	"""
 	alignment_results = step(SequenceObj, alignment_parameters, alignment_results)
 
 	# or (alignment_results is False):
 	if (alignment_results == 0) :
 		return 0
 
-	# save the alignment results
-	# with open(results_filename, 'w') as outfile:
-	# 	json.dump(output, alignment_results, indent=2 , sort_keys=True)
+	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
+
 	if save_pretty_json(alignment_results, results_filename):
 		return 1
 	else:

@@ -1054,6 +1054,9 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 #-------------------------------------------------------------------------------
 def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
+	#Ask operator to check both channels are connected
+	if LogHelper.AskContinue('Connect both channels from optical switch! Click Yes when done, No to abort.') == False:
+		return 0
 	##############################
 	##### Hexapod scan setup #####
 	##############################
@@ -1298,3 +1301,20 @@ def Finalize(SequenceObj, alignment_parameters, alignment_results):
 	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN'])
 
 	return alignment_results
+
+#-------------------------------------------------------------------------------
+# Reposition
+# Allow operator to go back to previous saved position in alignment_results
+#-------------------------------------------------------------------------------
+def Reposition(SequenceObj, alignment_parameters, alignment_results):
+	positions = GetAndCheckUserInput('Set position', 'Please ienter the name of previous saved position:')
+	if positions != None:
+		set_positions(SequenceObj, alignment_results[positions])
+		LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Set positions ' + positions)
+	return alignment_results
+
+
+
+
+
+
