@@ -305,8 +305,11 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 
 def ScramblePolarizationMPC201(SequenceObj):
 	PolarizationControl.SetScrambleMethod(ScrambleMethodType.Tornado)
+	sleep(0.2)
 	PolarizationControl.SetScrambleRate(2000) #Hz
+	sleep(0.2)
 	PolarizationControl.SetScrambleEnableState(True)
+	sleep(0.2)
 	if not PolarizationControl.ReadScrambleEnableState():
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to enable polarization scramble!')
 		return False
@@ -316,6 +319,7 @@ def SetPolarizationsMPC201(SequenceObj, polarization):
 	polarization_controller_channels = ['1','2','3','4']	
 	
 	PolarizationControl.SetScrambleEnableState(False)
+	sleep(0.2)
 	if PolarizationControl.ReadScrambleEnableState():
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to disable polarization scramble!')
 		return None
@@ -324,10 +328,12 @@ def SetPolarizationsMPC201(SequenceObj, polarization):
 	for i in range(4):
 		if not PolarizationControl.SetPolarization(polarization[i], polarization_controller_channels[i]):
 			return None
+		sleep(0.2)
 		if not PolarizationControl.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
 			sleep(0.2)
 			if not PolarizationControl.SetPolarization(polarization[i], polarization_controller_channels[i]):
 				return None
+			sleep(0.2)
 			if not PolarizationControl.ReadPolarization(polarization_controller_channels[i])[0] != round(polarization[i],2):
 				return False
 		sleep(0.2)
@@ -437,6 +443,8 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 
 	scan.UseCurrentPosition = True
 	SetScanChannel(scan, fb_channel, UseOpticalSwitch)
+	# in hexepod the analog channel channel 1 and 2 is actually channel 5 and 6 of the C877 controller
+	scan.Channel = scan.Channel + 4
 	scan.SaveRecordData = plot_output
 	# scan.ExecuteOnce = SequenceObj.AutoStep
 
