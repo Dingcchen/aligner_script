@@ -1013,7 +1013,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	sleep(.001*2000)
 	# SetScanChannel(climb, 1, UseOpticalSwitch)
 	# SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch),1)[0] < alignment_parameters['ScanMinPowerThreshold']:
+	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
 		if use_hexapod_area_scan:
 			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
 			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
@@ -1113,7 +1113,7 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
 
 
-	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, max_z_difference_um = 0.2, speed = 5, UseOpticalSwitch = UseOpticalSwitch):
+	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
 

@@ -1199,7 +1199,9 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
 	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
 	"""
-
+	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = UseOpticalSwitch):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
+		return 0
 	# record the final dry align hexapod position
 	hposition = Hexapod.GetAxesPositions()
 	alignment_results['Dry_Align_Hexapod_X'] = hposition[0]
