@@ -781,10 +781,13 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	dest = MachineVision.ApplyTransform('SideCameraTransform', ValueTuple[float,float](diex, diey))
 	start = MachineVision.ApplyTransform('SideCameraTransform', ValueTuple[float,float](mpox, mpoy))
 
+	### calculate z move, but don't actually move until the very end
+	z_move_final = dest.Item2 - start.Item2 + alignment_parameters['FirstLightZOffsetFromVision']
+
 	# move the mpo height to match that of the die height, include the z-offset
-	if not Hexapod.MoveAxisRelative('Z', dest.Item2 - start.Item2 + alignment_parameters['FirstLightZOffsetFromVision'], Motion.AxisMotionSpeeds.Slow, True):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
-		return 0
+	# if not Hexapod.MoveAxisRelative('Z', z_move_final, Motion.AxisMotionSpeeds.Slow, True):
+	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
+	# 	return 0
 
 	# adjust the yaw angle
 	Hexapod.MoveAxisRelative('V', mpoangle - dieangle, Motion.AxisMotionSpeeds.Normal, True)
@@ -904,6 +907,10 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	if not Hexapod.MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
+		return 0
+	
+	if not Hexapod.MoveAxisRelative('Z', z_move_final, Motion.AxisMotionSpeeds.Slow, True):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
 		return 0
 
 	alignment_results['optical_z0'] = Hexapod.GetAxisPosition('X') + alignment_parameters['VisionDryAlignGapX']
@@ -1199,7 +1206,7 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
 	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
 	"""
-	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = UseOpticalSwitch):
+	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
 	# record the final dry align hexapod position
@@ -1260,22 +1267,28 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	#Hexapod.MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Slow, True)
 
 	# get the hexapod alignment algorithm
-	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-	# Reload parameters from recipe file
-	# minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
-	scan.Axis1 = alignment_parameters['HexapodRoughScanAxis1']
-	scan.Axis2 = alignment_parameters['HexapodRoughScanAxis2']
-	scan.Range1 = alignment_parameters['HexapodRoughScanRange1']
-	scan.Range2 = alignment_parameters['HexapodRoughScanRange2']
-	scan.Velocity = alignment_parameters['HexapodRoughScanVelocity']
-	scan.Frequency = alignment_parameters['HexapodRoughScanFrequency']
-	SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
-	# scan.Channel = 1
-	scan.ExecuteOnce = SequenceObj.AutoStep
-	scan.ExecuteNoneModal()
-	if scan.IsSuccess == False or SequenceObj.Halt:
-		return 0
-
+	# scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
+	# # Reload parameters from recipe file
+	# # minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
+	# scan.Axis1 = alignment_parameters['HexapodRoughScanAxis1']
+	# scan.Axis2 = alignment_parameters['HexapodRoughScanAxis2']
+	# scan.Range1 = alignment_parameters['HexapodRoughScanRange1']
+	# scan.Range2 = alignment_parameters['HexapodRoughScanRange2']
+	# scan.Velocity = alignment_parameters['HexapodRoughScanVelocity']
+	# scan.Frequency = alignment_parameters['HexapodRoughScanFrequency']
+	# SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
+	# # scan.Channel = 1
+	# scan.ExecuteOnce = SequenceObj.AutoStep
+	# scan.ExecuteNoneModal()
+	# if scan.IsSuccess == False or SequenceObj.Halt:
+	# 	return 0
+	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
+	current_scan_channel = 1
+	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
+		if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+			if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
+				return False
 
 	# do a contact to establish True bond gap
 	# start move incrementally until force sensor detect contact

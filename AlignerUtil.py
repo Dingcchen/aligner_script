@@ -97,6 +97,7 @@ def SetScanChannel(scan, channel, UseOpticalSwitch = False):
 
 
 def ReadMonitorSignal(channel, n_measurements = 10):
+	sleep(0.2)
 	if n_measurements < 1:
 		return False
 	#channel = SetScanChannel(None, channel, useOpticalSwitch = useOpticalSwitch)
@@ -386,7 +387,7 @@ def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', a
 
 def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = 10, plot_output = False, UseOpticalSwitch = False):
 	starting_positions = Nanocube.GetAxesPositions()
-
+	Nanocube.MoveAxisRelative('X', -30, Motion.AxisMotionSpeeds.Slow, True)
 	# get the alignment algorithm
 	scan = Nanocube.GetPIAreaScan(Motion.AreaScanType.SPIRAL_CV)
 	scan.RoutineName = '1'
@@ -402,8 +403,11 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 	SetScanChannel(scan, fb_channel, UseOpticalSwitch)
 	scan.SaveRecordData = plot_output
 	# scan.ExecuteOnce = SequenceObj.AutoStep
-
-	scan.ExecuteNoneModal()
+	if not SequenceObj.Halt:
+		scan.ExecuteNoneModal()
+	else:
+		Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+		return False
 	if not scan.IsSuccess:
 		# Nanocube.MoveAxisAbsolute('X', starting_positions[0], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
@@ -415,6 +419,7 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 	sleep(0.500) # wait to settle
 	for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
 		if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= threshold:
+			Nanocube.MoveAxisAbsolute('X',starting_positions[0], Motion.AxisMotionSpeeds.Slow,True)
 			return True
 		sleep(0.01)
 
@@ -523,7 +528,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		if use_polarization_controller and retries == 0:
 			if not ScramblePolarizationMPC201(SequenceObj):
 				return False
-		sleep(1)
+		sleep(0.2)
 		if ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch))[3] < threshold: #check max signal found when using scrambler
 			if not NanocubeSpiralScan(SequenceObj, 2, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 				if not NanocubeSpiralScan(SequenceObj, 2,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
@@ -560,7 +565,14 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		# adjust the roll angle again
 		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
 		# wait to settle
-		Utility.DelayMS(500)
+		# balanced position
+		ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
+		zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
+		Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
+		Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
+
+		Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
+		Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 
 		retries += 1
 
