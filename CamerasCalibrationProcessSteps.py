@@ -9,22 +9,27 @@ from System import DateTime
 from System import Array
 from System import String
 from System import ValueTuple
-from System import Math
+import math as math
 from System.Diagnostics import Stopwatch
 from System.Collections.Generic import List
 clr.AddReferenceToFile('HAL.dll')
+from HAL import Vision
 from HAL import Motion
 from HAL import HardwareFactory
 from HAL import HardwareInitializeState
-from HAL import Vision
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
 clr.AddReferenceToFile('CiscoAligner.exe')
 from CiscoAligner import PickAndPlace
 from CiscoAligner import Station
 from CiscoAligner import Alignments
+from time import sleep
+import csv
+from AlignerUtil import *
+from datetime import datetime
+from step_manager  import *
 
-def Template(StepName, SequenceObj, TestMetrics, TestResults):
+def Template(SequenceObj, alignment_parameters, alignment_results):
     # DO NOT DELETE THIS METHOD
     # This is the method pattern for all python script called by AutomationCore PythonScriptManager.
     # The method arguments must be exactly as shown. They are the following:
@@ -53,13 +58,13 @@ def Template(StepName, SequenceObj, TestMetrics, TestResults):
     if SequenceObj.Halt:
         return 0
     else:
-        return 1
+        return alignment_results
 
 #-------------------------------------------------------------------------------
 # CalibrateDownCamera
 # Calibrate the down camera to stage positions
 #-------------------------------------------------------------------------------
-def CalibrateDownCamera(StepName, SequenceObj, TestMetrics, TestResults):
+def CalibrateDownCamera(SequenceObj, alignment_parameters, alignment_results):
 
     CAMERA_SHIFT = 0.6 
 
@@ -70,8 +75,10 @@ def CalibrateDownCamera(StepName, SequenceObj, TestMetrics, TestResults):
     HardwareFactory.Instance.GetHardwareByName('Hexapod').EnableZeroCoordinateSystem()
 
     # turn on the cameras
-    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    # HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    # HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    DownCamera.Live(True)
+    SideCamera.Live(True)
     # set exposure
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(5)
 
@@ -93,12 +100,14 @@ def CalibrateDownCamera(StepName, SequenceObj, TestMetrics, TestResults):
 
     Utility.DelayMS(1000)
 
+    TestMetrics = SequenceObj.TestMetrics
     # snap image to load to vision
-    downvision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DownVisionTool').DataItem #'DieTopGF2NoGlassBlock'
-    downcamexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'DownCamExposure').DataItem #'DieTopGF2NoGlassBlock'
+    downvision = alignment_parameters['DownVisionTool'] #'DieTopGF2NoGlassBlock'
+    downcamexposure = alignment_parameters['DownCamExposure'] #'DieTopGF2NoGlassBlock'
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(downcamexposure)
 
     HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Run vision tool ' + downvision )
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(downvision)
     # check result
     if res['Result'] != 'Success':
@@ -114,10 +123,11 @@ def CalibrateDownCamera(StepName, SequenceObj, TestMetrics, TestResults):
     if not HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('X', CAMERA_SHIFT, Motion.AxisMotionSpeeds.Normal, True):
         return 0
 
-    Utility.DelayMS(1000)
+    Utility.DelayMS(2000)
 
     # snap image to load to vision
     HardwareFactory.Instance.GetHardwareByName('DownCamera').Snap()
+    LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Run vision tool 2 ' + downvision )
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(downvision)
     # check result
     if res['Result'] != 'Success':
@@ -167,18 +177,19 @@ def CalibrateDownCamera(StepName, SequenceObj, TestMetrics, TestResults):
     HardwareFactory.Instance.GetHardwareByName('MachineVision').AddTransform('DownCameraTransform', pointCollection)
 
     # turn on the cameras
-    HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
+    DownCamera.Live(False)
+    SideCamera.Live(False)
 
     if SequenceObj.Halt:
         return 0
     else:
-        return 1
+        return alignment_results
 
 #-------------------------------------------------------------------------------
 # CalibrateSideCamera
 # Calibrate the side camera to stage position
 #-------------------------------------------------------------------------------
-def CalibrateSideCamera(StepName, SequenceObj, TestMetrics, TestResults):
+def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
     
     CAMERA_SHIFT = 0.6 
 
@@ -187,10 +198,10 @@ def CalibrateSideCamera(StepName, SequenceObj, TestMetrics, TestResults):
     HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
     # set exposure
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(3)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(10)
+    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(5)
 
     # move to preset positions
-    HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState('CameraCalibration')
+    HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState('CameraCalibration')
     HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('CameraCalibration')
 
     if SequenceObj.Halt:
@@ -208,8 +219,9 @@ def CalibrateSideCamera(StepName, SequenceObj, TestMetrics, TestResults):
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    sidevision = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'SideVisionTool').DataItem #'DieTopGF2NoGlassBlock'
-    sidecamexposure = TestMetrics.GetTestMetricItem(SequenceObj.ProcessSequenceName, 'SideCamExposure').DataItem #'DieTopGF2NoGlassBlock'
+    TestMetrics = SequenceObj.TestMetrics
+    sidevision = alignment_parameters['SideVisionTool'] #'DieTopGF2NoGlassBlock'
+    sidecamexposure = alignment_parameters['SideCamExposure'] #'DieTopGF2NoGlassBlock'
     HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(sidecamexposure)
 
     HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
@@ -290,14 +302,14 @@ def CalibrateSideCamera(StepName, SequenceObj, TestMetrics, TestResults):
     if SequenceObj.Halt:
         return 0
     else:
-        return 1
+        return alignment_results
 
 #-------------------------------------------------------------------------------
 # Finalize
 # Finalize process such as saving data
 #-------------------------------------------------------------------------------
-def Finalize(StepName, SequenceObj, TestMetrics, TestResults):
+def Finalize(SequenceObj, alignment_parameters, alignment_results):
 
     HardwareFactory.Instance.GetHardwareByName('MachineVision').SaveAllTransforms()
 
-    return 1
+    return alignment_results

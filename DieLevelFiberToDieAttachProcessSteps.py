@@ -199,7 +199,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	# Wait for load complete and get serial number
 	# possibly using a barcode scanner later
 	Die_SN = alignment_parameters['Die_SN']
-	if LogHelper.AskContinue('Please load die (wave guides to the left) and verify serial number:\n' + Die_SN + '\nClick Yes when done, No to update value.') == False:
+	if LogHelper.AskContinue('Please load die (wave guides to the left) and verify serial number:\n' + str(Die_SN) + '\nClick Yes when done, No to update value.') == False:
 		Die_SN = GetAndCheckUserInput('Load GF die', 'Please load die (wave guides to the left) and enter serial number:')
 	if not Die_SN == None:
 		if not Die_SN == alignment_parameters['Die_SN']:
@@ -212,7 +212,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 		return 0
 
 	FAU_SN = alignment_parameters['FAU_SN']
-	if LogHelper.AskContinue('Please load FAU and verify serial number:\n' + FAU_SN + '\nClick Yes when done, No to update value.') == False:
+	if LogHelper.AskContinue('Please load FAU and verify serial number:\n' + str(FAU_SN) + '\nClick Yes when done, No to update value.') == False:
 		FAU_SN = GetAndCheckUserInput('Load FAU', 'Please load FAU and enter serial number:')
 	if not FAU_SN == None:
 		if not FAU_SN == alignment_parameters['FAU_SN']:
@@ -239,7 +239,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 		# UserFormInputDialog.ReturnValue = ''
 
 	EpoxyTubeNumber = alignment_parameters['EpoxyTubeNumber']
-	if LogHelper.AskContinue('Please verify epoxy tube number:\n' + EpoxyTubeNumber + '\nClick Yes to accept, No to update value.') == False:
+	if LogHelper.AskContinue('Please verify epoxy tube number:\n' + str(EpoxyTubeNumber) + '\nClick Yes to accept, No to update value.') == False:
 		EpoxyTubeNumber = UserFormInputDialog.ShowDialog('Epoxy tube number', 'Please enter epoxy tube number:')
 	if not EpoxyTubeNumber == False:
 		if not EpoxyTubeNumber == alignment_parameters['EpoxyTubeNumber']:
@@ -259,7 +259,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 		# UserFormInputDialog.ReturnValue = ''
 
 	EpoxyExpirationDate = alignment_parameters['EpoxyExpirationDate']
-	if LogHelper.AskContinue('Please verify epoxy expiration date:\n' + EpoxyExpirationDate + '\nClick Yes to accept, No to update value.') == False:
+	if LogHelper.AskContinue('Please verify epoxy expiration date:\n' + str(EpoxyExpirationDate) + '\nClick Yes to accept, No to update value.') == False:
 		EpoxyExpirationDate = UserFormInputDialog.ShowDialog('Epoxy expiration date', 'Please enter epoxy expiration date (MM/DD/YYYY):')
 	if not EpoxyExpirationDate == False:
 		if not EpoxyExpirationDate == alignment_parameters['EpoxyExpirationDate']:

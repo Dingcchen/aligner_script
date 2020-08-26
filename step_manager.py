@@ -21,7 +21,7 @@ def step_manager(SequenceObj, step):
 
 	# load the alignment results file if we're not starting a new sequence, otherwise create a new dictionary
 	results_filename = os.path.join(SequenceObj.RootPath, 'Data', 'temp_alignment_results.json') # store the temporary results file here
-	if step != 'Initialize':
+	if SequenceObj.StepName != 'Initialize':
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f)
 	else:
