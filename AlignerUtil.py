@@ -479,12 +479,16 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  threshold,max_z_difference_um = 1, UseOpticalSwitch = False, speed = 50):
 
 	# set up a loop to zero in on the roll angle
-	topchanpos = []
-	bottomchanpos = []
+	top_chan_position = []
+	bottom_chan_position = []
+	top_chan_peak_power = ()
+	bottom_chan_peak_power = ()
+
 	retries = 0
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Begin roll (U) adjust...')
 
 	n_measurements = 5
+	
 
 	if use_polarization_controller:
 		if not ScramblePolarizationMPC201(SequenceObj):
@@ -494,7 +498,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 	while retries < 5 and not SequenceObj.Halt:
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_channel_power[0],top_channel_power[1]))
+		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(top_chan_position[0],top_chan_position[1],top_chan_position[2],top_channel_power[0],top_channel_power[1]))
 		#SetScanChannel(scan, 1, UseOpticalSwitch)
 		#scan_ch = SetScanChannel(climb, 1, UseOpticalSwitch)
 
@@ -516,9 +520,9 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 			return False
 		
 		# remember the peak top channel position
-		topchanpos = Nanocube.GetAxesPositions()
-		top_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwitch))
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(topchanpos[0],topchanpos[1],topchanpos[2], top_chan_peak_V[0], top_chan_peak_V[1]))
+		top_chan_position = Nanocube.GetAxesPositions()
+		top_chan_peak_power = ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwitch))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(top_chan_position[0],top_chan_position[1],top_chan_position[2], top_chan_peak_power[0], top_chan_peak_power[1]))
 		
 
 		# repeat scan for the second channel
@@ -546,28 +550,28 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 			return False
 		
 		# get the final position of second channel
-		bottomchanpos = Nanocube.GetAxesPositions()
-		bottom_chan_peak_V = ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch))
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V[0],bottom_chan_peak_V[1]))
+		bottom_chan_position = Nanocube.GetAxesPositions()
+		bottom_chan_peak_power = ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottom_chan_position[0],bottom_chan_position[1],bottom_chan_position[2],bottom_chan_peak_power[0],bottom_chan_peak_power[1]))
 
 		# double check and readjust roll if necessary
 		# calculate the roll angle
-		h = Math.Abs(topchanpos[2] - bottomchanpos[2])
+		h = Math.Abs(top_chan_position[2] - bottom_chan_position[2])
 		if h < max_z_difference_um:
 		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
 
 		# calculate the roll angle
 		r = Utility.RadianToDegree(Math.Asin(h / (WG2WG_dist_mm*1000)))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
+		rollangle = r
+		if top_chan_position[2] > bottom_chan_position[2]:
 		   rollangle = -rollangle
 
 		# adjust the roll angle again
 		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
 		# wait to settle
 		# balanced position
-		ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-		zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
+		ymiddle = (top_chan_position[1] + bottom_chan_position[1]) / 2
+		zmiddle = (top_chan_position[2] + bottom_chan_position[2]) / 2
 		Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
 		Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
 
@@ -581,22 +585,32 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		return False
 
 	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
+	ymiddle = (top_chan_position[1] + bottom_chan_position[1]) / 2
+	zmiddle = (top_chan_position[2] + bottom_chan_position[2]) / 2
 	Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
 	Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
 
 	Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 
-	return True
+	sleep(0.5)
+
+	output = {'top_chan_balanced_power':ReadMonitorSignal(SetScanChannel(None, 1, UseOpticalSwitch)),
+				'bottom_chan_balanced_power':ReadMonitorSignal(SetScanChannel(None, 2, UseOpticalSwitch)),
+				'balanced_position':get_positions(SequenceObj),
+				'top_chan_peak_power':top_chan_peak_power,
+				'top_chan_nanocube_peak_position':list(top_chan_position),
+				'bottom_chan_nanocube_peak_position':list(bottom_chan_position),
+				'bottom_chan_peak_power':bottom_chan_peak_power}
+
+	return output
 
 def get_positions(SequenceObj):
     output = {}
     if Hexapod is not None:
-        output['Hexapod'] = map(lambda x: round(x,4), Hexapod.GetAxesPositions())
+        output['Hexapod'] = map(lambda x: round(x,4), list(Hexapod.GetAxesPositions()))
     if Nanocube is not None:
-        output['Nanocube'] = map(lambda x: round(x,3), Nanocube.GetAxesPositions())
+        output['Nanocube'] = map(lambda x: round(x,3), list(Nanocube.GetAxesPositions()))
     return output
 
 def set_positions(SequenceObj, positions):

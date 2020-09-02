@@ -673,8 +673,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	# resume the translational motion again
 	# if not Hexapod.MoveAxisRelative('Y', dest.Item2 - start.Item2, Motion.AxisMotionSpeeds.Slow, True):
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
-	# 	return 0
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
+	#	return 0
 
 	# move in x, but with wider gap remaining
 	hexapod = Hexapod
@@ -786,8 +786,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	# move the mpo height to match that of the die height, include the z-offset
 	# if not Hexapod.MoveAxisRelative('Z', z_move_final, Motion.AxisMotionSpeeds.Slow, True):
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
-	# 	return 0
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move MPO to match die height position.')
+	#	return 0
 
 	# adjust the yaw angle
 	Hexapod.MoveAxisRelative('V', mpoangle - dieangle, Motion.AxisMotionSpeeds.Normal, True)
@@ -938,11 +938,13 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 #-------------------------------------------------------------------------------
 def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_results):
 
-	if not set_positions(SequenceObj, alignment_results['vision_align_position']):
-		return 0
+	if LogHelper.AskContinue('Move to vision align position?'):
+		if not set_positions(SequenceObj, alignment_results['vision_align_position']):
+			return 0
 	
 	search_pos = Hexapod.GetAxesPositions()
 
+	use_polarization_controller = alignment_parameters['use_polarization_controller']
 	# remember this postion as optical z zero
 	# in case we aligned manually, get the z position here instead of previous step
 	#alignment_results['Optical_Z_Zero_Position'] = Hexapod.GetAxisPosition('X')
@@ -953,8 +955,9 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	DownCamera.Live(True)
 	SideCamera.Live(True)
 
-	if not ScramblePolarizationMPC201(SequenceObj):
-		return 0
+	if use_polarization_controller :
+		if not ScramblePolarizationMPC201(SequenceObj):
+			return 0
 
 	# declare variables we will use
 	retries = 0
@@ -962,7 +965,8 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 
 	#Ask operator to fire the lasers
 	if LogHelper.AskContinue('Fire the lasers! Click Yes when done, No to abort.') == False:
-		PolarizationControl.SetScrambleEnableState(False)
+		if use_polarization_controller :
+			PolarizationControl.SetScrambleEnableState(False)
 		return 0
 
 	# get the hexapod alignment algorithm
@@ -1005,23 +1009,25 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		# check return condition
 		# p = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
 		# if p > topinitpower or abs(p - topinitpower) / abs(p) < 0.2:
-		# 	break  # power close enough, good alignment
+		#	break  # power close enough, good alignment
 		# if p > topinitpower:
-		# 	topinitpower = p
+		#	topinitpower = p
 		
 		for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
 			if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= alignment_parameters['ScanMinPowerThreshold']:
 				found_light_ch1 = True
 				break
 			sleep(0.01)
+	else:
+		found_light_ch1 = True
 
 	if not found_light_ch1:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power {0:.3f} for top channel not achieved.'.format(alignment_parameters['ScanMinPowerThreshold']))
 		return 0
 
 		# if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
-		# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
-		# 	return 0
+		#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
+		#	return 0
 
 	
 	positions = Hexapod.GetAxesPositions()
@@ -1035,8 +1041,8 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# start the scan again
 	# scan.ExecuteNoneModal()
 	# if scan.IsSuccess == False or SequenceObj.Halt:
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
-	# 	return 0
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
+	#	return 0
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(alignment_parameters['UseOpticalSwitch']))
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(type(alignment_parameters['UseOpticalSwitch'])))
 	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
@@ -1051,9 +1057,9 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# scan.Channel = 2
 	# one scan to get initial power
 	# scan.ExecuteNoneModal()
-	# if scan.IsSuccess == False or  SequenceObj.Halt:
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
-	# 	return 0
+	# if scan.IsSuccess == False or	 SequenceObj.Halt:
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
+	#	return 0
 	# wait to settle
 	#sleep(.001*500)
 	if not	HexapodSpiralScan(SequenceObj, 2, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
@@ -1094,6 +1100,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 
 	alignment_results['first_light_position'] = get_positions(SequenceObj)
 
+	alignment_results['vision_align_position'] = get_positions(SequenceObj)
 	if SequenceObj.Halt:
 		return 0
 	else:
@@ -1206,37 +1213,30 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
 	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
 	"""
-	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
+	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch'])
+
+	if roll_align_result is False:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
-	# record the final dry align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	alignment_results['Dry_Align_Hexapod_X'] = hposition[0]
-	alignment_results['Dry_Align_Hexapod_Y'] = hposition[1]
-	alignment_results['Dry_Align_Hexapod_Z'] = hposition[2]
-	alignment_results['Dry_Align_Hexapod_U'] = hposition[3]
-	alignment_results['Dry_Align_Hexapod_V'] = hposition[4]
-	alignment_results['Dry_Align_Hexapod_W'] = hposition[5]
 
-	# record the final dry align nanocube position
-	nposition = Nanocube.GetAxesPositions()
-	alignment_results['Dry_Align_Nanocube_X'] = nposition[0]
-	alignment_results['Dry_Align_Nanocube_Y'] = nposition[1]
-	alignment_results['Dry_Align_Nanocube_Z'] = nposition[2]
+	alignment_results['Dry_Align_Results'] = roll_align_result
+
+	alignment_results['Dry_Align_Position'] = get_positions(SequenceObj)
+
 
 	# save powers
-	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
+	# toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
+	# bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
 
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
+	# pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
+	# if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
+	# 	power = pm. ReadPowers()
+	# 	toppow = power.Item2[0]
+	# 	bottompow = power.Item2[1]
 
 	# save process values
-	alignment_results['Dry_Align_Balanced_Power_Top_Chan'] = toppow
-	alignment_results['Dry_Align_Balanced_Power_Bottom_Chan'] = bottompow
+	alignment_results['Dry_Align_Balanced_Power_Top_Chan'] = roll_align_result['top_chan_balanced_power'][0]
+	alignment_results['Dry_Align_Balanced_Power_Bottom_Chan'] = roll_align_result['bottom_chan_balanced_power'][0]
 
 	return alignment_results
 
@@ -1281,7 +1281,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# scan.ExecuteOnce = SequenceObj.AutoStep
 	# scan.ExecuteNoneModal()
 	# if scan.IsSuccess == False or SequenceObj.Halt:
-	# 	return 0
+	#	return 0
 	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
 	current_scan_channel = 1
 	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
@@ -1406,6 +1406,8 @@ def NanocubeGradientClimb(SequenceObj, alignment_parameters, alignment_results):
 #-------------------------------------------------------------------------------
 def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_results):
 
+	if not alignment_parameters['use_polarization_controller']:
+		return 0
 	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
 		return 0
 
@@ -1450,7 +1452,7 @@ def LoopbackAlignPowermeter(SequenceObj, alignment_parameters, alignment_results
 				sleep(0.15)
 				signal = meter.ReadPower(channel)
 				if(signal > max_signal):
-				    max_positions = [i_pos, j_pos]
+					max_positions = [i_pos, j_pos]
 				j_pos += step_size
 				if SequenceObj.Halt:
 					return False
@@ -1464,29 +1466,33 @@ def LoopbackAlignPowermeter(SequenceObj, alignment_parameters, alignment_results
 
 	starting_positions = Nanocube.GetAxesPositions()
 	channel = 1
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	axes = ['Y', 'Z']
 	if not GridScanPowermeter(SequenceObj, axes, Powermeter, channel, step_size, scan_width):
 			return 0
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	if LogHelper.AskContinue('Channel 1 loopback is peaked!') == False:
 		return 0
 
 	channel = 2
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	axes = ['Y', 'Z']
 	if not GridScanPowermeter(SequenceObj, axes, Powermeter, channel, step_size, scan_width):
 			return 0
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	if LogHelper.AskContinue('Channel 2 loopback is peaked!') == False:
 		return 0
@@ -1529,8 +1535,9 @@ def LoopbackAlignPowermeter_cross(SequenceObj, alignment_parameters, alignment_r
 
 	channel = 1
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	axis = 'Y'
 	if not LineScanPowermeter(SequenceObj, axis, channel, step_size, scan_width):
@@ -1539,16 +1546,18 @@ def LoopbackAlignPowermeter_cross(SequenceObj, alignment_parameters, alignment_r
 	if not LineScanPowermeter(SequenceObj, axis, channel, step_size, scan_width):
 			return 0
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	if LogHelper.AskContinue('Channel 1 loopback is peaked!') == False:
 		return 0
 
 
 	channel = 2
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	axis = 'Y'
 	if not LineScanPowermeter(SequenceObj, axis, channel, step_size, scan_width):
@@ -1557,8 +1566,9 @@ def LoopbackAlignPowermeter_cross(SequenceObj, alignment_parameters, alignment_r
 	if not LineScanPowermeter(SequenceObj, axis, channel, step_size, scan_width):
 		return 0
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
-		return 0
+	if alignment_parameters['use_polarization_controller']:
+		if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=channel):
+			return 0
 
 	if LogHelper.AskContinue('Channel 2 loopback is peaked!') == False:
 		return 0
@@ -1690,7 +1700,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+	dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Top_Pre_UV.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1698,7 +1708,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	SideCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+	dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Pre_UV.jpg')
 	SideCamera.SaveToFile(dir)
@@ -1716,7 +1726,9 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	profile = alignment_parameters['UVCureStepProfiles']
 	# this is a hack, here we sum up the time of all the steps
 	# and display count down timer
-	uvtime = sum(map(lambda x: float(x.split(':')[0]), TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile).split(',')))
+	#uvtime = sum(map(lambda x: float(x.split(':')[0]), SequenceObj.TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile).split(',')))
+	uvtime = sum(map(lambda x: float(x.split(':')[0]), SequenceObj.TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile).DataItem.split(',')))
+
 	# log the profile used
 	alignment_results['UV_Cure_Profile'] = profile
 
@@ -1731,7 +1743,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 		Utility.ShowProcessTextOnMainUI('UV cure time ' + str(uvtime - int(stopwatch.ElapsedMilliseconds / 1000)) + ' seconds remaining.')
 
 	# start UV exposure
-	ret = HardwareFactory.Instance.GetHardwareByName('UVSource').StartStepUVExposures(TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile), '', Action[int](LogPower))
+	ret = HardwareFactory.Instance.GetHardwareByName('UVSource').StartStepUVExposures(SequenceObj.TestMetrics.GetTestMetricItem('UVCureStepProfiles', profile).DataItem, '', Action[int](LogPower))
 
 	# stop timer when UV done
 	stopwatch.Stop()
@@ -1751,8 +1763,10 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	alignment_results['Post_UV_Cure_Power_Bottom_Outer_Chan'] = bottompow
 
 	# retrieve wet align power
-	bottompowinput = alignment_results['Wet_Align_Balanced_Power_Top_Chan']
-	toppowinput = alignment_results['Wet_Align_Balanced_Power_Bottom_Chan']
+	# bottompowinput = alignment_results['Wet_Align_Balanced_Power_Top_Chan']
+	# toppowinput = alignment_results['Wet_Align_Balanced_Power_Bottom_Chan']
+	bottompowinput = alignment_results['Wet_Align_Results']['bottom_chan_peak_power'][0]
+	toppowinput = alignment_results['Wet_Align_Results']['top_chan_peak_power'][0]
 
 	# save process values
 	alignment_results['Post_UV_Cure_Power_Top_Chan_Loss'] = round(toppowinput - toppow, 6)
@@ -1760,22 +1774,28 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 
 	# save the power tracking to a file
 	# save uv cure power tracking
-	TestResults.SaveArrayResultsToStorage(alignment_results['Assembly_SN', 'UVCureChannelPowers', 'Elapsed Time(s),Top Chan Signal(V),Bottom Chan Signal(V)', UVPowerTracking])
+	###SequenceObj.TestResults.SaveArrayResultsToStorage(alignment_results['Assembly_SN', 'UVCureChannelPowers', 'Elapsed Time(s),Top Chan Signal(V),Bottom Chan Signal(V)', UVPowerTracking])
 	Utility.ShowProcessTextOnMainUI()
 
 
 	HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
 
-	if not ret or SequenceObj.Halt:
-		return 0
+	# if not ret or SequenceObj.Halt:
+	# 	return 0
 
 	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
 	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
 
+	# turn on the cameras
+	DownCamera.Live(False)
+	SideCamera.Live(False)
+
+	sleep(1)
+
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+	dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Top_Post_UV.jpg')
 	DownCamera.SaveToFile(dir)
@@ -1787,6 +1807,10 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	#Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Post_UV.jpg')
 	SideCamera.SaveToFile(dir)
+
+	# turn on the cameras
+	DownCamera.Live(True)
+	SideCamera.Live(True)
 
 	if SequenceObj.Halt:
 		return 0
@@ -1940,11 +1964,6 @@ def UnloadBoard(SequenceObj, alignment_parameters, alignment_results):
 	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
 	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
 
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
 
 	# save process values
 	alignment_results['Post_Release_Power_Top_Outer_Chan'] = toppow
@@ -1981,6 +2000,8 @@ def UnloadBoard(SequenceObj, alignment_parameters, alignment_results):
 	if not LogHelper.AskContinue('Raise the probe and release board clamp. Click Yes when done, No to abort.'):
 		return 0
 
+	DownCameraStages.GetHardwareStateTree().ActivateState(alignment_parameters['LoadPresetPosition'])
+
 	# here we lower the board fixture platform
 	# HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(boardvac, False)
 
@@ -1989,8 +2010,7 @@ def UnloadBoard(SequenceObj, alignment_parameters, alignment_results):
 
 	# move hexapod to unload position
 	# Hexapod.GetHardwareStateTree().ActivateState(unloadpos)
-
-	alignment_results['End_Time'] = DateTime.Now
+	alignment_results['End_Time'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
 	if SequenceObj.Halt:
 		return 0

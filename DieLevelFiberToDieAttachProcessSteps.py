@@ -27,8 +27,6 @@ from AlignerUtil import *
 from time import sleep
 from step_manager import *
 
-UseOpticalSwitch = True
-
 def Template(SequenceObj, alignment_parameters, alignment_results):
 	"""
 	DO NOT DELETE THIS METHOD
@@ -204,7 +202,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not Die_SN == None:
 		if not Die_SN == alignment_parameters['Die_SN']:
 			alignment_parameters['Die_SN'] = Die_SN
-			if not 	update_alignment_parameter(SequenceObj, 'Die_SN', Die_SN):
+			if not	update_alignment_parameter(SequenceObj, 'Die_SN', Die_SN):
 				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Die_SN in aligment_parameters!')
 		alignment_results['Die_SN'] = Die_SN
 		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
@@ -275,593 +273,9 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if SequenceObj.Halt:
 		return 0
 	else:
-		dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
-		Utility.CreateDirectory(dir)
+		alignment_results['data_path'] = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+		Utility.CreateDirectory(alignment_results['data_path'])
 	return alignment_results
-
-"""
-#-------------------------------------------------------------------------------
-# BalanceWedAlignment
-# Balance alignment of the channels in epoxy with pitch sweep optimization
-#-------------------------------------------------------------------------------
-def SweepOptimizedBalanceWetAlignment(SequenceObj, alignment_parameters, alignment_results):
-
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	# get the pitch sweep algo
-	scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-	pitchsweep = Alignments.AlignmentFactory.Instance.SelectAlignment('PitchSweepOptimization')
-
-	# reload sweep parameters
-	scan.Range1 = alignment_parameters['PitchOptimizationHexapodScanRange1']
-	scan.Range2 = alignment_parameters['PitchOptimizationHexapodScanRange2']
-	scan.Velocity = alignment_parameters['PitchOptimizationHexapodScanVelocity']
-	scan.Frequency = alignment_parameters['PitchOptimizationHexapodScanFrequency']
-	SetScanChannel(scan, 1, UseOpticalSwitch)
-	# scan.Channel = 1
-
-	Axis = alignment_parameters['PitchOptimizationAxis']
-
-	init_V = Hexapod.GetAxesPositions()[4]
-
-	pitchsweep.Axis = Axis
-	pitchsweep.MotionStages = Hexapod
-	pitchsweep.StartPosition = init_V + alignment_parameters['PitchOptimizationRelativeAngleStart']
-	pitchsweep.EndPosition = init_V + alignment_parameters['PitchOptimizationRelativeAngleEnd']
-	pitchsweep.StepSize = alignment_parameters['PitchOptimizationStepSize']
-	pitchsweep.FeedbackUnit = 'V'
-	pitchsweep.ExecuteOnce = scan.ExecuteOnce = SequenceObj.AutoStep
-
-	# create the pitch feedback delegate function
-	def EvalPitch(a):
-		Hexapod.MoveAxisAbsolute(Axis, a, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		sleep(.001*500)
-		scan.ExecuteNoneModal()
-		# wait to settle
-		sleep(.001*500)
-		return HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-
-	pitchsweep.EvalFunction = Func[float,float](EvalPitch)
-
-	# get the pitch search X pull back distance
-	# first perform a pull back, we will need to re-do the contact point again afterwards
-	Hexapod.MoveAxisRelative('X', alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True)
-
-	# readjust the pitch pivot point
-	zero = alignment_results['Optical_Z_Zero_Position']
-	#zeropitch = alignment_results['Pitch_Pivot_X']
-	offset = Hexapod.GetAxisPosition('X') - zero
-	# Hexapod.PivotPoint['X'] = zeropitch + offset
-	# enable the new pivot point
-	# Hexapod.ApplyKSDCoordinateSystem('PIVOT')
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimizing hexapod pitch angle.')
-	# start sweep
-
-	if False:
-		pitchsweep.ExecuteNoneModal()
-		# check result
-		if not pitchsweep.IsSuccess or SequenceObj.Halt:
-			return 0
-	else:
-		next_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleStart']
-		max_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleEnd']
-		scan_angles = list()
-		while next_V <= max_V:
-			scan_angles.append(next_V)
-			next_V = next_V + alignment_parameters['PitchOptimizationStepSize']
-
-			if len(scan_angles) > 100:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Number of pitch angle scan points exceeds 100.')
-				return 0
-
-		peak_V_so_far = init_V
-		peak_power_so_far = 0
-		n_measurements = 5 # average this many samples when checking for peak IFF found
-
-		for current_V in scan_angles:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Executing pitch scan {0:d}/{1:d}'.format(scan_angles.index(current_V)+1,len(scan_angles)))
-			Hexapod.MoveAxisAbsolute('V', current_V, Motion.AxisMotionSpeeds.Normal, True)
-			sleep(.001*500)
-			scan.ExecuteNoneModal()
-			sleep(.001*500)
-
-			sum_IFF = 0
-			for i in range(n_measurements):
-				sum_IFF = sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Peak signal found: {0:0.3f}'.format(sum_IFF/n_measurements))
-			if (sum_IFF/n_measurements) > peak_power_so_far:
-				peak_power_so_far = sum_IFF/n_measurements
-				peak_V_so_far = current_V
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'New peak V found!')
-			if SequenceObj.Halt:
-				return 0
-
-	Hexapod.MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)
-	sleep(.001*500)
-	scan.ExecuteNoneModal()
-	sleep(.001*500)
-
-	# Re-establish the contact point again
-	Hexapod.ZeroForceSensor()
-	# get initial force
-	forcesensor = HardwareFactory.Instance.GetHardwareByName('ForceSensorIOSource').FindByName('ForceSensor')
-	startforce = forcesensor.ReadValueImmediate()
-	# start force monitor
-	threshold = alignment_parameters['ForceSensorContactThreshold']
-	backoff = alignment_parameters['BackOffFromContactDetection']
-	bondgap = alignment_parameters['EpoxyBondGap']
-	# monitor force change
-	while (forcesensor.ReadValueImmediate() - startforce) < threshold:
-		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
-		sleep(.001*5)
-		# check for user interrupt
-		if SequenceObj.Halt:
-			return 0
-
-	# found contact point, back off set amount
-	Hexapod.MoveAxisRelative('X', backoff, Motion.AxisMotionSpeeds.Normal, True)
-	# put the required bondgap
-	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
-
-	scan.Range1 = alignment_parameters['HexapodFineScanRange1']
-	scan.Range2 = alignment_parameters['HexapodFineScanRange2']
-	scan.Velocity = alignment_parameters['HexapodFineScanVelocity']
-	scan.Frequency = alignment_parameters['HexapodFineScanFrequency']
-
-	# set up a loop to zero in on the roll angle
-	width = alignment_results['Outer_Channels_Width']
-	retries = 0
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Balancing channels...')
-
-	while retries < 5 and not SequenceObj.Halt:
-
-		# start the algorithms
-		SetScanChannel(scan, 1, UseOpticalSwitch)
-		# scan.Channel = 1
-		scan.ExecuteNoneModal()
-		# check scan status
-		if scan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		 # wait to settle
-		sleep(.001*500)
-
-		# remember the final position
-		topchanpos = Hexapod.GetAxesPositions()
-
-		# repeat scan for the second channel
-		SetScanChannel(scan, 2, UseOpticalSwitch)
-		# scan.Channel = 2
-
-		# start the algorithms again
-		scan.ExecuteNoneModal()
-		# check scan status
-		if scan.IsSuccess == False or SequenceObj.Halt:
-			return 0
-
-		# wait to settle
-		sleep(.001*500)
-
-		# get the final position of second channel
-		bottomchanpos = Hexapod.GetAxesPositions()
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[1] - bottomchanpos[1]))
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan(h / width))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		sleep(.001*500)
-
-		retries += 1
-
-	# check stop conditions
-	if retries >= 3 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	Hexapod.MoveAxisAbsolute('Y', ymiddle, Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('Z', zmiddle, Motion.AxisMotionSpeeds.Normal, True)
-
-	# record final wet align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	alignment_results['Wet_Align_Hexapod_X'] = hposition[0]
-	alignment_results['Wet_Align_Hexapod_Y'] = hposition[1]
-	alignment_results['Wet_Align_Hexapod_Z'] = hposition[2]
-	alignment_results['Wet_Align_Hexapod_U'] = hposition[3]
-	alignment_results['Wet_Align_Hexapod_V'] = hposition[4]
-	alignment_results['Wet_Align_Hexapod_W'] = hposition[5]
-
-	# get power based on instrument
-	toppower = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompower = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm != None and pm.InitializeState == HardwareInitializeState.Initialized:
-		toppower = pm.ReadPowers().Item2[0]
-		bottompower = pm.ReadPowers().Item2[1]
-
-	# save process values
-	alignment_results['Wet_Align_Power_Top_Outer_Chan'] = toppower
-	alignment_results['Wet_Align_Power_Bottom_Outer_Chan'] = bottompower
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return alignment_results
-
-def BalanceWetAlignNanocube(SequenceObj, alignment_parameters, alignment_results):
-
-	# turn on the cameras
-	HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-	HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
-
-	init_V = alignment_results['apply_epoxy_hexapod_final_V']
-
-	##############################
-	##### Hexapod scan setup #####
-	##############################
-	# get the pitch sweep algo
-	hexapod_scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-
-	# reload sweep parameters
-	hexapod_scan.Range1 = alignment_parameters['PitchOptimizationHexapodScanRange1']
-	hexapod_scan.Range2 = alignment_parameters['PitchOptimizationHexapodScanRange2']
-	hexapod_scan.Velocity = alignment_parameters['PitchOptimizationHexapodScanVelocity']
-	hexapod_scan.Frequency = alignment_parameters['PitchOptimizationHexapodScanFrequency']
-	SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	# hexapod_scan.Channel = 1
-
-	###############################
-	##### Nanocube scan setup #####
-	###############################
-	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-	climb.Axis1 = alignment_parameters['Nanocube_Scan_Axis1']
-	climb.Axis2 = alignment_parameters['Nanocube_Scan_Axis2']
-	climb.ExecuteOnce = SequenceObj.AutoStep
-
-	# set up a loop to zero in on the roll angle
-
-	#width = alignment_results['Outer_Channels_Width']
-	width = alignment_parameters['FirstLight_WG2WG_dist_mm']
-	#topchanpos = [ 50.0, 50.0, 50.0 ]
-	#bottomchanpos = [ 50.0, 50.0, 50.0 ]
-	retries = 0
-
-	###################################
-	##### End Nanocube scan setup #####
-	###################################
-
-
-	# get the pitch search X pull back distance
-	# first perform a pull back, we will need to re-do the contact point again afterwards
-	Hexapod.MoveAxisAbsolute('X', alignment_results['apply_epoxy_hexapod_final_X') + alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('Y', alignment_results['apply_epoxy_hexapod_final_Y'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('Z', alignment_results['apply_epoxy_hexapod_final_Z'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('U', alignment_results['apply_epoxy_hexapod_final_U'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('V', alignment_results['apply_epoxy_hexapod_final_V'), Motion.AxisMotionSpeeds.Normal, True]
-	Hexapod.MoveAxisAbsolute('W', alignment_results['apply_epoxy_hexapod_final_W'), Motion.AxisMotionSpeeds.Normal, True]
-
-	Nanocube.GetHardwareStateTree().ActivateState('Center')
-	sleep(.001*500)
-
-	hexapod_scan.ExecuteNoneModal()
-	if hexapod_scan.IsSuccess is False or SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-		return 0
-	sleep(.001*500)
-
-	# readjust the pitch pivot point
-	zero = alignment_results['Optical_Z_Zero_Position']
-	#zeropitch = alignment_results['Pitch_Pivot_X']
-	offset = Hexapod.GetAxisPosition('X') - zero
-	# Hexapod.PivotPoint['X'] = zeropitch + offset
-	# enable the new pivot point
-	# Hexapod.ApplyKSDCoordinateSystem('PIVOT')
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimizing hexapod pitch angle.')
-	# start sweep
-	if False:
-		next_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleStart']
-		max_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleEnd']
-		scan_angles = list()
-		while next_V <= max_V:
-			scan_angles.append(next_V)
-			next_V = next_V + alignment_parameters['PitchOptimizationStepSize']
-
-			if len(scan_angles) > 100:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Number of pitch angle scan points exceeds 100.')
-				return 0
-
-		peak_V_so_far = init_V
-		peak_power_so_far = 0
-		n_measurements = 5 # average this many samples when checking for peak IFF found
-
-		for current_V in scan_angles:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Executing pitch scan {0:d}/{1:d}'.format(scan_angles.index(current_V)+1,len(scan_angles)))
-			Hexapod.MoveAxisAbsolute('V', current_V, Motion.AxisMotionSpeeds.Normal, True)
-			sleep(.001*500)
-			scan.ExecuteNoneModal()
-			sleep(.001*500)
-
-			sum_IFF = 0
-			for i in range(n_measurements):
-				sum_IFF = sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Peak signal found: {0:0.3f}'.format(sum_IFF/n_measurements))
-			if (sum_IFF/n_measurements) > peak_power_so_far:
-				peak_power_so_far = sum_IFF/n_measurements
-				peak_V_so_far = current_V
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'New peak V found!')
-			if SequenceObj.Halt:
-				return 0
-	if True:
-		next_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleStart']
-		max_V = init_V + alignment_parameters['PitchOptimizationRelativeAngleEnd']
-		scan_angles = list()
-		while next_V <= max_V:
-			scan_angles.append(next_V)
-			next_V = next_V + alignment_parameters['PitchOptimizationStepSize']
-
-			if len(scan_angles) > 100: #chech if someone made a bonehead mistake that resulted in way too many scan points and abort if necessary
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Number of pitch angle scan points exceeds 100, reduce number of scan points.')
-				return 0
-
-		peak_V_so_far = init_V
-		peak_power_so_far = 0
-		n_measurements = 5 # average this many samples when checking for peak IFF found
-
-		for current_V in scan_angles:
-			#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Executing pitch scan {0:d}/{1:d}'.format(scan_angles.index(current_V)+1,len(scan_angles)))
-			Hexapod.MoveAxisAbsolute('V', current_V, Motion.AxisMotionSpeeds.Normal, True)
-			sleep(.001*500)
-
-			# start the Nanocube algorithms
-			SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-			SetScanChannel(climb, 1, UseOpticalSwitch)
-			# hexapod_scan.Channel = 1
-			# climb.Channel = 1
-
-			# # Move hexapod to middle so that climb doesnt cause walk-off from center as the routine continues to run
-			Nanocube.GetHardwareStateTree().ActivateState('Center')
-			sleep(.001*500)
-
-			hexapod_scan.ExecuteNoneModal()
-			# check scan status
-			if hexapod_scan.IsSuccess == False or SequenceObj.Halt:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed during pitch scan!')
-				return 0
-			sleep(.001*500)
-
-			climb.ExecuteNoneModal()
-			if climb.IsSuccess == False or SequenceObj.Halt:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed during pitch scan!')
-				return 0
-			sleep(.001*500)
-
-			top_sum_IFF = 0
-			for i in range(n_measurements):
-				top_sum_IFF = top_sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-
-			SetScanChannel(climb, 2, UseOpticalSwitch)
-			# climb.Channel = 2
-			climb.ExecuteNoneModal()
-			# check climb status
-			if climb.IsSuccess == False or SequenceObj.Halt:
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch2 gradient climb scan failed during pitch scan!')
-				return 0
-
-			sleep(.001*500)
-
-			bottom_sum_IFF = 0
-			for i in range(n_measurements):
-				bottom_sum_IFF = bottom_sum_IFF + HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
-
-			# display peak aligned position
-			peak_align_position = Nanocube.GetAxesPositions()
-			hexapod_current_position = Hexapod.GetAxesPositions()
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Completed scan {0:d}/{1:d} | Pitch angle (deg) |{2:2.4f}| Final nanocube position um |{4:.3f}|{5:.3f}|{6:.3f}| Peak singal ch1 and ch2 V |{7:.3f}|{8:.3f}'.format(scan_angles.index(current_V)+1, len(scan_angles), hexapod_current_position[4], hexapod_current_position[4], peak_align_position[0], peak_align_position[1], peak_align_position[2], top_sum_IFF/n_measurements, bottom_sum_IFF/n_measurements))
-
-			#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Peak signal found: {0:0.3f}'.format(top_sum_IFF/n_measurements))
-			if (top_sum_IFF/n_measurements) > peak_power_so_far:
-				peak_power_so_far = top_sum_IFF/n_measurements
-				peak_V_so_far = current_V
-				#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'New peak V found!')
-
-			if SequenceObj.Halt:
-				return 0
-
-
-	Nanocube.GetHardwareStateTree().ActivateState('Center')
-	sleep(.001*500)
-	SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	# hexapod_scan.Channel = 1
-	SetScanChannel(climb, 1, UseOpticalSwitch)
-	# climb.Channel = 1
-	Hexapod.MoveAxisAbsolute('V', peak_V_so_far, Motion.AxisMotionSpeeds.Normal, True)
-	sleep(.001*2000)
-	hexapod_scan.ExecuteNoneModal()
-	# check scan status
-	if hexapod_scan.IsSuccess == False or SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-		return 0
-	sleep(.001*500)
-
-	climb.ExecuteNoneModal()
-	# check climb status
-	if climb.IsSuccess == False or SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed at pitch scan final!')
-		return 0
-	sleep(.001*500)
-
-	# Re-establish the contact point again
-	Hexapod.ZeroForceSensor()
-	# get initial force
-	forcesensor = HardwareFactory.Instance.GetHardwareByName('ForceSensorIOSource').FindByName('ForceSensor')
-	startforce = forcesensor.ReadValueImmediate()
-	# start force monitor
-	threshold = alignment_parameters['ForceSensorContactThreshold']
-	backoff = alignment_parameters['BackOffFromContactDetection']
-	bondgap = alignment_parameters['EpoxyBondGap']
-
-	hexapod_initial_x = Hexapod.GetAxesPositions()[0]
-	# monitor force change
-	while (forcesensor.ReadValueImmediate() - startforce) < threshold:
-		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
-		sleep(.001*5)
-		# check for user interrupt
-		if SequenceObj.Halt:
-			return 0
-
-	hexapod_distance_to_touch = Hexapod.GetAxesPositions()[0] - hexapod_initial_x
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Hexapod moved {0:.3f} mm in X before force sensor threshold reached.'.format(hexapod_distance_to_touch))
-
-	# found contact point, back off set amount
-	Hexapod.MoveAxisRelative('X', backoff, Motion.AxisMotionSpeeds.Normal, True)
-	# put the required bondgap
-	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
-
-	# set up a loop to zero in on the roll angle
-	width = alignment_parameters['FirstLight_WG2WG_dist_mm']
-	#width = alignment_results['Outer_Channels_Width']
-	retries = 0
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Balancing channels...')
-
-	while retries < 5 and not SequenceObj.Halt:
-
-		# start the Nanocube algorithms
-		SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-		SetScanChannel(climb, 1, UseOpticalSwitch)
-		# hexapod_scan.Channel = 1
-		# climb.Channel = 1
-
-		Nanocube.GetHardwareStateTree().ActivateState('Center')
-		sleep(.001*2000)
-
-		# hexapod_scan.ExecuteNoneModal()
-		# # check scan status
-		# if hexapod_scan.IsSuccess == False or SequenceObj.Halt:
-			# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-			# return 0
-		# sleep(.001*500)
-
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed during channel balancing!')
-			return 0
-
-		 # wait to settle
-		sleep(.001*500)
-
-		# remember the final position
-		topchanpos = Nanocube.GetAxesPositions()
-
-		top_chan_peak_V = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube top channel peak position [{0:.2f}, {1:.2f}, {2:.2f}]um, Peak signal {3:.2f}V'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_chan_peak_V))
-
-		# repeat scan for the second channel
-		# start the Nanocube climb algorithm
-		SetScanChannel(climb, 2, UseOpticalSwitch)
-		# climb.Channel = 2
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed during channel balancing!')
-			return 0
-		sleep(.001*500) # wait to settle
-
-		# get the final position of second channel
-		bottomchanpos = Nanocube.GetAxesPositions()
-		bottom_chan_peak_V = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
-
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube bottom channel peak position [{0:.2f}, {1:.2f}, {2:.2f}]um Peak signal {3:.2f}V'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V))
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position ({0:.2f}, {1:.2f}, {2:.2f}) um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2]))
-
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-		if h < 1:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Atan(h / (width*1000)))
-		rollangle = r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		sleep(.001*500)
-
-		retries += 1
-
-	# check stop conditions
-	if retries >= 3 or SequenceObj.Halt:
-	   return 0
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	Nanocube.MoveAxisAbsolute('Y', ymiddle, Motion.AxisMotionSpeeds.Normal, True)
-	Nanocube.MoveAxisAbsolute('Z', zmiddle, Motion.AxisMotionSpeeds.Normal, True)
-
-	# record final wet align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	alignment_results['Wet_Align_Hexapod_X'] = hposition[0]
-	alignment_results['Wet_Align_Hexapod_Y'] = hposition[1]
-	alignment_results['Wet_Align_Hexapod_Z'] = hposition[2]
-	alignment_results['Wet_Align_Hexapod_U'] = hposition[3]
-	alignment_results['Wet_Align_Hexapod_V'] = hposition[4]
-	alignment_results['Wet_Align_Hexapod_W'] = hposition[5]
-
-	# record final wet align nanocube position
-	nposition = Nanocube.GetAxesPositions()
-	alignment_results['Wet_Align_Nanocube_X'] = nposition[0]
-	alignment_results['Wet_Align_Nanocube_Y'] = nposition[1]
-	alignment_results['Wet_Align_Nanocube_Z'] = nposition[2]
-
-	# get power based on instrument
-	toppower = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompower = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm != None and pm.InitializeState == HardwareInitializeState.Initialized:
-		toppower = pm.ReadPowers().Item2[0]
-		bottompower = pm.ReadPowers().Item2[1]
-
-	# save process values
-	alignment_results['Wet_Align_Peak_Power_Top_Chan'] = top_chan_peak_V
-	alignment_results['Wet_Align_Peak_Power_Bottom_Chan'] = bottom_chan_peak_V
-	alignment_results['Wet_Align_Balanced_Power_Top_Chan'] = toppower
-	alignment_results['Wet_Align_Balanced_Power_Bottom_Chan'] = bottompower
-
-	if SequenceObj.Halt:
-		return 0
-	else:
-		return alignment_results
-"""
 
 #-------------------------------------------------------------------------------
 # WetPitchAlign
@@ -933,8 +347,8 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 					return False
 		# hexapod_scan.ExecuteNoneModal()
 		# if hexapod_scan.IsSuccess is False or SequenceObj.Halt:
-		# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-		# 	return 0
+		#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
+		#	return 0
 		# sleep(.001*500)
 
 	if use_polarization_controller:
@@ -1031,17 +445,32 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	# hexapod_scan.ExecuteNoneModal()
 	# check scan status
 	# if hexapod_scan.IsSuccess == False or SequenceObj.Halt:
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-	# 	return 0
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
+	#	return 0
 	# sleep(.001*500)
 
 	if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 		return False
+		
+	middle = Nanocube.GetAxesPositions()
+	Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
+	Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
+	Hexapod.MoveAxisRelative('Y', -(50-middle[1])/1000, Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisRelative('Z', -(50-middle[2])/1000, Motion.AxisMotionSpeeds.Normal, True)
+	"""
+	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
+	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
+	Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
+	Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
+
+	Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
+	Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
+	"""
 	# climb.ExecuteNoneModal()
 	# # check climb status
 	# if climb.IsSuccess == False or SequenceObj.Halt:
-	# 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed at pitch scan final!')
-	# 	return 0
+	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed at pitch scan final!')
+	#	return 0
 	# sleep(.001*500)
 	return alignment_results
 
@@ -1057,31 +486,10 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	#Ask operator to check both channels are connected
 	if LogHelper.AskContinue('Connect both channels from optical switch! Click Yes when done, No to abort.') == False:
 		return 0
-	##############################
-	##### Hexapod scan setup #####
-	##############################
+
+	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
 	use_polarization_controller = alignment_parameters['use_polarization_controller']
-	# minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
 
-	# hexapod_scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan') # get the pitch sweep algo
-	# hexapod_scan.Range1 = alignment_parameters['PitchOptimizationHexapodScanRange1']
-	# hexapod_scan.Range2 = alignment_parameters['PitchOptimizationHexapodScanRange2']
-	# hexapod_scan.Velocity = alignment_parameters['PitchOptimizationHexapodScanVelocity']
-	# hexapod_scan.Frequency = alignment_parameters['PitchOptimizationHexapodScanFrequency']
-	# SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-
-
-	###############################
-	##### Nanocube scan setup #####
-	###############################
-	# climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-	# climb.Axis1 = alignment_parameters['Nanocube_Scan_Axis1']
-	# climb.Axis2 = alignment_parameters['Nanocube_Scan_Axis2']
-	# climb.ExecuteOnce = SequenceObj.AutoStep
-
-	###################################
-	##### End Nanocube scan setup #####
-	###################################
 
 	# Re-establish the contact point again
 	Hexapod.ZeroForceSensor()
@@ -1111,150 +519,14 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	# put the required bondgap
 	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
 
+	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch)
 
-
-	if not OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch):
+	if roll_align_result is False :
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
 
-	"""
-	retries = 0
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Balancing channels...')
-
-	while retries < 5 and not SequenceObj.Halt:
-
-		# start the Nanocube algorithms
-		SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-		SetScanChannel(climb, 1, UseOpticalSwitch)
-		# hexapod_scan.Channel = 1
-		# climb.Channel = 1
-
-		Nanocube.GetHardwareStateTree().ActivateState('Center')
-		sleep(.001*2000)
-
-		if ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument) < minpower:
-			if not NanocubeSpiralScan(climb.Channel, 90, threshold = minpower):
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral failed!')
-				return 0
-
-		if retries == 0:
-			if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1,feedback_device='NanocubeAnalogInput'):
-				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Folarization scan failed!')
-				return 0
-
-		# hexapod_scan.ExecuteNoneModal()
-		# # check scan status
-		# if hexapod_scan.IsSuccess == False or SequenceObj.Halt:
-			# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-			# return 0
-		# sleep(.001*500)
-
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed during channel balancing!')
-			return 0
-
-		 # wait to settle
-		sleep(.001*500)
-
-		# remember the final position
-		topchanpos = Nanocube.GetAxesPositions()
-
-		top_chan_peak_V = ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument)
-
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube top channel peak position [{0:.2f}, {1:.2f}, {2:.2f}]um, Peak signal {3:.2f}V'.format(topchanpos[0],topchanpos[1],topchanpos[2],top_chan_peak_V))
-
-		# repeat scan for the second channel
-		# start the Nanocube climb algorithm
-		SetScanChannel(climb, 2, UseOpticalSwitch)
-		# climb.Channel = 2
-		if ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument) < minpower:
-			if not NanocubeSpiralScan(climb.Channel, 90, threshold = minpower):
-				return 0
-		climb.ExecuteNoneModal()
-		# check climb status
-		if climb.IsSuccess == False or SequenceObj.Halt:
-			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube ch1 gradient climb scan failed during channel balancing!')
-			return 0
-		sleep(.001*500) # wait to settle
-
-		# get the final position of second channel
-		bottomchanpos = Nanocube.GetAxesPositions()
-		bottom_chan_peak_V = ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument)
-
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Nanocube bottom channel peak position [{0:.2f}, {1:.2f}, {2:.2f}]um Peak signal {3:.2f}V'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2],bottom_chan_peak_V))
-		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Bottom channel peak position ({0:.2f}, {1:.2f}, {2:.2f}) um'.format(bottomchanpos[0],bottomchanpos[1],bottomchanpos[2]))
-
-
-		# double check and readjust roll if necessary
-		# calculate the roll angle
-		h = Math.Atan(Math.Abs(topchanpos[2] - bottomchanpos[2]))
-		if h < 0.2:
-		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
-
-		# calculate the roll angle
-		r = Utility.RadianToDegree(Math.Asin(h / (width*1000)))
-		rollangle = -r
-		if topchanpos[2] > bottomchanpos[2]:
-		   rollangle = -rollangle
-
-		# adjust the roll angle again
-		Hexapod.MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
-		sleep(.001*500)
-
-		retries += 1
-
-	# check stop conditions
-	if retries >= 3 or SequenceObj.Halt:
-	   return 0
-
-
-	# balanced position
-	ymiddle = (topchanpos[1] + bottomchanpos[1]) / 2
-	zmiddle = (topchanpos[2] + bottomchanpos[2]) / 2
-	Nanocube.MoveAxisAbsolute('Y', ymiddle, Motion.AxisMotionSpeeds.Normal, True)
-	Nanocube.MoveAxisAbsolute('Z', zmiddle, Motion.AxisMotionSpeeds.Normal, True)
-	"""
-
-	# record final wet align hexapod position
-	hposition = Hexapod.GetAxesPositions()
-	alignment_results['Wet_Align_Hexapod'] = map(lambda a: round(a,4),hposition)
-	# alignment_results['Wet_Align_Hexapod_X'] = hposition[0]
-	# alignment_results['Wet_Align_Hexapod_Y'] = hposition[1]
-	# alignment_results['Wet_Align_Hexapod_Z'] = hposition[2]
-	# alignment_results['Wet_Align_Hexapod_U'] = hposition[3]
-	# alignment_results['Wet_Align_Hexapod_V'] = hposition[4]
-	# alignment_results['Wet_Align_Hexapod_W'] = hposition[5]
-
-	# record final wet align nanocube position
-	nposition = Nanocube.GetAxesPositions()
-	alignment_results['Wet_Align_Nanocube'] = map(lambda a: round(a,2), nposition)
-	# alignment_results['Wet_Align_Nanocube_X'] = nposition[0]
-	# alignment_results['Wet_Align_Nanocube_Y'] = nposition[1]
-	# alignment_results['Wet_Align_Nanocube_Z'] = nposition[2]
-
-	# get power based on instrument
-	# Channel 1
-	IOController.SetOutputValue('OpticalSwitch', False)
-	toppower = ChannelsAnalogSignals.ReadValue("TopChanMonitorSignal")
-	# Channel 2
-	IOController.SetOutputValue('OpticalSwitch', True)
-	bottompower = ChannelsAnalogSignals.ReadValue("BottomChanMonitorSignal")
-
-	"""
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm != None and pm.InitializeState == HardwareInitializeState.Initialized:
-		toppower = pm.ReadPowers().Item2[0]
-		bottompower = pm.ReadPowers().Item2[1]
-	"""
-	# save process values
-	# alignment_results['Wet_Align_Peak_Power_Top_Chan'] = round(top_chan_peak_V,3)
-	# alignment_results['Wet_Align_Peak_Power_Bottom_Chan'] = round(bottom_chan_peak_V,3)
-	alignment_results['Wet_Align_Balanced_Power_Top_Chan'] = round(toppower,3)
-	alignment_results['Wet_Align_Balanced_Power_Bottom_Chan'] = round(bottompower,3)
+	alignment_results['Wet_Align_Results'] = roll_align_result
+	alignment_results['Wet_Align_Positions'] = get_positions(SequenceObj)
 
 	if SequenceObj.Halt:
 		return 0
@@ -1288,19 +560,23 @@ def Finalize(SequenceObj, alignment_parameters, alignment_results):
 	# #alignment_results['Post_Release_Power_Bottom_Outer_Chan_Loss'] = round(uvbottom - releasebottom, 6)
 
 	#check user comment
-	if TestResults.IsTestResultExists('Comment') == False:
-		if Station.Instance.UserComment:
-			alignment_results['Comment'] = Station.Instance.UserComment
-	else:
-		if Station.Instance.UserComment:
-			alignment_results['Comment'] = alignment_results['Comment' + ' ' + Station.Instance.UserComment]
-		else:
-			alignment_results['Comment'] = alignment_results['Comment']
-
+	# if SequenceObj.TestResults.IsTestResultExists('Comment') == False:
+		# if Station.Instance.UserComment:
+			# alignment_results['Comment'] = Station.Instance.UserComment
+	# else:
+		# if Station.Instance.UserComment:
+			# alignment_results['Comment'] = alignment_results['Comment' + ' ' + Station.Instance.UserComment]
+		# else:
+			# alignment_results['Comment'] = alignment_results['Comment']
+	alignment_results['Comment'] = Station.Instance.UserComment
+	###alignment_results['data_path'] = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
+    
 	#save the data file
-	TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN'])
-
-	return alignment_results
+	#TestResults.SaveTestResultsToStorage(alignment_results['Assembly_SN'])
+	if save_pretty_json(alignment_results, IO.Path.Combine(alignment_results['data_path'], alignment_results['Assembly_SN'] + '_results.json')):
+		return alignment_results
+	else:
+		return 0
 
 #-------------------------------------------------------------------------------
 # Reposition

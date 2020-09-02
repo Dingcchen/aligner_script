@@ -67,8 +67,15 @@ def update_alignment_parameter(SequenceObj, key, value):
 def save_pretty_json(variable, filename):
 	#combines arrays into one line to make json files more human-readable and saves the variable to the filename
 
+	#terrible fix for json floating point output not rounding correctly
+	original_float_repr = json.encoder.FLOAT_REPR
+	json.encoder.FLOAT_REPR = lambda o: format(o,'.4f')
+
 	# create json string
 	output_string = json.dumps(variable, indent=2 , sort_keys=True)
+
+	#put the FLOAT_REPR back the way it was
+	json.encoder.FLOAT_REPR = original_float_repr
 
 	# find the arrays by splitting by square brackets
 	split_output_string = re.split(r'\[|\]',output_string)
