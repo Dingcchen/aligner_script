@@ -21,11 +21,19 @@ def step_manager(SequenceObj, step):
 
 	# load the alignment results file if we're not starting a new sequence, otherwise create a new dictionary
 	results_filename = os.path.join(SequenceObj.RootPath, 'Data', 'temp_alignment_results.json') # store the temporary results file here
-	if SequenceObj.StepName != 'Initialize':
+
+	if SequenceObj.StepName == 'Initialize':
+		if os.path.exists(results_filename):
+			if LogHelper.AskContinue('Load empty alignment result') == True:
+				alignment_results = {'_file format':'JSON'}
+			else:
+				with open(results_filename, 'r') as f:
+					alignment_results = json.load(f)
+		else:
+			alignment_results = {'_file format':'JSON'}
+	else:
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f)
-	else:
-		alignment_results = {'_file format':'JSON'}
 
 	filename = os.path.basename(SequenceObj.ScriptFilePath) # just get the filename
 	filename = filename.split('.')[0] # get rid of the extension
