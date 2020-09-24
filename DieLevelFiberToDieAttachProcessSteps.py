@@ -587,7 +587,7 @@ def Reposition(SequenceObj, alignment_parameters, alignment_results):
 	if positions != None:
 		set_positions(SequenceObj, alignment_results[positions])
 		LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Set positions ' + positions)
-	return alignment_results
+	return 0
 
 
 
