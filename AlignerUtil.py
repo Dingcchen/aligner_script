@@ -569,6 +569,10 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		rollangle = r
 		if top_chan_position[2] > bottom_chan_position[2]:
 		   rollangle = -rollangle
+		if rollangle > 0.5:
+			rollangle = 0.5
+		elif rollangle < -0.5:
+			rollangle = -0.5
 
 		# adjust the roll angle again
 		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
