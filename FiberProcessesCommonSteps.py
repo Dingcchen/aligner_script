@@ -99,6 +99,9 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	# IOController.SetOutputValue('SideCamBacklight', False)
 	IOController.GetHardwareStateTree().ActivateState('Default')
 
+	initpivot = alignment_parameters['InitialPivotPoint']
+	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+
 	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float]([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
 	#Nanocube.GetHardwareStateTree().ActivateState('Center')
 
@@ -600,6 +603,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	inputx = die_res['X']
 	inputy = die_res['Y']
 	die_angle = fix_angle(Utility.RadianToDegree(die_res['Angle']),90)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Die position {0:.3f} {1:.3f} {2:.3f}'.format(inputx, inputy, die_angle))
 
 	# one more time for the MPO side
 	res = vision_FAU_top()
@@ -610,6 +614,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	outputx = res['X']
 	outputy = res['Y']
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'FAU position {0:.3f} {1:.3f} {2:.3f}'.format(outputx, outputy, FAU_front_face_angle))
+	"""
 	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
 	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
 
@@ -626,6 +632,9 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		align_FAU_angle = FAU_top_fiber_angle + 90
 
 	move_angle = (align_FAU_angle - die_angle)
+	"""
+
+	move_angle = (FAU_front_face_angle - die_angle)
 
 	# adjust the yaw angle
 	Hexapod.MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
@@ -695,6 +704,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	#outputangle = Utility.RadianToDegree(res['Angle'])
 
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+	"""
 	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
 	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
 
@@ -711,7 +721,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		align_FAU_angle = FAU_top_fiber_angle + 90
 
 	move_angle = (align_FAU_angle - die_angle)
-
+	"""
+	move_angle = (FAU_front_face_angle - die_angle)
 
 	# adjust the yaw angle
 	Hexapod.MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
@@ -838,6 +849,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	#outputangle = Utility.RadianToDegree(res['Angle'])
 
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+	"""
 	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
 	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
 
@@ -854,6 +866,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		align_FAU_angle = FAU_top_fiber_angle + 90
 
 	move_angle = (align_FAU_angle - die_angle)
+	"""
+	move_angle = (FAU_front_face_angle - die_angle)
 
 	# do angle adjustment one more time
 	Hexapod.MoveAxisRelative('W', move_angle, Motion.AxisMotionSpeeds.Normal, True)
@@ -1029,7 +1043,6 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
 		#	return 0
 
-	
 	positions = Hexapod.GetAxesPositions()
 	LogHelper.Log('RastScan', LogEventSeverity.Warning, 'Hexapod found first light at [{0:.3f}, {1:.3f}, {2:.3f}].'.format(positions[0],positions[1],positions[2]))
 
