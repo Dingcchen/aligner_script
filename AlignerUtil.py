@@ -45,6 +45,53 @@ MachineVision = HardwareFactory.Instance.GetHardwareByName('MachineVision')
 IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
 TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
+SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
+
+
+def loopback_test(channel):
+	SGRX8Switch.SetClosePoints(1,channel)
+	sleep(1)
+	SGRX8Switch.SetClosePoints(2,channel)
+	sleep(1)
+	power1 = (Powermeter.ReadPowers('1:1'))[1][0]
+	power2 = (Powermeter.ReadPowers('2:1'))[1][0]
+	return (power1, power2)
+
+
+def LoopbackCycleChn1to4(SequenceObj, csvwriter, loop=100):
+	## cycle through channels 1,2,3,4,1,2,...
+	csvwriter.writerow(["data line", "ch1_power80", "ch1_power20", "ch2_power80", "ch2_power20", "ch3_power80", "ch3_power20", "ch4_power80", "ch4_power20"])
+	for i in range(loop):
+		result_line = [i]
+		for j in range(4):
+			(power80, power20) = loopback_test(j+1)
+			result_line.append(power80)
+			result_line.append(power20)
+		csvwriter.writerow(result_line)
+		if SequenceObj.Halt:
+			return 0
+
+def LoopbackCycleRandom(SequenceObj, csvwriter):
+	### cycle through random channels for a better test of repeatability on the switch
+	csvwriter.writerow(['measurement timestamp', 'switch channel', "switch loopback", "laser tap 20pct"])
+	last_switch_channel = 0
+	number_samples = 500
+	for i in range(number_samples):
+		result_line = [datetime.now().strftime("%d/%m/%Y %H:%M:%S"), random.randint(1,4)]
+		# while result_line[1] == last_switch_channel:
+		# 	result_line[1] = [random.randint(1,4)]
+
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Measuring switch channel {0}... {1}/{2}'.format(result_line[1],i,number_samples))
+		(power80, power20) = loopback_test(result_line[1])
+		result_line.append(power80)
+		result_line.append(power20)
+		
+		csvwriter.writerow(result_line)
+
+		#last_switch_channel = result_line[1]
+		if SequenceObj.Halt:
+				return 0
+
 
 
 #-------------------------------------------------------------------------------
@@ -303,7 +350,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		if step_size < 0.01:
 			step_size = 0.01
 	
-	return PolarizationControl.ReadPolarization('1,2,3,4')
+	return (PolarizationControl.ReadPolarization('1,2,3,4'), last_optimum)
 
 def ScramblePolarizationMPC201(SequenceObj):
 	PolarizationControl.SetScrambleMethod(ScrambleMethodType.Tornado)
@@ -403,6 +450,7 @@ def NanocubeSpiralScan(SequenceObj, fb_channel, scan_dia_um = 50, threshold = 0,
 	scan.MidPosition2 = 50
 	SetScanChannel(scan, fb_channel, UseOpticalSwitch)
 	scan.SaveRecordData = plot_output
+	LogHelper.Log('NanocubeSpiralScan', LogEventSeverity.Alert, 'scan dia {0}'.format(scan_dia_um))
 	# scan.ExecuteOnce = SequenceObj.AutoStep
 	if not SequenceObj.Halt:
 		scan.ExecuteNoneModal()
@@ -511,7 +559,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 					return False
 		
 		if use_polarization_controller and retries == 0:
-			top_ch_polarization_position = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+			(top_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
 		elif use_polarization_controller:
 			if not SetPolarizationsMPC201(SequenceObj, top_ch_polarization_position):
 				if not SetPolarizationsMPC201(SequenceObj, top_ch_polarization_position):
@@ -543,7 +591,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 					return False
 		
 		if use_polarization_controller and retries == 0:
-			bottom_ch_polarization_position = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+			(bottom_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
 		elif use_polarization_controller:
 			if not SetPolarizationsMPC201(SequenceObj, bottom_ch_polarization_position):
 				if not SetPolarizationsMPC201(SequenceObj, bottom_ch_polarization_position):
@@ -560,15 +608,16 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 		# double check and readjust roll if necessary
 		# calculate the roll angle
-		h = Math.Abs(top_chan_position[2] - bottom_chan_position[2])
-		if h < max_z_difference_um:
+		h = top_chan_position[2] - bottom_chan_position[2]
+		if Math.Abs(h) < max_z_difference_um:
 		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
 
 		# calculate the roll angle
 		r = Utility.RadianToDegree(Math.Asin(h / (WG2WG_dist_mm*1000)))
-		rollangle = r
-		if top_chan_position[2] > bottom_chan_position[2]:
-		   rollangle = -rollangle
+		# Reverse the roll angle. 
+		rollangle = -0.5 * r
+		# if top_chan_position[2] > bottom_chan_position[2]:
+		#	rollangle = -rollangle
 		if rollangle > 0.5:
 			rollangle = 0.5
 		elif rollangle < -0.5:
@@ -631,3 +680,20 @@ def set_positions(SequenceObj, positions):
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move Nanocube to {0:s}.'.format(str(positions['Nanocube'])))
 			return False
 	return True
+
+
+LoopbackFAU1to4 = (False, 2, 3)
+LoopbackFAU4to1 = (True,  2, 3)
+LoopbackFAU2to3 = (False, 2, 3)
+LoopbackFAU3to2 = (True , 2, 3)
+
+def switchChannel(swlist):
+	IOController.SetOutputValue('OpticalSwitch2X2', swlist[0])
+	SGRX8Switch.SetClosePoints(1,wlist[1])
+	SGRX8Switch.SetClosePoints(2,wlist[2])
+
+def MCF_OutputResult():
+	switchChannel(LoopbackFAU1to4)
+	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
+		return 0
+

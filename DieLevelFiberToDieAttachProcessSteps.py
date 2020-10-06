@@ -352,7 +352,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 		# sleep(.001*500)
 
 	if use_polarization_controller:
-		top_ch_polarization_position = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = SetScanChannel(None, current_scan_channel, UseOpticalSwitch), coarse_scan = False)
+		(top_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = SetScanChannel(None, current_scan_channel, UseOpticalSwitch), coarse_scan = False)
 
 	# Hexapod.PivotPoint['X'] = zeropitch + offset
 	# enable the new pivot point

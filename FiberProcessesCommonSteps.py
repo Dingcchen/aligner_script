@@ -27,6 +27,7 @@ import csv
 from AlignerUtil import *
 from datetime import datetime
 from step_manager  import *
+import random
 
 
 # UseOpticalSwitch = True
@@ -1058,7 +1059,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	#	return 0
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(alignment_parameters['UseOpticalSwitch']))
 	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(type(alignment_parameters['UseOpticalSwitch'])))
-	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
+	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .10, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
 		return 0
 
@@ -1427,18 +1428,11 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
 		return 0
 
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1,mode='min'):
-		return 0
+	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1,mode='min'):
+	#	return 0
 
-	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
-		return 0
-
-	return alignment_results
-
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=2):
-		return 0
-	if LogHelper.AskContinue('Channel 2 plarization is peaked!') == False:
-		return 0
+	# if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
+	# 	return 0
 
 	return alignment_results
 
