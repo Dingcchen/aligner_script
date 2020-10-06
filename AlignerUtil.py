@@ -46,6 +46,7 @@ IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
 TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
 SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
+OpticalSwitch ='OpticalSwitch2X2' 
 
 
 def loopback_test(channel):
@@ -126,19 +127,19 @@ def SetScanChannel(scan, channel, UseOpticalSwitch = False):
 			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 		output_ch = 1
 		if(channel == 1):
-			IOController.SetOutputValue('OpticalSwitch', False)
+			IOController.SetOutputValue(OpticalSwitch, False)
 		else:
-			IOController.SetOutputValue('OpticalSwitch', True)
+			IOController.SetOutputValue(OpticalSwitch, True)
 	else:
 		output_ch = channel
 		if scan is not None:
 			scan.Channel = channel
 			if(channel == 1):
 				scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
-				#IOController.SetOutputValue('OpticalSwitch', False)
+				#IOController.SetOutputValue(OpticalSwitch, False)
 			else:
 				scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
-				#IOController.SetOutputValue('OpticalSwitch', True)
+				#IOController.SetOutputValue(OpticalSwitch, True)
 	
 	return output_ch
 
