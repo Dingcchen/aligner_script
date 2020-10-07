@@ -24,7 +24,7 @@ def step_manager(SequenceObj, step):
 
 	if SequenceObj.StepName == 'Initialize':
 		if os.path.exists(results_filename):
-			if LogHelper.AskContinue('Load empty alignment result') == True:
+			if LogHelper.AskContinue('Load clean alignment result') == True:
 				alignment_results = {'_file format':'JSON'}
 			else:
 				with open(results_filename, 'r') as f:

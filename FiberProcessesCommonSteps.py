@@ -75,7 +75,7 @@ def Template(SequenceObj, alignment_parameters, alignment_results):
 #-------------------------------------------------------------------------------
 def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	# for quick test.
-	# IOController.SetOutputValue(OpticalSwitch, False)
+	# IOController.SetOutputValue(LaserSwitch, False)
 	# AreaScan('NanocubeSpiralCVScan', SequenceObj, TestMetrics, TestResults)
 	# return alignment_results
 
@@ -1443,11 +1443,14 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 #-------------------------------------------------------------------------------
 def LoopbackAlignPowermeter(SequenceObj, alignment_parameters, alignment_results):
 
+	LaserSwitch = alignment_parameters['LaserSwitch']
+	if(LaseSwitch == None):
+		LaserSwitch = 'OpticalSwitch2X2'
 	def GridScanPowermeter(SequenceObj, axes, meter, channel, step_size = 1., scan_width = 10.):
 		if(channel == 1):
-			IOController.SetOutputValue(OpticalSwitch, False)
+			IOController.SetOutputValue(LaserSwitch, False)
 		else:
-			IOController.SetOutputValue(OpticalSwitch, True)
+			IOController.SetOutputValue(LaserSwitch, True)
 		starting_position = Nanocube.GetAxesPosition(axes)
 		max_signal = -999.0
 		i_pos = starting_position - scan_width/2

@@ -28,8 +28,6 @@ import csv
 import os.path
 import re
 
-#UseOpticalSwitch = True
-
 ChannelsAnalogSignals = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals')
 Nanocube = HardwareFactory.Instance.GetHardwareByName('Nanocube')
 Hexapod = HardwareFactory.Instance.GetHardwareByName('Hexapod')
@@ -46,8 +44,6 @@ IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
 TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
 SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
-OpticalSwitch ='OpticalSwitch2X2' 
-
 
 def loopback_test(channel):
 	SGRX8Switch.SetClosePoints(1,channel)
@@ -120,26 +116,26 @@ def GetAndCheckUserInput(title, message):
 # SetScanChannel
 #
 #-------------------------------------------------------------------------------
-def SetScanChannel(scan, channel, UseOpticalSwitch = False):
+def SetScanChannel(scan, channel, UseOpticalSwitch = False, LaserSwitch='OpticalSwitch2X2'):
 	if(UseOpticalSwitch):
 		if scan is not None:
 			scan.Channel = 1
 			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 		output_ch = 1
 		if(channel == 1):
-			IOController.SetOutputValue(OpticalSwitch, False)
+			IOController.SetOutputValue(LaserSwitch, False)
 		else:
-			IOController.SetOutputValue(OpticalSwitch, True)
+			IOController.SetOutputValue(LaserSwitch, True)
 	else:
 		output_ch = channel
 		if scan is not None:
 			scan.Channel = channel
 			if(channel == 1):
 				scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
-				#IOController.SetOutputValue(OpticalSwitch, False)
+				#IOController.SetOutputValue(LaserSwitch, False)
 			else:
 				scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
-				#IOController.SetOutputValue(OpticalSwitch, True)
+				#IOController.SetOutputValue(LaserSwitch, True)
 	
 	return output_ch
 
@@ -688,8 +684,8 @@ LoopbackFAU4to1 = (True,  2, 3)
 LoopbackFAU2to3 = (False, 2, 3)
 LoopbackFAU3to2 = (True , 2, 3)
 
-def switchChannel(swlist):
-	IOController.SetOutputValue('OpticalSwitch2X2', swlist[0])
+def switchChannel(swlist, LaserSwitch='OpticalSwitch2X2'):
+	IOController.SetOutputValue(LaserSwitch, swlist[0])
 	SGRX8Switch.SetClosePoints(1,wlist[1])
 	SGRX8Switch.SetClosePoints(2,wlist[2])
 
