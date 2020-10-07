@@ -684,13 +684,25 @@ LoopbackFAU4to1 = (True,  2, 3)
 LoopbackFAU2to3 = (False, 2, 3)
 LoopbackFAU3to2 = (True , 2, 3)
 
-def switchChannel(swlist, LaserSwitch='OpticalSwitch2X2'):
+def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2'):
 	IOController.SetOutputValue(LaserSwitch, swlist[0])
 	SGRX8Switch.SetClosePoints(1,wlist[1])
 	SGRX8Switch.SetClosePoints(2,wlist[2])
 
-def MCF_OutputResult():
-	switchChannel(LoopbackFAU1to4)
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
-		return 0
+def MCF_RunAllScenario(SequenceObj, cvswriter=None):
+	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4)
+	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 1 to 4 power {0:.3f}'.format(power))
+
+	SwitchLaserAndLoopbackChannel(LoopbackFAU4to1)
+	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 4 to 1 power {0:.3f}'.format(power))
+
+	SwitchLaserAndLoopbackChannel(LoopbackFAU2to3)
+	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 2 to 3 power {0:.3f}'.format(power))
+
+	SwitchLaserAndLoopbackChannel(LoopbackFAU3to2)
+	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 3 to 2 power {0:.3f}'.format(power))
 
