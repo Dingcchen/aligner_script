@@ -118,6 +118,7 @@ def GetAndCheckUserInput(title, message):
 #-------------------------------------------------------------------------------
 def SetScanChannel(scan, channel, UseOpticalSwitch = False, LaserSwitch='OpticalSwitch2X2'):
 	if(UseOpticalSwitch):
+		LogHelper.Log('SetScanChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, channel))
 		if scan is not None:
 			scan.Channel = 1
 			scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
@@ -394,6 +395,7 @@ def SetPolarizationsMPC201(SequenceObj, polarization):
 def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', axis2 = 'Z', UseOpticalSwitch = False):
 	starting_positions = Nanocube.GetAxesPositions()
 
+	LogHelper.Log('AlignerUtil.NanocubeGradientClimb', LogEventSeverity.Alert, 'Start gradient climb.')
 	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
 	climb.Axis1 = axis1
 	climb.Axis2 = axis2
@@ -407,11 +409,14 @@ def NanocubeGradientClimb(SequenceObj, fb_channel, threshold = 0, axis1 = 'Y', a
 		# Nanocube.MoveAxisAbsolute('Y', starting_positions[1], Motion.AxisMotionSpeeds.Normal, True)
 		# Nanocube.MoveAxisAbsolute('Z', starting_positions[2], Motion.AxisMotionSpeeds.Normal, True)
 		Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
+		LogHelper.Log('AlignerUtil.NanocubeGradientClimb', LogEventSeverity.Alert, 'Gradient climb fails.')
 		return False
 
 	sleep(0.500) # wait to settle
 	for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
-		if ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument) >= threshold:
+		data = ChannelsAnalogSignals.ReadValue(climb.MonitorInstrument) 
+		if data >= threshold:
+			LogHelper.Log('AlignerUtil.NanocubeGradientClimb', LogEventSeverity.Alert, 'Gradient climb success with power {0:.3f}.'.format(data))
 			return True
 		sleep(0.01)
 
@@ -612,7 +617,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		# calculate the roll angle
 		r = Utility.RadianToDegree(Math.Asin(h / (WG2WG_dist_mm*1000)))
 		# Reverse the roll angle. 
-		rollangle = -0.5 * r
+		rollangle = 0.5 * r
 		# if top_chan_position[2] > bottom_chan_position[2]:
 		#	rollangle = -rollangle
 		if rollangle > 0.5:
@@ -681,13 +686,18 @@ def set_positions(SequenceObj, positions):
 
 LoopbackFAU1to4 = (False, 2, 3)
 LoopbackFAU4to1 = (True,  2, 3)
-LoopbackFAU2to3 = (False, 2, 3)
-LoopbackFAU3to2 = (True , 2, 3)
+LoopbackFAU2to3 = (False, 3, 2)
+LoopbackFAU3to2 = (True , 3, 2)
 
 def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2'):
 	IOController.SetOutputValue(LaserSwitch, swlist[0])
-	SGRX8Switch.SetClosePoints(1,wlist[1])
-	SGRX8Switch.SetClosePoints(2,wlist[2])
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, swlist[0]))
+	SGRX8Switch.SetClosePoints(1,swlist[1])
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch module 1 to channel {0}.'.format( swlist[1]))
+	sleep(1)
+	SGRX8Switch.SetClosePoints(2,swlist[2])
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch module 2 to channel {0}.'.format( swlist[2]))
+	sleep(1)
 
 def MCF_RunAllScenario(SequenceObj, cvswriter=None):
 	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4)

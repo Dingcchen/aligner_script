@@ -1422,17 +1422,14 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 
 	if not alignment_parameters['use_polarization_controller']:
 		return 0
-	if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
-		return 0
+
+	MCF_RunAllScenario(SequenceObj)
+
+	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
+	#	return 0
 
 	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
 		return 0
-
-	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1,mode='min'):
-	#	return 0
-
-	# if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
-	# 	return 0
 
 	return alignment_results
 
