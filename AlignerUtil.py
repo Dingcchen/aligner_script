@@ -625,9 +625,6 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		elif rollangle < -0.5:
 			rollangle = -0.5
 
-		# adjust the roll angle again
-		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
-		# wait to settle
 		# balanced position
 		ymiddle = (top_chan_position[1] + bottom_chan_position[1]) / 2
 		zmiddle = (top_chan_position[2] + bottom_chan_position[2]) / 2
@@ -636,6 +633,9 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 		Hexapod.MoveAxisRelative('Y', -(50-ymiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
 		Hexapod.MoveAxisRelative('Z', -(50-zmiddle)/1000, Motion.AxisMotionSpeeds.Normal, True)
+
+		# adjust the roll angle 
+		HardwareFactory.Instance.GetHardwareByName('Hexapod').MoveAxisRelative('U', rollangle, Motion.AxisMotionSpeeds.Normal, True)
 
 		retries += 1
 
@@ -684,35 +684,33 @@ def set_positions(SequenceObj, positions):
 	return True
 
 
-LoopbackFAU1to4 = (False, 2, 3)
-LoopbackFAU4to1 = (True,  2, 3)
-LoopbackFAU2to3 = (False, 3, 2)
-LoopbackFAU3to2 = (True , 3, 2)
+LoopbackFAU1to4 = (False, 2, 3, '1 loopback to 4')
+LoopbackFAU4to1 = (True,  2, 3, '4 loopback to 1')
+LoopbackFAU2to3 = (False, 3, 2, '2 loopback to 3')
+LoopbackFAU3to2 = (True , 3, 2, '3 loopback to 2')
 
-def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2'):
+CrossTalkFAU1to3 = (False, 2, 2, '1 cross talk to 3')
+CrossTalkFAU4to2 = (True,  3, 3, '4 cross talk to 2')
+CrossTalkFAU2to4 = (False, 3, 3, '2 cross talk to 4')
+CrossTalkFAU3to1 = (True,  2, 2, '3 cross talk to 1')
+
+testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
+
+def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2', comment='FAU channel '):
 	IOController.SetOutputValue(LaserSwitch, swlist[0])
 	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, swlist[0]))
 	SGRX8Switch.SetClosePoints(1,swlist[1])
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch module 1 to channel {0}.'.format( swlist[1]))
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format( swlist[1]))
 	sleep(1)
 	SGRX8Switch.SetClosePoints(2,swlist[2])
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch module 2 to channel {0}.'.format( swlist[2]))
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format( swlist[2]))
+	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, comment + swlist[3])
 	sleep(1)
 
 def MCF_RunAllScenario(SequenceObj, cvswriter=None):
-	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4)
-	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 1 to 4 power {0:.3f}'.format(power))
-
-	SwitchLaserAndLoopbackChannel(LoopbackFAU4to1)
-	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 4 to 1 power {0:.3f}'.format(power))
-
-	SwitchLaserAndLoopbackChannel(LoopbackFAU2to3)
-	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 2 to 3 power {0:.3f}'.format(power))
-
-	SwitchLaserAndLoopbackChannel(LoopbackFAU3to2)
-	(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Loopback FAU channel 3 to 2 power {0:.3f}'.format(power))
+	for test in testcases:
+		SwitchLaserAndLoopbackChannel(test)
+		(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+		tap_power = Powermeter.ReadPowers('2:1')[1][0]
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'power {0:.3f} 20% tap power {1:.3f}.'.format(power, tap_power))
 
