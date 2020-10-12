@@ -171,46 +171,105 @@ def ReadMonitorSignal(channel, n_measurements = 10):
 # FastOptimizePolarizationScan
 # Helper function to optimize polarization
 #-------------------------------------------------------------------------------
-def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', convergence_band = 0.1, coarse_scan = False):
+def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'PolarizationControl',feedback_device = 'Powermeter', feedback_channel = 1, mode = 'max', convergence_band = 0.1, coarse_scan = True, peak_position = [0,0,0,0]):
 	def ReadPower():
 		if feedback_device=='Powermeter':
 			if (feedback_channel == 1):
-				power = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('1:1'))[1][0]
+				power = Powermeter.ReadPowers('1:1')[1][0]
 			elif (feedback_channel == 2):
-			    power = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers('2:1'))[1][0]
+			    power = Powermeter.ReadPowers('2:1')[1][0]
 			else:
-			    power = (HardwareFactory.Instance.GetHardwareByName(feedback_device).ReadPowers(feedback_channel))[1][0]
+			    power = Powermeter.ReadPowers(feedback_channel)[1][0]
 		elif feedback_device=='HexapodAnalogInput':
-		    power = HardwareFactory.Instance.GetHardwareByName('Hexapod').ReadAnalogInput(feedback_channel)
+		    power = Hexapod.ReadAnalogInput(feedback_channel)
 		elif feedback_device=='NanocubeAnalogInput':
 		    power = Nanocube.ReadAnalogInput(feedback_channel)
 		return power
 
-	step_size = .05	
-	if coarse_scan:
-		step_size = .1
 
 	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
 	if feedback_device == 'Powermeter':
-		HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(False)
+		Powermeter.AutoUpdates(False)
 	polarization_controller_channels = ['1','2','3','4']
-	peak_position = [2,2,2,2]
-	
-	
+
 	PolarizationControl.SetScrambleEnableState(False)
 	sleep(0.2)
 	if PolarizationControl.ReadScrambleEnableState():
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to disable polarization scramble!')
 		return False
-	sleep(0.2)
+
+	best_position = [0,0,0,0]
+	if mode == 'max':
+		best_power = -99.0
+	else:
+		best_power = 99.0
+
+	i=0
+	step_size = .2
+	while coarse_scan and i < 2:
+		i += 1
+		for channel in range(len(polarization_controller_channels)):
+			#loop through the polarization states on this channel and record the feedback signal
+			fb_signal = []
+			positions = []
+			# next_position = peak_position[channel]
+			next_position = 0
+			while next_position < 4:
+				sleep(0.2)
+				if not polarization_controller.SetPolarization(round(next_position,2), polarization_controller_channels[channel]):
+					if feedback_device == 'Powermeter':
+						Powermeter.AutoUpdates(True)
+					return False
+				positions.append(next_position)
+				
+				power = ReadPower()
+				if mode == 'max' and power > best_power:
+					best_power = power
+					best_position[channel] = next_position
+				elif power < best_power:
+					best_power = power
+					best_position[channel] = next_position
+
+				fb_signal.append(power)
+
+				if SequenceObj.Halt:
+					if feedback_device == 'Powermeter':
+						Powermeter.AutoUpdates(True)
+					return False
+				
+				next_position = next_position + step_size
+				
+			#set the channel to the max (or min) polarization value found
+			if mode == 'max':
+				peak_position[channel] = positions[fb_signal.index(max(fb_signal))]
+			else:
+				peak_position[channel] = positions[fb_signal.index(min(fb_signal))]
+
+			sleep(0.2)
+			if not polarization_controller.SetPolarization(round(peak_position[channel],2), polarization_controller_channels[channel]):
+				if feedback_device == 'Powermeter':
+					Powermeter.AutoUpdates(True)
+				return False
+		"""
+		power = ReadPower()
+		if mode == 'max' and best_power > power:
+			 peak_position = best_position
+		elif best_power < power:
+			 peak_position = best_position
+	
+		if not polarization_controller.SetPolarization(peak_position, polarization_controller_channels):
+			if feedback_device == 'Powermeter':
+				Powermeter.AutoUpdates(True)
+			return False
+		"""
+
 	#set all polarization controller channels to a predefined value (because reasons???)
 	for channel in range(len(polarization_controller_channels)):
 		peak_position[channel] = polarization_controller.ReadPolarization(polarization_controller_channels[channel])[0]
 	
-	num_steps = int(2*round(1/step_size,0)) + 1
-
+	# step_size = .1	
+	LogHelper.Log('FastOptimizePolarizationMPC201', LogEventSeverity.Warning, 'Start gradient search')
 	converged = False
-	
 	current_optimum = ReadPower()
 	last_optimum = current_optimum
 
@@ -229,7 +288,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 						HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
 					return False
 				positions.append(next_position)
-				sleep(0.1)
+				sleep(0.2)
 				
 				power = ReadPower()
 				fb_signal.append(power)
@@ -254,15 +313,15 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 					next_position -= 4
 				
 				#check if signal is increasing or decreasing and update search direction if needed
-				if len(positions) >= 3:
+				if len(positions) >= 4:
 					if mode == 'max':
 						if search_positive:
 							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]):
+							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]) and (fb_signal[-3] < fb_signal[-4]):
 								search_positive = False
 						elif search_negative:
 							# if power has dropped for the last 2 measurements we are past the peak and need to go the other way
-							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]):
+							if (fb_signal[-1] < fb_signal[-2]) and (fb_signal[-2] < fb_signal[-3]) and (fb_signal[-3] < fb_signal[-4]):
 								search_negative = False
 						else:
 							break
@@ -285,16 +344,13 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 			#set the channel to the max (or min) polarization value found
 			if mode == 'max':
 				peak_position[channel] = positions[fb_signal.index(max(fb_signal))]
-				if not polarization_controller.SetPolarization(round(peak_position[channel],2), polarization_controller_channels[channel]):
-						if feedback_device == 'Powermeter':
-							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-						return False
 			else:
 				peak_position[channel] = positions[fb_signal.index(min(fb_signal))]
-				if not polarization_controller.SetPolarization(round(peak_position[channel],2), polarization_controller_channels[channel]):
-						if feedback_device == 'Powermeter':
-							HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
-						return False
+
+			if not polarization_controller.SetPolarization(round(peak_position[channel],2), polarization_controller_channels[channel]):
+				if feedback_device == 'Powermeter':
+					HardwareFactory.Instance.GetHardwareByName(feedback_device).AutoUpdates(True)
+				return False
 		sleep(0.2)
 		current_optimum = ReadPower()
 
@@ -302,12 +358,8 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimum polarization found so far: {0:.02f} dBm'.format(current_optimum))
 		else:
 			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Optimum polarization found so far: {0:.03f} V'.format(current_optimum))
-		#if abs((current_optimum - last_optimum)/current_optimum) < convergence_band_percent/100.0:
-		if coarse_scan and (step_size <= 0.05):
-			converged = True
 
 		if (abs((current_optimum - last_optimum)) < convergence_band) and (step_size == 0.01):
-		#if (abs((current_optimum - last_optimum)) < convergence_band):
 			converged = True
 
 		last_optimum = current_optimum
@@ -315,7 +367,8 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 		if step_size < 0.01:
 			step_size = 0.01
 	
-	return (PolarizationControl.ReadPolarization('1,2,3,4'), last_optimum)
+	return (peak_position, last_optimum)
+	# return (PolarizationControl.ReadPolarization('1,2,3,4'), last_optimum)
 
 
 def ScramblePolarizationMPC201(SequenceObj):
@@ -503,6 +556,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	bottom_chan_position = []
 	top_chan_peak_power = ()
 	bottom_chan_peak_power = ()
+	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4)
 
 	retries = 0
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Begin roll (U) adjust...')
@@ -529,7 +583,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 					return False
 		
 		if use_polarization_controller and retries == 0:
-			(top_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+			(top_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1)
 		elif use_polarization_controller:
 			if not SetPolarizationsMPC201(SequenceObj, top_ch_polarization_position):
 				if not SetPolarizationsMPC201(SequenceObj, top_ch_polarization_position):
@@ -561,7 +615,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 					return False
 		
 		if use_polarization_controller and retries == 0:
-			(bottom_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+			(bottom_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1)
 		elif use_polarization_controller:
 			if not SetPolarizationsMPC201(SequenceObj, bottom_ch_polarization_position):
 				if not SetPolarizationsMPC201(SequenceObj, bottom_ch_polarization_position):
@@ -678,7 +732,8 @@ def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2', commen
 def MCF_RunAllScenario(SequenceObj, cvswriter=None):
 	for test in testcases:
 		SwitchLaserAndLoopbackChannel(test)
-		(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1)
+		(polarizations, power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, coarse_scan = False)
 		tap_power = Powermeter.ReadPowers('2:1')[1][0]
+		LogHelper.Log('MCF_RunAllScenario', LogEventSeverity.Alert, 'Polarization {0:.3f} {1:.3f} {2:.3f} {3:.3f}.'.format(polarizations[0], polarizations[1], polarizations[2], polarizations[3]))
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'power {0:.3f} 20% tap power {1:.3f}.'.format(power, tap_power))
 
