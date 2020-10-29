@@ -322,12 +322,14 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	# get the pitch search X pull back distance
 	# first perform a pull back, we will need to re-do the contact point again afterwards
+	"""
 	Hexapod.MoveAxisAbsolute('X', alignment_results['apply_epoxy_hexapod_final_X'] + alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisAbsolute('Y', alignment_results['apply_epoxy_hexapod_final_Y'], Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisAbsolute('Z', alignment_results['apply_epoxy_hexapod_final_Z'], Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisAbsolute('U', alignment_results['apply_epoxy_hexapod_final_U'], Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisAbsolute('V', alignment_results['apply_epoxy_hexapod_final_V'], Motion.AxisMotionSpeeds.Normal, True)
 	Hexapod.MoveAxisAbsolute('W', alignment_results['apply_epoxy_hexapod_final_W'], Motion.AxisMotionSpeeds.Normal, True)
+	"""
 
 	Nanocube.GetHardwareStateTree().ActivateState('Center')
 	sleep(.001*500)
@@ -510,6 +512,9 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 		if SequenceObj.Halt:
 			return 0
 
+	initpivot = alignment_parameters['InitialPivotPoint']
+	Hexapod.CreateKSFCoordinateSystem('WORK', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+	sleep(0.5)
 	# found contact point, back off set amount
 	Hexapod.MoveAxisRelative('X', backoff, Motion.AxisMotionSpeeds.Normal, True)
 
@@ -520,6 +525,9 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
 
 	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch)
+
+	# Move back to original coordinate.
+	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 
 	if roll_align_result is False :
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')

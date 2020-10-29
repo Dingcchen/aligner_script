@@ -107,7 +107,7 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	filename = "..\\Data\\sw2x2_switch8_loopback_charisterization2.csv"
 
 	csvfile = open(filename, 'wb')
-	csvfile.write("Loopback laser input to SGR8X module 1 to SGR8X module 2 output to power meter.")
+	csvfile.write("Loopback laser input to SGR8X module 1 to SGR8X module 2 output to power meter.\r\n")
 	csvwriter = csv.writer(csvfile)
 	IOController.SetOutputValue('OpticalSwitch2X2', False)
 	LoopbackCycleChn1to4(SequenceObj, csvwriter, loop=5)

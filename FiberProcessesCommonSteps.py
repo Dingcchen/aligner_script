@@ -101,9 +101,19 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	IOController.GetHardwareStateTree().ActivateState('Default')
 
 	initpivot = alignment_parameters['InitialPivotPoint']
-	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+	LogHelper.Log('Initialize', LogEventSeverity.Alert, 'initpivot {0:.3f} {1:.3f} {2:.3f}.'.format(initpivot[0], initpivot[1], initpivot[2]))
+	current_position = list(Hexapod.GetAxesPositions())
+	LogHelper.Log('Initialize', LogEventSeverity.Alert, 'current_position {0:.3f} {1:.3f} {2:.3f}.'.format(current_position[0], current_position[1], current_position[2]))
+	pivot_point = [x+y for x,y in zip(initpivot, current_position)]
+	LogHelper.Log('Initialize', LogEventSeverity.Alert, 'pivot_point {0:.3f} {1:.3f} {2:.3f}.'.format(pivot_point[0], pivot_point[1], pivot_point[2]))
+	# Hexapod.CreateKSWCoordinateSystem('WORK', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 
 	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float]([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
+
+	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+	Hexapod.CreateKSFCoordinateSystem('WORK', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+
+	# Hexapod.CreateKSFCoordinateSystem('WORK')
 	#Nanocube.GetHardwareStateTree().ActivateState('Center')
 
 	return alignment_results
@@ -217,8 +227,8 @@ def SetFirstLightPositionToFAU(SequenceObj, alignment_parameters, alignment_resu
 
 	# set the hexapod pivot point for this process
 	# initpivot = list(map(lambda x: float(x), alignment_parameters['InitialPivotPoint'].split(',')))
-	initpivot = alignment_parameters['InitialPivotPoint']
-	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+	# initpivot = alignment_parameters['InitialPivotPoint']
+	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 
 	#turn off all lights
 	SideCamRingLightControl.SetIlluminationOff()
@@ -569,7 +579,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	# Get hexapod and camera stage preset positions from recipe and go there
 	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
-	Hexapod.GetHardwareStateTree().ActivateState(initialposition)
+	# Hexapod.GetHardwareStateTree().ActivateState(initialposition)
 
 	if SequenceObj.Halt:
 		return 0
@@ -953,9 +963,11 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 #-------------------------------------------------------------------------------
 def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_results):
 
+	"""
 	if LogHelper.AskContinue('Move to vision align position?'):
 		if not set_positions(SequenceObj, alignment_results['vision_align_position']):
 			return 0
+	"""
 	
 	search_pos = Hexapod.GetAxesPositions()
 
@@ -1296,6 +1308,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	# scan.ExecuteNoneModal()
 	# if scan.IsSuccess == False or SequenceObj.Halt:
 	#	return 0
+	"""
 	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
 	current_scan_channel = 1
 	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
@@ -1303,6 +1316,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 			if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 				LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 				return False
+	"""
 
 	# do a contact to establish True bond gap
 	# start move incrementally until force sensor detect contact
@@ -1423,7 +1437,50 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 	if not alignment_parameters['use_polarization_controller']:
 		return 0
 
-	MCF_RunAllScenario(SequenceObj)
+	filename = "..\\Data\\MCF_loopback_test_result.csv"
+	csvfile = open(filename, 'ab')
+	csvfile.write("Loopback test result.\r\n")
+	MCF_RunAllScenario(SequenceObj, csvfile=csvfile)
+	#  MCF_Run4Loopback(SequenceObj, csvfile=csvfile)
+	roll_align_result = alignment_results['Wet_Align_Results'] 
+	csvwriter = csv.writer(csvfile)
+
+	row = []
+	row.append( 'top_chan_balanced_power' )
+	row.append(roll_align_result['top_chan_balanced_power'])
+	row.append( 'bottom_chan_balanced_power' )
+	row.append(roll_align_result['bottom_chan_balanced_power'])
+	csvwriter.writerow(row)
+
+	row = []
+	row.append( 'top_chan_peak_power' )
+	row.append(roll_align_result['top_chan_peak_power'][0])
+	row.append( 'bottom_chan_peak_power' )
+	row.append(roll_align_result['bottom_chan_peak_power'][0])
+	csvwriter.writerow(row)
+
+
+	row = []
+	row.append( 'top_chn x' )
+	row.append(roll_align_result['top_chan_nanocube_peak_position'][0])
+	row.append( 'bot_chn x' )
+	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][0])
+	csvwriter.writerow(row)
+
+	row = []
+	row.append( 'top_chn y' )
+	row.append(roll_align_result['top_chan_nanocube_peak_position'][1])
+	row.append( 'bot_chn y' )
+	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][1])
+	csvwriter.writerow(row)
+
+	row = []
+	row.append( 'top_chn z' )
+	row.append(roll_align_result['top_chan_nanocube_peak_position'][2])
+	row.append( 'bot_chn z' )
+	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][2])
+	csvwriter.writerow(row)
+	csvfile.close()
 
 	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
 	#	return 0
