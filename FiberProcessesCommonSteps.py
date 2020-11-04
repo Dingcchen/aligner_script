@@ -74,11 +74,6 @@ def Template(SequenceObj, alignment_parameters, alignment_results):
 # Clears up test data and other prep work before process starts
 #-------------------------------------------------------------------------------
 def Initialize(SequenceObj, alignment_parameters, alignment_results):
-	# for quick test.
-	# IOController.SetOutputValue(LaserSwitch, False)
-	# AreaScan('NanocubeSpiralCVScan', SequenceObj, TestMetrics, TestResults)
-	# return alignment_results
-
 	# turn on the cameras
 	DownCamera.Live(True)
 	SideCamera.Live(True)
@@ -1354,8 +1349,6 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	alignment_results['apply_epoxy_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
 	alignment_results['apply_epoxy_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
 
-
-
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
@@ -1377,56 +1370,6 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 		return 0
 	else:
 		return alignment_results
-
-#-------------------------------------------------------------------------------
-# NanocubeGradientClimb
-# Perform nanocube gradient scan
-#-------------------------------------------------------------------------------
-def NanocubeGradientClimb(SequenceObj, alignment_parameters, alignment_results):
-
-	climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-	climb.Axis1 = alignment_parameters['Nanocube_Scan_Axis1']
-	climb.Axis2 = alignment_parameters['Nanocube_Scan_Axis2']
-	climb.ExecuteOnce = SequenceObj.AutoStep
-
-	# run climb on channel 1
-	SetScanChannel(climb, 1, alignment_parameters['UseOpticalSwitch'])
-	# climb.Channel = 1
-	climb.ExecuteNoneModal()
-	if climb.IsSuccess == False or SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
-		return 0
-
-	climb1_position = Nanocube.GetAxesPositions()
-	climb1_ch1_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-	climb1_ch2_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
-
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch1 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb1_position[0], climb1_position[1], climb1_position[2], climb1_ch1_peakV, climb1_ch2_peakV))
-
-	if SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Step aborted!')
-		return 0
-
-	if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
-		return 0
-
-	# run climb on channel 2
-	SetScanChannel(climb, 2, alignment_parameters['UseOpticalSwitch'])
-	# climb.Channel = 2
-	climb.ExecuteNoneModal()
-	if climb.IsSuccess == False or SequenceObj.Halt:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 nanocube gradient climb failed!')
-		return 0
-
-	climb2_position = Nanocube.GetAxesPositions()
-	climb2_ch1_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-	climb2_ch2_peakV = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal', 5)
-	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Ch2 climb complete at [{0:.3f},{1:.3f},{2:.3f}]um with [{3:.3f},{4:.3f}]V signal found'.format(climb2_position[0], climb2_position[1], climb2_position[2], climb2_ch1_peakV, climb2_ch2_peakV))
-
-	if LogHelper.AskContinue('Record optical return power from powermeter.') == False:
-		return 0
-	return alignment_results
-
 
 #-------------------------------------------------------------------------------
 # OptimizePolarizationsMPC201
@@ -1498,13 +1441,9 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 def LoopbackAlignPowermeter(SequenceObj, alignment_parameters, alignment_results):
 
 	LaserSwitch = alignment_parameters['LaserSwitch']
-	if(LaseSwitch == None):
-		LaserSwitch = 'OpticalSwitch2X2'
+
 	def GridScanPowermeter(SequenceObj, axes, meter, channel, step_size = 1., scan_width = 10.):
-		if(channel == 1):
-			IOController.SetOutputValue(LaserSwitch, False)
-		else:
-			IOController.SetOutputValue(LaserSwitch, True)
+		SetLaserChannel(channel, LaserSwitch)
 		starting_position = Nanocube.GetAxesPosition(axes)
 		max_signal = -999.0
 		i_pos = starting_position - scan_width/2

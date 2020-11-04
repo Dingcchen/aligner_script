@@ -287,71 +287,29 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	init_V = alignment_results['apply_epoxy_hexapod_final_V']
 	use_hexapod_area_scan = False
 
-	##############################
-	##### Hexapod scan setup #####
-	##############################
-	# get the pitch sweep algo
-	# hexapod_scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-
-	# reload sweep parameters
-	# minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
-	# hexapod_scan.Range1 = alignment_parameters['PitchOptimizationHexapodScanRange1']
-	# hexapod_scan.Range2 = alignment_parameters['PitchOptimizationHexapodScanRange2']
-	# hexapod_scan.Velocity = alignment_parameters['PitchOptimizationHexapodScanVelocity']
-	# hexapod_scan.Frequency = alignment_parameters['PitchOptimizationHexapodScanFrequency']
-	# SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	# hexapod_scan.Channel = 1
-
-	###############################
-	##### Nanocube scan setup #####
-	###############################
-	# climb = Alignments.AlignmentFactory.Instance.SelectAlignment('NanocubeGradientScan')
-	# climb.Axis1 = alignment_parameters['Nanocube_Scan_Axis1']
-	# climb.Axis2 = alignment_parameters['Nanocube_Scan_Axis2']
-	# climb.ExecuteOnce = SequenceObj.AutoStep
-
-	# set up a loop to zero in on the roll angle
-
-	#width = alignment_results['Outer_Channels_Width']
 	width = alignment_parameters['FirstLight_WG2WG_dist_mm']
-
-	###################################
-	##### End Nanocube scan setup #####
-	###################################
-
-
-	# get the pitch search X pull back distance
-	# first perform a pull back, we will need to re-do the contact point again afterwards
-	"""
-	Hexapod.MoveAxisAbsolute('X', alignment_results['apply_epoxy_hexapod_final_X'] + alignment_parameters['PitchOptimizationPullBack'], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('Y', alignment_results['apply_epoxy_hexapod_final_Y'], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('Z', alignment_results['apply_epoxy_hexapod_final_Z'], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('U', alignment_results['apply_epoxy_hexapod_final_U'], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('V', alignment_results['apply_epoxy_hexapod_final_V'], Motion.AxisMotionSpeeds.Normal, True)
-	Hexapod.MoveAxisAbsolute('W', alignment_results['apply_epoxy_hexapod_final_W'], Motion.AxisMotionSpeeds.Normal, True)
-	"""
 
 	Nanocube.GetHardwareStateTree().ActivateState('Center')
 	sleep(.001*500)
 	current_scan_channel = 1 
 	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
+	threshold = alignment_parameters['ScanMinPowerThreshold']
+
+	(top_meter_channel, bottom_meter_channel) = GetMeterChannel(UseOpticalSwitch)
+
+	meter_nanocube.ReadPowerWithStatistic(top_meter_channel, 100)
+	if meter_nanocube.max < threshold: #check max signal found
 		if use_hexapod_area_scan:
 			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
-			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 					return False
 		else:
-			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 					return False
-		# hexapod_scan.ExecuteNoneModal()
-		# if hexapod_scan.IsSuccess is False or SequenceObj.Halt:
-		#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod area scan failed!')
-		#	return 0
-		# sleep(.001*500)
 
 	if use_polarization_controller:
 		(top_ch_polarization_position, optimized_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = SetScanChannel(None, current_scan_channel, UseOpticalSwitch), coarse_scan = False)
@@ -388,25 +346,24 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
 		sleep(.001*500)
 
-		if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
+		meter_nanocube.ReadPowerWithStatistic(top_meter_channel, 100)
+		if meter_nanocube.max < threshold: #check max signal found
 			if use_hexapod_area_scan:
 				# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
-				if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
-					if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+					if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 						LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 						return False
 			else:
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
-					if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+					if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 						LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 						return False
 
-		if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
+		if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 			return False
 
-		top_channel_power = ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch),n_measurements)
-
-
+		top_channel_power = meter_nanocube.ReadPowerWithStatistic(top_meter_channel, n_measurements)
 
 		# display peak aligned position
 		topchanpos = Nanocube.GetAxesPositions()
@@ -429,16 +386,17 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	sleep(.001*2000)
 	# SetScanChannel(climb, 1, UseOpticalSwitch)
 	# SetScanChannel(hexapod_scan, 1, UseOpticalSwitch)
-	if ReadMonitorSignal(SetScanChannel(None, current_scan_channel, UseOpticalSwitch))[0] < alignment_parameters['ScanMinPowerThreshold']:
+	meter_nanocube.ReadPowerWithStatistic(top_meter_channel, 100)
+	if meter_nanocube.max < threshold: #check max signal found
 		if use_hexapod_area_scan:
 			# HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0, axis1 = 'Y', axis2 = 'Z', speed = .006, plot_output = False, UseOpticalSwitch = False)
-			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
-				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+			if not HexapodSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+				if not HexapodSpiralScan(SequenceObj, current_scan_channel,scan_dia_mm=.090, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Hexapod spiral scan failed on channel 1!')
 					return False
 		else:
-			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
-				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch):
+			if not NanocubeSpiralScan(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
+				if not NanocubeSpiralScan(SequenceObj, current_scan_channel,scan_dia_um=90, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch):
 					LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Nanocube spiral scan failed on channel 1!')
 					return False
 	# hexapod_scan.Channel = 1
@@ -451,7 +409,7 @@ def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 	#	return 0
 	# sleep(.001*500)
 
-	if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
+	if not NanocubeGradientClimb(SequenceObj, current_scan_channel, threshold = threshold, UseOpticalSwitch = UseOpticalSwitch) or SequenceObj.Halt:
 		return False
 		
 	middle = Nanocube.GetAxesPositions()
