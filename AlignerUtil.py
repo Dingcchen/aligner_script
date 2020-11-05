@@ -632,7 +632,7 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), Array[float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
-def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  threshold,max_z_difference_um = 1, UseOpticalSwitch = False, speed = 50):
+def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  threshold,max_z_difference_um = 1, UseOpticalSwitch = False, loopback=False, fau_flip=False):
 
 	# set up a loop to zero in on the roll angle
 	top_chan_position = []
@@ -694,10 +694,10 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		
 		if use_polarization_controller:
 			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
-		sleep(1)
-		top_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(top_meter_channel, n_measurements=1000)
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(top_chan_peak_scramble_power[0],top_chan_peak_scramble_power[1],top_chan_peak_scramble_power[2], top_chan_peak_scramble_power[3], top_chan_peak_scramble_power[4]))
-		PolarizationControl.SetScrambleEnableState(False)
+			sleep(1)
+			top_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(top_meter_channel, n_measurements=1000)
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(top_chan_peak_scramble_power[0],top_chan_peak_scramble_power[1],top_chan_peak_scramble_power[2], top_chan_peak_scramble_power[3], top_chan_peak_scramble_power[4]))
+			PolarizationControl.SetScrambleEnableState(False)
 
 		# repeat scan for the second channel
 
@@ -737,10 +737,10 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 		if use_polarization_controller:
 			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
-		sleep(1)
-		bot_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(bot_chan_peak_scramble_power[0],bot_chan_peak_scramble_power[1],bot_chan_peak_scramble_power[2], bot_chan_peak_scramble_power[3], bot_chan_peak_scramble_power[4]))
-		PolarizationControl.SetScrambleEnableState(False)
+			sleep(1)
+			bot_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(bot_chan_peak_scramble_power[0],bot_chan_peak_scramble_power[1],bot_chan_peak_scramble_power[2], bot_chan_peak_scramble_power[3], bot_chan_peak_scramble_power[4]))
+			PolarizationControl.SetScrambleEnableState(False)
 
 		# double check and readjust roll if necessary
 		# calculate the roll angle
@@ -751,7 +751,10 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		# calculate the roll angle
 		r = Utility.RadianToDegree(Math.Asin(h / (WG2WG_dist_mm*1000)))
 		# Reverse the roll angle. 
-		rollangle = -0.5 * r
+		if(fau_flip):
+			rollangle = -0.5 * r
+		else:
+			rollangle = 0.5 * r
 		# if top_chan_position[2] > bottom_chan_position[2]:
 		#	rollangle = -rollangle
 		if rollangle > 0.5:
@@ -792,34 +795,37 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 	sleep(0.5)
 
-	testcases = (LoopbackFAU1to4, LoopbackFAU4to1)
-	balance_power = []
-	for test in testcases:
-		SwitchLaserAndLoopbackChannel(test, laserSwitch)
-		sleep(0.5)
-		if use_polarization_controller:
-			(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
-			balance_power.append(max_power)
-			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
-		else:
+	if loopback:
+		testcases = (LoopbackFAU1to4, LoopbackFAU4to1)
+		balance_power = []
+		for test in testcases:
+			SwitchLaserAndLoopbackChannel(test, laserSwitch)
+			sleep(0.5)
+			if use_polarization_controller:
+				(max_polarizations, balance_peak_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+				balance_power.append(balance_peak_power)
+				ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
 
-		balanced_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
-		balance_power.append(balanced_scramble_power)
-		if use_polarization_controller:
-			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Triangle)
+			balanced_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
+			balance_power.append(balanced_scramble_power)
+			if use_polarization_controller:
+			    ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Triangle)
 
-	output = OrderredDict()
-				'balanced_position':get_positions(SequenceObj),
-				'top_chan_peak_power':top_chan_peak_power,
-				'top_chan_nanocube_peak_position':list(top_chan_position),
-				'bottom_chan_nanocube_peak_position':list(bottom_chan_position),
-				'bottom_chan_peak_power':bottom_chan_peak_power,
-				'top_chan_peak_scramble_power':top_chan_peak_scramble_power,
-				'bottom_chan_peak_scramble_power':bot_chan_peak_scramble_power,
-				'top_chan_balanced_power':balance_power[0],
-				'top_chan_balanced_scramble_power':balance_power[1],
-				'bottom_chan_balanced_power':balance_power[2],
-				'bottom_chan_balanced_scramble_power':balance_power[3]}
+	output = OrderedDict()
+	output['balanced_position'] = get_positions(SequenceObj)
+	output['top_chan_peak_power'] = top_chan_peak_power
+	output['top_chan_nanocube_peak_position'] = list(top_chan_position)
+	output['bottom_chan_nanocube_peak_position'] = list(bottom_chan_position)
+	output['bottom_chan_peak_power'] = bottom_chan_peak_power
+
+	if use_polarization_controller:
+		output['top_chan_peak_scramble_power'] = top_chan_peak_scramble_power
+		output['bottom_chan_peak_scramble_power'] = bot_chan_peak_scramble_power
+
+		output['top_chan_balanced_power'] = balance_power[0]
+		output['top_chan_balanced_scramble_power'] = balance_power[1]
+		output['bottom_chan_balanced_power'] = balance_power[2]
+		output['bottom_chan_balanced_scramble_power'] = balance_power[3]
 
 	return output
 
