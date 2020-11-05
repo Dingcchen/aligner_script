@@ -80,23 +80,19 @@ def LoadLoopbackDie(SequenceObj, alignment_parameters, alignment_results):
 	Nanocube.GetHardwareStateTree().ActivateState(loadposition)
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(loadposition)
 
-	#release vacuum
-	# HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, False)
-	# HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, False)
-
 	# Wait for load complete and get serial number
 	# possibly using a barcode scanner later
 	ret = UserFormInputDialog.ShowDialog('Load GF die', 'Please load die (wave guides to the left) and enter serial number:', True)
 	if ret == True:
 		alignment_results['Die_SN'] = UserFormInputDialog.ReturnValue
-		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
+		VacuumController(dievac, True)
 	else:
 		return 0
 
 	ret = UserFormInputDialog.ShowDialog('Load FAU/MPO', 'Please load FAU/MPO and enter serial number:', True)
 	if ret == True:
 		alignment_results['MPO_SN'] = UserFormInputDialog.ReturnValue
-		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
+		VacuumController(fauvac, True)
 	else:
 		return 0
 
@@ -189,11 +185,6 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	Hexapod.GetHardwareStateTree().ActivateState(loadposition)
 	Nanocube.GetHardwareStateTree().ActivateState(loadposition)
 
-	#release vacuum
-	# HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, False)
-	# HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, False)
-
-
 	# Wait for load complete and get serial number
 	# possibly using a barcode scanner later
 	Die_SN = alignment_parameters['Die_SN']
@@ -205,7 +196,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			if not	update_alignment_parameter(SequenceObj, 'Die_SN', Die_SN):
 				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Die_SN in aligment_parameters!')
 		alignment_results['Die_SN'] = Die_SN
-		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(dievac, True)
+		VacuumController(dievac, True)
 	else:
 		return 0
 
@@ -218,7 +209,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			if not update_alignment_parameter(SequenceObj, 'FAU_SN', FAU_SN):
 				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update FAU_SN in aligment_parameters!')
 		alignment_results['FAU_SN'] = FAU_SN
-		HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, True)
+		VacuumController(fauvac, True)
 	else:
 		return 0
 

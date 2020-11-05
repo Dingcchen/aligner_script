@@ -44,6 +44,7 @@ IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
 TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
 SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
+VacuumControl = HardwareFactory.Instance.GetHardwareByName('VacuumControl')
 
 def loopback_test(channel):
 	SGRX8Switch.SetClosePoints(1,channel)
@@ -116,7 +117,7 @@ def GetAndCheckUserInput(title, message):
 # SetLaserChannel
 #-------------------------------------------------------------------------------
 def SetLaserChannel(channel, LaserSwitch):
-	if(LaseSwitch == None):
+	if(LaserSwitch == None):
 		return
 	if(channel == 1):
 		IOController.SetOutputValue(LaserSwitch, False)
@@ -161,13 +162,10 @@ class meter(object):
 	min = 0.0
 	max = 0.0
 	median = 0.0
+	channel = 1
 
-	def __init__(self, channel=1, device='NanocubeAnalogInput', useOpticalswitch=True):
-		self.useOpticalSwitch = useOpticalswitch
-		if(self.useOpticalSwitch):
-			self.channel = 1
-		else:
-			self.channel = channel
+	def __init__(self, channel=1, device='NanocubeAnalogInput'):
+		self.channel = channel
 		self.device = device
 		self.power = 0.0
 
@@ -202,21 +200,21 @@ class meter(object):
 class meter_nanocube(meter):
 	device = 'NanocubeAnalogInput'
 	def ReadPower(self, channel):
-		super().ReadPower(channel)
+		self.channel = channel
 		self.power = Nanocube.ReadAnalogInput(self.channel)
 		return self.power
 
 class meter_hexapod(meter):
 	device = 'HexapodAnalogInput'
 	def ReadPower(self, channel):
-		super().ReadPower(channel)
+		self.channel = channel
 		self.power = Hexapod.ReadAnalogInput(self.channel+4)
 		return self.power
 
 class meter_powermeter(meter):
 	device = 'Powermeter'
 	def ReadPower(self, channel):
-		super().ReadPower(channel)
+		self.channel = channel
 		if (self.channel == 1):
 			power = Powermeter.ReadPowers('1:1')[1][0]
 		elif (self.channel == 2):
@@ -640,10 +638,8 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	top_chan_peak_power = ()
 	bottom_chan_peak_power = ()
 
-	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4)
 	retries = 0
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Begin roll (U) adjust...')
-	laserSwitch = 'OpticalSwitch2X2'
 	(top_meter_channel, bottom_meter_channel) = GetMeterChannel(UseOpticalSwitch)
 	(top_laser_channel, bottom_laser_channel) = (1, 2)
 
@@ -652,6 +648,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	else:
 		laserSwitch = None
 
+	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4, laserSwitch)
 	n_measurements = 5
 	
 	if use_polarization_controller:
@@ -693,7 +690,8 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		top_chan_peak_power = meter_nanocube.ReadPowerWithStatistic(top_meter_channel)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(top_chan_position[0],top_chan_position[1],top_chan_position[2], top_chan_peak_power[0], top_chan_peak_power[2]))
 		
-		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
+		if use_polarization_controller:
+			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
 		sleep(1)
 		top_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(top_meter_channel, n_measurements=1000)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(top_chan_peak_scramble_power[0],top_chan_peak_scramble_power[1],top_chan_peak_scramble_power[2], top_chan_peak_scramble_power[3], top_chan_peak_scramble_power[4]))
@@ -731,10 +729,12 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		# get the final position of second channel
 		bottom_chan_position = Nanocube.GetAxesPositions()
 		bottom_chan_peak_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel)
-		ScramblePolarizationMPC201(SequenceObj)
+		if use_polarization_controller:
+			ScramblePolarizationMPC201(SequenceObj)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 2 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(bottom_chan_position[0],bottom_chan_position[1],bottom_chan_position[2],bottom_chan_peak_power[0],bottom_chan_peak_power[2]))
 
-		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
+		if use_polarization_controller:
+			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
 		sleep(1)
 		bot_chan_peak_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'scramble peak: ave {0:.3f}V median {1:.3f}  STD {2:.3f}, min {3:.3f}, max {4:.3f}'.format(bot_chan_peak_scramble_power[0],bot_chan_peak_scramble_power[1],bot_chan_peak_scramble_power[2], bot_chan_peak_scramble_power[3], bot_chan_peak_scramble_power[4]))
@@ -793,14 +793,16 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	testcases = (LoopbackFAU1to4, LoopbackFAU4to1)
 	balance_power = []
 	for test in testcases:
-		SwitchLaserAndLoopbackChannel(test)
+		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(0.5)
 		(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
 		balance_power.append(max_power)
-		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
+		if use_polarization_controller:
+			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
 		balanced_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
 		balance_power.append(balanced_scramble_power)
-		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Triangle)
+		if use_polarization_controller:
+			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Triangle)
 
 	output = {  'top_chan_balanced_power':balance_power[0],
 				'bottom_chan_balanced_power':balance_power[2],
@@ -836,11 +838,11 @@ def set_positions(SequenceObj, positions):
 	return True
 
 class testcase(object):
-	self.LaserSwitch = 'OpticalSwitch2X2'
-	self.LaserChannel = False
-	self.SGRX8Module1 = 0
-	self.SGRX8Module2 = 0
-	self.Description = ''
+	LaserSwitch = 'OpticalSwitch2X2'
+	LaserChannel = False
+	SGRX8Module1 = 0
+	SGRX8Module2 = 0
+	Description = ''
 	def __init__(self, laserChannel, mod1, mod2, meterChannel, description, laserSwitch='OpticalSwitch2X2'):
 		self.LaserChannel = laserChannel
 		self.SGRX8Module1 = mod1
@@ -874,18 +876,20 @@ CrossTalkFAU3to1 = (True,  2, 2, '3 cross talk to 1')
 
 testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
 
-def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch='OpticalSwitch2X2', comment='FAU channel '):
-	IOController.SetOutputValue(LaserSwitch, swlist[0])
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, swlist[0]))
-	SGRX8Switch.SetClosePoints(1,swlist[1])
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format( swlist[1]))
-	sleep(1)
-	SGRX8Switch.SetClosePoints(2,swlist[2])
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format( swlist[2]))
-	LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, comment + swlist[3])
-	sleep(1)
+def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch, comment='FAU channel '):
+	if(LaserSwitch is not None):
+		IOController.SetOutputValue(LaserSwitch, swlist[0])
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, swlist[0]))
+	if(SGRX8Switch is not None):
+		SGRX8Switch.SetClosePoints(1,swlist[1])
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format( swlist[1]))
+		sleep(1)
+		SGRX8Switch.SetClosePoints(2,swlist[2])
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format( swlist[2]))
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, comment + swlist[3])
+		sleep(1)
 
-def MCF_RunAllScenario(SequenceObj, meter=meter_powermeter, optimzePolarization=True, csvfile=None):
+def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimzePolarization=True, csvfile=None):
 	Powermeter.AutoUpdates(False)
 
 	meter_channel = 1
@@ -896,7 +900,7 @@ def MCF_RunAllScenario(SequenceObj, meter=meter_powermeter, optimzePolarization=
 
 	testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
 	for test in testcases:
-		SwitchLaserAndLoopbackChannel(test)
+		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(2)
 		if(optimzePolarization):
 			(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, coarse_scan = False)
@@ -924,7 +928,7 @@ def MCF_RunAllScenario(SequenceObj, meter=meter_powermeter, optimzePolarization=
 
 	Powermeter.AutoUpdates(True)
 
-def MCF_Run4Loopback(SequenceObj, csvfile=None):
+def MCF_Run4Loopback(SequenceObj, laserSwitch, csvfile=None):
 	Powermeter.AutoUpdates(False)
 
 	testcases = (LoopbackRef1to2, LoopbackRef2to1, LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
@@ -933,7 +937,7 @@ def MCF_Run4Loopback(SequenceObj, csvfile=None):
 		csvfile.write("loopback power, Tap power\r\n")
 
 	for test in testcases:
-		SwitchLaserAndLoopbackChannel(test)
+		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(2)
 		power = meter_powermeter.ReadPower(1)
 		tap_power = meter_powermeter.ReadPower(2)
@@ -946,3 +950,8 @@ def MCF_Run4Loopback(SequenceObj, csvfile=None):
 			csvwriter.writerow(row)
 
 	Powermeter.AutoUpdates(True)
+
+def VacuumController(device, on):
+	if(VacuumControl == None):
+		return
+	VacuumControl.SetOutputValue(device, on)

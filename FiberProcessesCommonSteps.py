@@ -1222,7 +1222,10 @@ def PitchPivotSearch(SequenceObj, alignment_parameters, alignment_results):
 def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_results):
 
 
-
+	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
+	use_polarization_controller = alignment_parameters['use_polarization_controller']
+	base_dist = alignment_parameters['FirstLight_WG2WG_dist_mm']
+	threshold = alignment_parameters["ScanMinPowerThreshold"]
 	# log the aligned position
 	"""
 	alignment_results['Top_Channel_Dry_Align_Nanocube_X'] = topchanpos[0]
@@ -1234,14 +1237,14 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
 	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
 	"""
-	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch'])
+	# roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch'])
+	roll_align_result = OptimizeRollAngle(SequenceObj, base_dist, use_polarization_controller, threshold, max_z_difference_um = 0.5, UseOpticalSwitch = UseOpticalSwitch)
 
 	if roll_align_result is False:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
 		return 0
 
 	alignment_results['Dry_Align_Results'] = roll_align_result
-
 	alignment_results['Dry_Align_Position'] = get_positions(SequenceObj)
 
 
@@ -1254,10 +1257,6 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	# 	power = pm. ReadPowers()
 	# 	toppow = power.Item2[0]
 	# 	bottompow = power.Item2[1]
-
-	# save process values
-	alignment_results['Dry_Align_Balanced_Power_Top_Chan'] = roll_align_result['top_chan_balanced_power'][0]
-	alignment_results['Dry_Align_Balanced_Power_Bottom_Chan'] = roll_align_result['bottom_chan_balanced_power'][0]
 
 	return alignment_results
 
@@ -1380,10 +1379,15 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 	if not alignment_parameters['use_polarization_controller']:
 		return 0
 
+	if(alignment_parameters['UseOpticalSwitch']):
+		laserSwitch = 'OpticalSwitch2X2'
+	else:
+		laserSwitch = None
+
 	filename = "..\\Data\\MCF_loopback_test_result.csv"
 	csvfile = open(filename, 'ab')
 	csvfile.write("Loopback test result.\r\n")
-	MCF_RunAllScenario(SequenceObj, csvfile=csvfile)
+	MCF_RunAllScenario(SequenceObj, laserSwitch, csvfile=csvfile)
 	#  MCF_Run4Loopback(SequenceObj, csvfile=csvfile)
 	roll_align_result = alignment_results['Wet_Align_Results'] 
 	csvwriter = csv.writer(csvfile)
