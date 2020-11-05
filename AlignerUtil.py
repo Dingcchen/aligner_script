@@ -797,25 +797,28 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	for test in testcases:
 		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(0.5)
-		(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
-		balance_power.append(max_power)
 		if use_polarization_controller:
+			(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj, feedback_device = 'NanocubeAnalogInput', feedback_channel = 1, coarse_scan = False)
+			balance_power.append(max_power)
 			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
+		else:
+
 		balanced_scramble_power = meter_nanocube.ReadPowerWithStatistic(bottom_meter_channel, n_measurements=1000)
 		balance_power.append(balanced_scramble_power)
 		if use_polarization_controller:
 			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Triangle)
 
-	output = {  'top_chan_balanced_power':balance_power[0],
-				'bottom_chan_balanced_power':balance_power[2],
+	output = OrderredDict()
 				'balanced_position':get_positions(SequenceObj),
 				'top_chan_peak_power':top_chan_peak_power,
 				'top_chan_nanocube_peak_position':list(top_chan_position),
 				'bottom_chan_nanocube_peak_position':list(bottom_chan_position),
 				'bottom_chan_peak_power':bottom_chan_peak_power,
 				'top_chan_peak_scramble_power':top_chan_peak_scramble_power,
-				'top_chan_balanced_scramble_power':balance_power[1],
 				'bottom_chan_peak_scramble_power':bot_chan_peak_scramble_power,
+				'top_chan_balanced_power':balance_power[0],
+				'top_chan_balanced_scramble_power':balance_power[1],
+				'bottom_chan_balanced_power':balance_power[2],
 				'bottom_chan_balanced_scramble_power':balance_power[3]}
 
 	return output

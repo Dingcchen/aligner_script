@@ -628,24 +628,6 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	outputy = res['Y']
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'FAU position {0:.3f} {1:.3f} {2:.3f}'.format(outputx, outputy, FAU_front_face_angle))
-	"""
-	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
-	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
-
-	# calculate and record fiber endface to FAU angle error for top fiber
-	FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_top_fiber_to_face_angle_err_deg'] = round(FAU_top_fiber_to_face_angle_err_deg, 5)
-
-	# calculate and record fiber endface to FAU angle error for bottom fiber
-	FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_bottom_fiber_to_face_angle_err_deg'] = round(FAU_bottom_fiber_to_face_angle_err_deg, 5)
-
-	align_FAU_angle = FAU_front_face_angle
-	if alignment_parameters['Angle_align_using_fibers']:
-		align_FAU_angle = FAU_top_fiber_angle + 90
-
-	move_angle = (align_FAU_angle - die_angle)
-	"""
 
 	move_angle = (FAU_front_face_angle - die_angle)
 
@@ -717,24 +699,6 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	#outputangle = Utility.RadianToDegree(res['Angle'])
 
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
-	"""
-	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
-	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
-
-	# calculate and record fiber endface to FAU angle error for top fiber
-	FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_top_fiber_to_face_angle_err_deg2'] = round(FAU_top_fiber_to_face_angle_err_deg, 5)
-
-	# calculate and record fiber endface to FAU angle error for bottom fiber
-	FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_bottom_fiber_to_face_angle_err_deg2'] = round(FAU_bottom_fiber_to_face_angle_err_deg, 5)
-
-	align_FAU_angle = FAU_front_face_angle
-	if alignment_parameters['Angle_align_using_fibers']:
-		align_FAU_angle = FAU_top_fiber_angle + 90
-
-	move_angle = (align_FAU_angle - die_angle)
-	"""
 	move_angle = (FAU_front_face_angle - die_angle)
 
 	# adjust the yaw angle
@@ -824,19 +788,6 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	if SequenceObj.Halt:
 		return 0
 
-	# remember this postion as optical z zero
-	# if False: #Don't move in multiple axes at once for now as pivot point is not well-defined. Not even sure why this was here... NK 2020-06-17
-	#	  # now move x to put the mpo to process distance from die
-	#	  if not Hexapod.MoveAxisRelative('X', processdist, Motion.AxisMotionSpeeds.Slow, True):
-	#		  LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in X direction.')
-	#		  return 0
-
-	#	  if SequenceObj.Halt:
-	#		  return 0
-
-	#	  # remember this postion as optical z zero
-	#	  alignment_results['Optical_Z_Zero_Position'] = Hexapod.GetAxisPosition('X')
-
 	# Back to imaging the top
 	#######################################################################################################################
 	#######################################################################################################################
@@ -862,24 +813,6 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	#outputangle = Utility.RadianToDegree(res['Angle'])
 
 	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
-	"""
-	FAU_top_fiber_angle = fix_angle(Utility.RadianToDegree(res['top_fiber_angle']),0)
-	FAU_bottom_fiber_angle = fix_angle(Utility.RadianToDegree(res['bottom_fiber_angle']),0)
-
-	# calculate and record fiber endface to FAU angle error for top fiber
-	FAU_top_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_top_fiber_to_face_angle_err_deg3'] = round(FAU_top_fiber_to_face_angle_err_deg, 5)
-
-	# calculate and record fiber endface to FAU angle error for bottom fiber
-	FAU_bottom_fiber_to_face_angle_err_deg = FAU_front_face_angle - 90 - FAU_top_fiber_angle
-	alignment_results['FAU_bottom_fiber_to_face_angle_err_deg3'] = round(FAU_bottom_fiber_to_face_angle_err_deg, 5)
-
-	align_FAU_angle = FAU_front_face_angle
-	if alignment_parameters['Angle_align_using_fibers']:
-		align_FAU_angle = FAU_top_fiber_angle + 90
-
-	move_angle = (align_FAU_angle - die_angle)
-	"""
 	move_angle = (FAU_front_face_angle - die_angle)
 
 	# do angle adjustment one more time
@@ -941,14 +874,6 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		return 0
 
 	alignment_results['optical_z0'] = Hexapod.GetAxisPosition('X') + alignment_parameters['VisionDryAlignGapX']
-
-	# alignment_results['vision_align_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
-	# alignment_results['vision_align_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
-	# alignment_results['vision_align_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
-	# alignment_results['vision_align_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
-	# alignment_results['vision_align_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
-	# alignment_results['vision_align_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
-
 	alignment_results['vision_align_position'] = get_positions(SequenceObj)
 
 	IOController.GetHardwareStateTree().ActivateState('default')
@@ -1014,14 +939,6 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	scan.ExecuteOnce = SequenceObj.AutoStep
 	# scan.UseCurrentPosition = True
 
-	# one scan to get initial power
-	#scan.ExecuteNoneModal()
-	#if scan.IsSuccess == False or	SequenceObj.Halt:
-	#	 return 0
-
-	# wait to settle
-	#sleep(.001*500)
-
 	found_light_ch1 = False
 	topinitpower = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
 	if topinitpower < alignment_parameters['ScanMinPowerThreshold']:
@@ -1035,13 +952,6 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		# wait to settle
 		sleep(.001*2000)
 
-		# check return condition
-		# p = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5)
-		# if p > topinitpower or abs(p - topinitpower) / abs(p) < 0.2:
-		#	break  # power close enough, good alignment
-		# if p > topinitpower:
-		#	topinitpower = p
-		
 		for i in range(20): # in case of scrambling polarization, check multiple times for power to exceed threshold
 			if ChannelsAnalogSignals.ReadValue(scan.MonitorInstrument) >= alignment_parameters['ScanMinPowerThreshold']:
 				found_light_ch1 = True
@@ -1054,25 +964,9 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power {0:.3f} for top channel not achieved.'.format(alignment_parameters['ScanMinPowerThreshold']))
 		return 0
 
-		# if HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal', 5) < minpower:
-		#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Minimum first light power for top channel not achieved.')
-		#	return 0
-
 	positions = Hexapod.GetAxesPositions()
 	LogHelper.Log('RastScan', LogEventSeverity.Warning, 'Hexapod found first light at [{0:.3f}, {1:.3f}, {2:.3f}].'.format(positions[0],positions[1],positions[2]))
 
-	# rescan smaller area
-	# scan.Range1 = alignment_parameters['HexapodFineScanRange1']
-	# scan.Range2 = alignment_parameters['HexapodFineScanRange2']
-	# scan.Velocity = alignment_parameters['HexapodFineScanVelocity']
-	# scan.Frequency = alignment_parameters['HexapodFineScanFrequency']
-	# start the scan again
-	# scan.ExecuteNoneModal()
-	# if scan.IsSuccess == False or SequenceObj.Halt:
-	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
-	#	return 0
-	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(alignment_parameters['UseOpticalSwitch']))
-	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, str(type(alignment_parameters['UseOpticalSwitch'])))
 	if not	HexapodSpiralScan(SequenceObj, 1, scan_dia_mm = .10, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch1 fine scan failed!')
 		return 0
@@ -1080,16 +974,6 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# save top chan aligned position
 	topchanpos = Hexapod.GetAxesPositions()
 
-
-	# SetScanChannel(scan, 2, alignment_parameters['UseOpticalSwitch'])
-	# scan.Channel = 2
-	# one scan to get initial power
-	# scan.ExecuteNoneModal()
-	# if scan.IsSuccess == False or	 SequenceObj.Halt:
-	#	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
-	#	return 0
-	# wait to settle
-	#sleep(.001*500)
 	if not	HexapodSpiralScan(SequenceObj, 2, scan_dia_mm = .05, threshold = alignment_parameters['ScanMinPowerThreshold'], UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Ch2 fine scan failed!')
 		return 0
@@ -1105,8 +989,6 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 	# save bottom chan aligned position
 	bottomchanpos = Hexapod.GetAxesPositions()
 
-
-
 	if not Hexapod.MoveAxisAbsolute('Y', (topchanpos[1] + bottomchanpos[1])/2, Motion.AxisMotionSpeeds.Normal, True):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Y direction.')
 		return 0
@@ -1115,18 +997,9 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move hexapod in Z direction.')
 		return 0
 
-	# alignment_results['first_light_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
-	# alignment_results['first_light_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
-	# alignment_results['first_light_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
-	# alignment_results['first_light_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
-	# alignment_results['first_light_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
-	# alignment_results['first_light_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
-
 	light_pos = Hexapod.GetAxesPositions()
 
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Light found [{0:.03f}, {1:.03f}, {2:.03f}]'.format(light_pos[0] - search_pos[0],light_pos[1] - search_pos[1],light_pos[2] - search_pos[2]))
-
-	alignment_results['first_light_position'] = get_positions(SequenceObj)
 
 	alignment_results['vision_align_position'] = get_positions(SequenceObj)
 	if SequenceObj.Halt:
@@ -1228,23 +1101,11 @@ def PitchPivotSearch(SequenceObj, alignment_parameters, alignment_results):
 #-------------------------------------------------------------------------------
 def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_results):
 
-
 	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
 	use_polarization_controller = alignment_parameters['use_polarization_controller']
 	base_dist = alignment_parameters['FirstLight_WG2WG_dist_mm']
 	threshold = alignment_parameters["ScanMinPowerThreshold"]
 	# log the aligned position
-	"""
-	alignment_results['Top_Channel_Dry_Align_Nanocube_X'] = topchanpos[0]
-	alignment_results['Top_Channel_Dry_Align_Nanocube_Y'] = topchanpos[1]
-	alignment_results['Top_Channel_Dry_Align_Nanocube_Z'] = topchanpos[2]
-	alignment_results['Top_Channel_Dry_Align_Peak_Power'] = top_chan_peak_V
-	alignment_results['Bottom_Channel_Dry_Align_Nanocube_X'] = bottomchanpos[0]
-	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Y'] = bottomchanpos[1]
-	alignment_results['Bottom_Channel_Dry_Align_Nanocube_Z'] = bottomchanpos[2]
-	alignment_results['Bottom_Channel_Dry_Align_Peak_Power'] = bottom_chan_peak_V
-	"""
-	# roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], alignment_parameters['use_polarization_controller'], alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 2, UseOpticalSwitch = alignment_parameters['UseOpticalSwitch'])
 	roll_align_result = OptimizeRollAngle(SequenceObj, base_dist, use_polarization_controller, threshold, max_z_difference_um = 0.5, UseOpticalSwitch = UseOpticalSwitch)
 
 	if roll_align_result is False:
@@ -1252,16 +1113,6 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 		return 0
 
 	alignment_results['Dry_Align_Results'] = roll_align_result
-
-	# save powers
-	# toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	# bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	# pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	# if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-	# 	power = pm. ReadPowers()
-	# 	toppow = power.Item2[0]
-	# 	bottompow = power.Item2[1]
 
 	return alignment_results
 
@@ -1291,22 +1142,6 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	#zero = alignment_results['Optical_Z_Zero_Position']
 	#Hexapod.MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Slow, True)
 
-	# get the hexapod alignment algorithm
-	# scan = Alignments.AlignmentFactory.Instance.SelectAlignment('HexapodRasterScan')
-	# # Reload parameters from recipe file
-	# # minpower = alignment_parameters['HexapodRoughScanMinPower'] # this value will be in hexapod analog input unit.
-	# scan.Axis1 = alignment_parameters['HexapodRoughScanAxis1']
-	# scan.Axis2 = alignment_parameters['HexapodRoughScanAxis2']
-	# scan.Range1 = alignment_parameters['HexapodRoughScanRange1']
-	# scan.Range2 = alignment_parameters['HexapodRoughScanRange2']
-	# scan.Velocity = alignment_parameters['HexapodRoughScanVelocity']
-	# scan.Frequency = alignment_parameters['HexapodRoughScanFrequency']
-	# SetScanChannel(scan, 1, alignment_parameters['UseOpticalSwitch'])
-	# # scan.Channel = 1
-	# scan.ExecuteOnce = SequenceObj.AutoStep
-	# scan.ExecuteNoneModal()
-	# if scan.IsSuccess == False or SequenceObj.Halt:
-	#	return 0
 	"""
 	UseOpticalSwitch = alignment_parameters['UseOpticalSwitch']
 	current_scan_channel = 1
@@ -1344,14 +1179,6 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	Hexapod.MoveAxisRelative('X', backoff, Motion.AxisMotionSpeeds.Normal, True)
 	# put the required bondgap
 	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
-
-	alignment_results['Optical_Z_UC_Cure_Position'] = Hexapod.GetAxisPosition('X')
-	alignment_results['apply_epoxy_hexapod_final_X'] = Hexapod.GetAxisPosition('X')
-	alignment_results['apply_epoxy_hexapod_final_Y'] = Hexapod.GetAxisPosition('Y')
-	alignment_results['apply_epoxy_hexapod_final_Z'] = Hexapod.GetAxisPosition('Z')
-	alignment_results['apply_epoxy_hexapod_final_U'] = Hexapod.GetAxisPosition('U')
-	alignment_results['apply_epoxy_hexapod_final_V'] = Hexapod.GetAxisPosition('V')
-	alignment_results['apply_epoxy_hexapod_final_W'] = Hexapod.GetAxisPosition('W')
 
 	# acquire image for vision
 	DownCamera.Snap()
