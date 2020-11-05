@@ -4,6 +4,7 @@ from Utility import *
 import os.path
 import json
 import re
+from collections import *
 from AlignerUtil import get_positions
 
 
@@ -25,12 +26,12 @@ def step_manager(SequenceObj, step):
 	if SequenceObj.StepName == 'Initialize':
 		if os.path.exists(results_filename):
 			if LogHelper.AskContinue('Load clean alignment result') == True:
-				alignment_results = {'_file format':'JSON'}
+				alignment_results = OrderedDict()
 			else:
 				with open(results_filename, 'r') as f:
 					alignment_results = json.load(f)
 		else:
-			alignment_results = {'_file format':'JSON'}
+			alignment_results = OrderedDict()
 	else:
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f)

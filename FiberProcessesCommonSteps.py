@@ -105,11 +105,18 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 
 	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float]([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
 
-	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
-	Hexapod.CreateKSFCoordinateSystem('WORK', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 
-	# Hexapod.CreateKSFCoordinateSystem('WORK')
-	#Nanocube.GetHardwareStateTree().ActivateState('Center')
+	# Hexapod.EnableCoordinateSystem("PIVOT");
+	# Hexapod.EnableCoordinateSystem("WORK");
+	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot), True)
+
+	# Hexapod.CreateKSFCoordinateSystem('KSF', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot))
+	# Hexapod.CreateKSFCoordinateSystem('KSF')
+	if Hexapod.EnableCoordinateSystem('CURT') is not True:
+		LogHelper.Log('Initialize', LogEventSeverity.Alert, 'Enabe CURT fail.')
+
+
+	# Nanocube.GetHardwareStateTree().ActivateState('Center')
 
 	return alignment_results
 
@@ -1245,8 +1252,6 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 		return 0
 
 	alignment_results['Dry_Align_Results'] = roll_align_result
-	alignment_results['Dry_Align_Position'] = get_positions(SequenceObj)
-
 
 	# save powers
 	# toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
@@ -1385,48 +1390,12 @@ def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_res
 		laserSwitch = None
 
 	filename = "..\\Data\\MCF_loopback_test_result.csv"
-	csvfile = open(filename, 'ab')
+	csvfile = open(filename, 'wb')
 	csvfile.write("Loopback test result.\r\n")
-	MCF_RunAllScenario(SequenceObj, laserSwitch, csvfile=csvfile)
-	#  MCF_Run4Loopback(SequenceObj, csvfile=csvfile)
-	roll_align_result = alignment_results['Wet_Align_Results'] 
-	csvwriter = csv.writer(csvfile)
+	testcases_result = MCF_RunAllScenario(SequenceObj, laserSwitch, csvfile=csvfile)
+	alignment_results['Test Case Results']  = testcases_result
+	writeCSV(csvfile, alignment_results)
 
-	row = []
-	row.append( 'top_chan_balanced_power' )
-	row.append(roll_align_result['top_chan_balanced_power'])
-	row.append( 'bottom_chan_balanced_power' )
-	row.append(roll_align_result['bottom_chan_balanced_power'])
-	csvwriter.writerow(row)
-
-	row = []
-	row.append( 'top_chan_peak_power' )
-	row.append(roll_align_result['top_chan_peak_power'][0])
-	row.append( 'bottom_chan_peak_power' )
-	row.append(roll_align_result['bottom_chan_peak_power'][0])
-	csvwriter.writerow(row)
-
-
-	row = []
-	row.append( 'top_chn x' )
-	row.append(roll_align_result['top_chan_nanocube_peak_position'][0])
-	row.append( 'bot_chn x' )
-	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][0])
-	csvwriter.writerow(row)
-
-	row = []
-	row.append( 'top_chn y' )
-	row.append(roll_align_result['top_chan_nanocube_peak_position'][1])
-	row.append( 'bot_chn y' )
-	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][1])
-	csvwriter.writerow(row)
-
-	row = []
-	row.append( 'top_chn z' )
-	row.append(roll_align_result['top_chan_nanocube_peak_position'][2])
-	row.append( 'bot_chn z' )
-	row.append(roll_align_result['bottom_chan_nanocube_peak_position'][2])
-	csvwriter.writerow(row)
 	csvfile.close()
 
 	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):

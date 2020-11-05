@@ -24,6 +24,7 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
+from collections import *
 # import statistics
 import os.path
 import re
@@ -256,6 +257,7 @@ def FastOptimizePolarizationMPC201(SequenceObj,control_device_name = 'Polarizati
 	polarization_controller = HardwareFactory.Instance.GetHardwareByName(control_device_name)
 	if feedback_device == 'Powermeter':
 		Powermeter.AutoUpdates(False)
+		meter_powermeter.SwitchChannel(feedback_channel)
 		meter = meter_powermeter
 	elif feedback_device == 'HexapodAnalogInput':
 		meter = meter_hexapod
@@ -892,6 +894,8 @@ def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch, comment='FAU channel '):
 def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimzePolarization=True, csvfile=None):
 	Powermeter.AutoUpdates(False)
 
+	results = OrderedDict()
+
 	meter_channel = 1
 	tap_meter_channel = 2
 	if(csvfile is not None):
@@ -899,6 +903,8 @@ def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimze
 		csvfile.write("test case, max power, min power, scramble power, Tap power, polarization\r\n")
 
 	testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
+	results['item'] = ['max_power', 'min_power', '20% tap', 'scramble mean', 'median', 'STD', 'min', 'max', 'max polarization 1', '2', '3', '4']
+
 	for test in testcases:
 		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(2)
@@ -909,24 +915,28 @@ def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimze
 			max_power = meter.ReadPower(meter_channel)
 			min_power = meter.ReadPower(meter_channel)
 
-		ScramblePolarizationMPC201(SequenceObj)
+		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
 		sleep(1)
-		scramble_power = meter.ReadPower(meter_channel)
-
+		scramble_power = meter.ReadPowerWithStatistic(meter_channel, n_measurements=100)
 		tap_power = meter.ReadPower(tap_meter_channel)
+
+		PolarizationControl.SetScrambleEnableState(False)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'max power {0:.3f} min power {1:.3f} 20% tap power {2:.3f}.'.format(max_power, min_power, tap_power))
 		row = []
-		if(csvwriter is not None):
-			row.append(test[3])
-			row.append('%.3f' % max_power)
-			row.append('%.3f' % min_power)
-			row.append('%.3f' % scramble_power)
-			row.append('%.3f' % tap_power)
-			if(optimzePolarization):
-				row.extend(map(lambda x: '%.3f'%x, max_polarizations))
-			csvwriter.writerow(row)
+		row.append('%.3f' % max_power)
+		row.append('%.3f' % min_power)
+		row.append('%.3f' % tap_power)
+		row.extend(map(lambda x: '%.3f'%x, scramble_power))
+		if(optimzePolarization):
+			row.extend(map(lambda x: '%.3f'%x, max_polarizations))
+		results[test[3]] = row
+		if SequenceObj.Halt:
+			Powermeter.AutoUpdates(True)
+			return False
+				
 
 	Powermeter.AutoUpdates(True)
+	return results
 
 def MCF_Run4Loopback(SequenceObj, laserSwitch, csvfile=None):
 	Powermeter.AutoUpdates(False)
@@ -951,7 +961,34 @@ def MCF_Run4Loopback(SequenceObj, laserSwitch, csvfile=None):
 
 	Powermeter.AutoUpdates(True)
 
+
 def VacuumController(device, on):
 	if(VacuumControl == None):
 		return
 	VacuumControl.SetOutputValue(device, on)
+
+
+def writeCSV(csvfile, d, col=''):
+    csvwriter = csv.writer(csvfile)
+
+    for k in d:
+        if(col != ''):
+            csvfile.write(col)
+        value = d.get(k)
+        if(isinstance(value, list)):
+            row = [k]
+            row.extend(value)
+            csvwriter.writerow(row)
+        elif(isinstance(value, dict)):
+            row = [k]
+            csvwriter.writerow(row)
+            writeCSV(csvfile, value, col+',')
+        elif(isinstance(value, OrderedDict)):
+            row = [k]
+            csvwriter.writerow(row)
+            writeCSV(csvfile, value, col+',')
+        else:
+            row = [k]
+            row.append(value)
+            csvwriter.writerow(row)
+            

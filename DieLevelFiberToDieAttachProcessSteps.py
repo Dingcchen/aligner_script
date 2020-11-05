@@ -483,7 +483,6 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 		return 0
 
 	alignment_results['Wet_Align_Results'] = roll_align_result
-	alignment_results['Wet_Align_Positions'] = get_positions(SequenceObj)
 
 	if SequenceObj.Halt:
 		return 0
