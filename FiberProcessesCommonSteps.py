@@ -1128,16 +1128,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	DownCamera.Live(True)
 	SideCamera.Live(True)
 
-	# Ask operator to apply epoxy. Use automation later
-	if not LogHelper.AskContinue('Apply epoxy. Click Yes when done.'):
-		return 0
 
-	# open to whet epoxy
-	whetgap = alignment_parameters['EpoxyWhetGap']
-	# move to epoxy whet position
-	Hexapod.MoveAxisRelative('X', -whetgap, Motion.AxisMotionSpeeds.Slow, True)
-	# wait a few seconds
-	sleep(.001*alignment_parameters['EpoxyWhetTime'])
 	# back to zero position
 	#zero = alignment_results['Optical_Z_Zero_Position']
 	#Hexapod.MoveAxisAbsolute('X', zero, Motion.AxisMotionSpeeds.Slow, True)
@@ -1164,6 +1155,33 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	backoff = alignment_parameters['BackOffFromContactDetection']
 	bondgap = alignment_parameters['EpoxyBondGap']
 	# Monitor force change
+	hexapod_initial_x = Hexapod.GetAxesPositions()[0]
+	while (forcesensor.ReadValueImmediate() - startforce) < alignment_parameters['ForceSensorContactThreshold']:
+		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
+		sleep(.001*5)
+		# check for user interrupt
+		if SequenceObj.Halt:
+			return 0
+
+	hexapod_distance_to_touch = Hexapod.GetAxesPositions()[0] - hexapod_initial_x
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Hexapod moved {0:.3f} mm in X before force sensor threshold reached.'.format(hexapod_distance_to_touch))
+
+	# found contact point, back off set amount
+	Hexapod.MoveAxisRelative('X', backoff, Motion.AxisMotionSpeeds.Normal, True)
+	# put the required bondgap
+	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
+
+	# Ask operator to apply epoxy. Use automation later
+	if not LogHelper.AskContinue('Apply epoxy. Click Yes when done.'):
+		return 0
+
+	# open to whet epoxy
+	whetgap = alignment_parameters['EpoxyWhetGap']
+	# move to epoxy whet position
+	Hexapod.MoveAxisRelative('X', -whetgap, Motion.AxisMotionSpeeds.Slow, True)
+	# wait a few seconds
+	sleep(.001*alignment_parameters['EpoxyWhetTime'])
+
 	hexapod_initial_x = Hexapod.GetAxesPositions()[0]
 	while (forcesensor.ReadValueImmediate() - startforce) < alignment_parameters['ForceSensorContactThreshold']:
 		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
@@ -1519,11 +1537,15 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	loadposition = alignment_parameters['LoadPresetPosition']
 	uvposition = alignment_parameters['UVPresetPosition']
 
-	DownCameraStages.GetHardwareStateTree().ActivateState(loadposition)
+	if not DownCameraStages.GetHardwareStateTree().ActivateState(loadposition):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move down camera stages!')
+		return 0
 
 
 	# move UV wands into position
-	HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(uvposition)
+	if not HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(uvposition):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move UV wand stages!')
+		return 0
 
 	# get the uv profile
 	profile = alignment_parameters['UVCureStepProfiles']
@@ -1581,13 +1603,17 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	Utility.ShowProcessTextOnMainUI()
 
 
-	HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
+	if not HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move UV wand stages!')
+		return 0
 
 	# if not ret or SequenceObj.Halt:
 	# 	return 0
 
 	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
-	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
+	if not DownCameraStages.GetHardwareStateTree().ActivateState(initialposition):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move down camera stages!')
+		return 0
 
 	# turn on the cameras
 	DownCamera.Live(False)
