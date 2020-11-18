@@ -15,7 +15,7 @@ def step_manager(SequenceObj, step):
 	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
 	if os.path.exists(parameters_filename):
 		with open(parameters_filename, 'r') as f:
-			alignment_parameters = json.load(f)
+			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
 	else:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
 		return 0
@@ -29,12 +29,12 @@ def step_manager(SequenceObj, step):
 				alignment_results = OrderedDict()
 			else:
 				with open(results_filename, 'r') as f:
-					alignment_results = json.load(f)
+					alignment_results = json.load(f, object_pairs_hook=OrderedDict)
 		else:
 			alignment_results = OrderedDict()
 	else:
 		with open(results_filename, 'r') as f:
-			alignment_results = json.load(f)
+			alignment_results = json.load(f, object_pairs_hook=OrderedDict)
 
 	filename = os.path.basename(SequenceObj.ScriptFilePath) # just get the filename
 	filename = filename.split('.')[0] # get rid of the extension
@@ -57,7 +57,7 @@ def update_alignment_parameter(SequenceObj, key, value):
 	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
 	if os.path.exists(parameters_filename):
 		with open(parameters_filename, 'r') as f:
-			alignment_parameters = json.load(f)
+			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
 	else:
 		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
 		return 0
@@ -81,7 +81,7 @@ def save_pretty_json(variable, filename):
 	json.encoder.FLOAT_REPR = lambda o: format(o,'.4f')
 
 	# create json string
-	output_string = json.dumps(variable, indent=2 , sort_keys=True)
+	output_string = json.dumps(variable, indent=2 , sort_keys=False)
 
 	#put the FLOAT_REPR back the way it was
 	json.encoder.FLOAT_REPR = original_float_repr
