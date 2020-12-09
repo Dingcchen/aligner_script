@@ -108,12 +108,10 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 
 	# Hexapod.EnableCoordinateSystem("PIVOT");
 	# Hexapod.EnableCoordinateSystem("WORK");
-	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot), True)
+	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot), True)
 
 	# Hexapod.CreateKSFCoordinateSystem('KSF', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot))
 	# Hexapod.CreateKSFCoordinateSystem('KSF')
-	if Hexapod.EnableCoordinateSystem('CURT') is not True:
-		LogHelper.Log('Initialize', LogEventSeverity.Alert, 'Enabe CURT fail.')
 
 
 	# Nanocube.GetHardwareStateTree().ActivateState('Center')
@@ -138,7 +136,7 @@ def CheckProbe(SequenceObj, alignment_parameters, alignment_results):
 	IOController.GetHardwareStateTree().ActivateState(probeposition)
 
 	# set exposure
-	# DownCamera.SetExposureTime(15)
+	DownCamera.SetExposureTime(3)
 
 	# move things out of way for operator to load stuff
 	DownCamRingLightControl.GetHardwareStateTree().ActivateState(probeposition)
@@ -326,10 +324,10 @@ def SetFirstLightPositionToFAU(SequenceObj, alignment_parameters, alignment_resu
 	# adjust the translation
 	# dest = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](inputx, inputy))
 	start = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
-	end = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
+	# end = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
 
 	# calculate the distance between the first and last fiber channel in order to do pivot angle compensation
-	alignment_results['Outer_Channels_Width'] = round(pow(pow(end.Item1 - start.Item1, 2) + pow(end.Item2 - start.Item2, 2),0.5), 5)
+	# alignment_results['Outer_Channels_Width'] = round(pow(pow(end.Item1 - start.Item1, 2) + pow(end.Item2 - start.Item2, 2),0.5), 5)
 
 	# turn on the cameras
 	DownCamera.Live(True)
@@ -564,7 +562,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	#vision_interim_gap_X = alignment_parameters['VisionInterimGapX'] #'FAUToBoardInitial'
 
 	# Move hexapod to root coordinate system
-	Hexapod.EnableZeroCoordinateSystem()
+	# Hexapod.EnableZeroCoordinateSystem()
 
 	# turn on the cameras
 	DownCamera.Live(True)
@@ -581,7 +579,9 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	# Get hexapod and camera stage preset positions from recipe and go there
 	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
-	# Hexapod.GetHardwareStateTree().ActivateState(initialposition)
+
+	# Get hexapod preset position from recipe and go there
+	Hexapod.GetHardwareStateTree().ActivateState(initialposition)
 
 	if SequenceObj.Halt:
 		return 0
@@ -596,7 +596,7 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
-	sn = alignment_results['Assembly_SN']
+	sn = alignment_parameters['Assembly_SN']
 	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration,  sn)
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTop.jpg')
@@ -661,15 +661,15 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	# retreive vision results
 	outputx = res['X']
 	outputy = res['Y']
-	outputx2 = res['X2']
-	outputy2 = res['Y2']
+	# outputx2 = res['X2']
+	# outputy2 = res['Y2']
 
 	# adjust the translation
 	start = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx, outputy))
-	end = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
+	# end = MachineVision.ApplyTransform('DownCameraTransform', ValueTuple[float,float](outputx2, outputy2))
 
 	# calculate the distance between the first and last fiber channel in order to do pivot angle compensation
-	alignment_results['Measured_Channel_Pitch'] = round(((end.Item1 - start.Item1)**2 + (end.Item2 - start.Item2)**2)**0.5, 5)
+	# alignment_results['Measured_Channel_Pitch'] = round(((end.Item1 - start.Item1)**2 + (end.Item2 - start.Item2)**2)**0.5, 5)
 
 
 	if SequenceObj.Halt:
@@ -753,6 +753,11 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	diey = res['Y']
 	dieangle = Utility.RadianToDegree(res['Angle'])
 
+	if safe_approach:
+		if not LogHelper.AskContinue('Did the vision system correctly identify the die side?'):
+			return 0
+
+
 	# find the FAU side
 	SideCameraStages.GetHardwareStateTree().ActivateState(initialposition)
 
@@ -765,12 +770,19 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 	mpoy = res['WGY']
 	mpoangle = Utility.RadianToDegree(res['Angle'])
 
+	if safe_approach:
+		if not LogHelper.AskContinue('Did the vision system correctly identify the die side?'):
+			return 0
+
 	# transform the coordinates so we know how to move
 	dest = MachineVision.ApplyTransform('SideCameraTransform', ValueTuple[float,float](diex, diey))
 	start = MachineVision.ApplyTransform('SideCameraTransform', ValueTuple[float,float](mpox, mpoy))
 
 	### calculate z move, but don't actually move until the very end
-	z_move_final = dest.Item2 - start.Item2 + alignment_parameters['FirstLightZOffsetFromVision']
+	z_offset = alignment_parameters['FirstLightZOffsetFromVision']
+	z_move_final = dest.Item2 - start.Item2 + z_offset
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'WGX WGY {0:.3f} {1:.3f}.'.format(mpox, mpoy))
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'z_move_final {0:.3f} {1:.3f} {2:.3f}.'.format(dest.Item2, start.Item2, z_offset))
 
 	# move the mpo height to match that of the die height, include the z-offset
 	# if not Hexapod.MoveAxisRelative('Z', z_move_final, Motion.AxisMotionSpeeds.Slow, True):
@@ -896,6 +908,7 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 			return 0
 	"""
 	
+	SwitchLaserAndLoopbackChannel(LoopbackFAU1to4, 'OpticalSwitch2X2')
 	search_pos = Hexapod.GetAxesPositions()
 
 	use_polarization_controller = alignment_parameters['use_polarization_controller']
@@ -1105,8 +1118,9 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 	use_polarization_controller = alignment_parameters['use_polarization_controller']
 	base_dist = alignment_parameters['FirstLight_WG2WG_dist_mm']
 	threshold = alignment_parameters["ScanMinPowerThreshold"]
+	fau_flip = alignment_parameters["FAUFlipped"]
 	# log the aligned position
-	roll_align_result = OptimizeRollAngle(SequenceObj, base_dist, use_polarization_controller, threshold, max_z_difference_um = 0.5, UseOpticalSwitch = UseOpticalSwitch)
+	roll_align_result = OptimizeRollAngle(SequenceObj, base_dist, use_polarization_controller, threshold, max_z_difference_um = 0.5, UseOpticalSwitch = UseOpticalSwitch, fau_flip=fau_flip)
 
 	if roll_align_result is False:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
@@ -1221,13 +1235,16 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 		return alignment_results
 
 #-------------------------------------------------------------------------------
-# OptimizePolarizationsMPC201
+# TestResultStep
 # Optimize polarizations on both channels sequentially
 #-------------------------------------------------------------------------------
-def OptimizePolarizationsMPC201(SequenceObj, alignment_parameters, alignment_results):
+def TestResultStep(SequenceObj, alignment_parameters, alignment_results):
 
+	"""
 	if not alignment_parameters['use_polarization_controller']:
 		return 0
+	"""
+
 
 	if(alignment_parameters['UseOpticalSwitch']):
 		laserSwitch = 'OpticalSwitch2X2'

@@ -213,9 +213,11 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	else:
 		return 0
 
-	msg = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
-	if msg != None:
-		alignment_results['Assembly_SN'] = msg
+	Assembly_SN = alignment_parameters['Assembly_SN'] 
+	if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
+		Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
+	if Assembly_SN != None:
+		alignment_results['Assembly_SN'] = Assembly_SN
 	else:
 		return 0
 
@@ -275,7 +277,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 def WetPitchAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	use_polarization_controller = alignment_parameters['use_polarization_controller']
-	init_V = alignment_results['apply_epoxy_hexapod_final_V']
+	# init_V = alignment_results['apply_epoxy_hexapod_final_V']
+	init_V = 0.0
 	use_hexapod_area_scan = False
 
 	width = alignment_parameters['FirstLight_WG2WG_dist_mm']
@@ -451,8 +454,10 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	# threshold = alignment_parameters['ForceSensorContactThreshold']
 	backoff = alignment_parameters['BackOffFromContactDetection']
 	bondgap = alignment_parameters['EpoxyBondGap']
-
+	initpivot = alignment_parameters['InitialPivotPoint']
+	fau_flip = alignment_parameters["FAUFlipped"]
 	hexapod_initial_x = Hexapod.GetAxesPositions()[0]
+
 	# monitor force change
 	while (forcesensor.ReadValueImmediate() - startforce) < alignment_parameters['ForceSensorContactThreshold']:
 		Hexapod.MoveAxisRelative('X', 0.001, Motion.AxisMotionSpeeds.Slow, True)
@@ -461,7 +466,6 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 		if SequenceObj.Halt:
 			return 0
 
-	initpivot = alignment_parameters['InitialPivotPoint']
 	Hexapod.CreateKSFCoordinateSystem('WORK', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
 	sleep(0.5)
 	# found contact point, back off set amount
@@ -472,8 +476,10 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	# put the required bondgap
 	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
+	"""
+	"""
 
-	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch)
+	roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch, fau_flip=fau_flip)
 
 	# Move back to original coordinate.
 	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )

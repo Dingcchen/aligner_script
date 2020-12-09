@@ -632,7 +632,7 @@ def HexapodSpiralScan(SequenceObj, fb_channel, scan_dia_mm = .05, threshold = 0,
 	Hexapod.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z', 'U', 'V', 'W']), Array[float](starting_positions), Motion.AxisMotionSpeeds.Normal, True)
 	return False
 
-def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  threshold,max_z_difference_um = 1, UseOpticalSwitch = False, loopback=False, fau_flip=False):
+def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  threshold,max_z_difference_um = 1, UseOpticalSwitch = False, die_loopback=True, fau_flip=True):
 
 	# set up a loop to zero in on the roll angle
 	top_chan_position = []
@@ -659,7 +659,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		top_ch_polarization_position = []
 		bottom_ch_polarizttion_position = []
 
-	while retries < 5 and not SequenceObj.Halt:
+	while retries < 8 and not SequenceObj.Halt:
 		Nanocube.GetHardwareStateTree().ActivateState('Center')
 		#LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'Channel 1 peak: {3:.3f}V (STD {4:.3f}) @ [{0:.2f}, {1:.2f}, {2:.2f}]um'.format(top_chan_position[0],top_chan_position[1],top_chan_position[2],top_channel_power[0],top_channel_power[1]))
 
@@ -745,7 +745,12 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		# double check and readjust roll if necessary
 		# calculate the roll angle
 		h = top_chan_position[2] - bottom_chan_position[2]
-		if Math.Abs(h) < max_z_difference_um:
+		# balanced position
+		ymiddle = (top_chan_position[1] + bottom_chan_position[1]) / 2
+		zmiddle = (top_chan_position[2] + bottom_chan_position[2]) / 2
+		ydiff = Math.Abs(ymiddle-50.0)
+		zdiff = Math.Abs(zmiddle-50.0)
+		if Math.Abs(h) < max_z_difference_um and ydiff < 0.5 and zdiff < 0.5:
 		   break	# we achieved the roll angle when the optical Z difference is less than 1 um
 
 		# calculate the roll angle
@@ -762,9 +767,6 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 		elif rollangle < -0.5:
 			rollangle = -0.5
 
-		# balanced position
-		ymiddle = (top_chan_position[1] + bottom_chan_position[1]) / 2
-		zmiddle = (top_chan_position[2] + bottom_chan_position[2]) / 2
 		Nanocube.MoveAxisAbsolute('Y', 50, Motion.AxisMotionSpeeds.Fast, True)
 		Nanocube.MoveAxisAbsolute('Z', 50, Motion.AxisMotionSpeeds.Fast, True)
 
@@ -795,7 +797,7 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 
 	sleep(0.5)
 
-	if loopback:
+	if die_loopback:
 		testcases = (LoopbackFAU1to4, LoopbackFAU4to1)
 		balance_power = []
 		for test in testcases:
@@ -817,15 +819,27 @@ def OptimizeRollAngle(SequenceObj, WG2WG_dist_mm, use_polarization_controller,  
 	output['top_chan_nanocube_peak_position'] = list(top_chan_position)
 	output['bottom_chan_nanocube_peak_position'] = list(bottom_chan_position)
 	output['bottom_chan_peak_power'] = bottom_chan_peak_power
+	pitch_offset = top_chan_position[1] - bottom_chan_position[1]
 
 	if use_polarization_controller:
 		output['top_chan_peak_scramble_power'] = top_chan_peak_scramble_power
 		output['bottom_chan_peak_scramble_power'] = bot_chan_peak_scramble_power
 
+		if die_loopback:
+			output['top_chan_balanced_power'] = balance_power[0]
+			output['top_chan_balanced_scramble_power'] = balance_power[1]
+			output['bottom_chan_balanced_power'] = balance_power[2]
+			output['bottom_chan_balanced_scramble_power'] = balance_power[3]
+	else:
 		output['top_chan_balanced_power'] = balance_power[0]
-		output['top_chan_balanced_scramble_power'] = balance_power[1]
-		output['bottom_chan_balanced_power'] = balance_power[2]
-		output['bottom_chan_balanced_scramble_power'] = balance_power[3]
+		output['bottom_chan_balanced_power'] = balance_power[1]
+
+	if(fau_flip):
+		output['pitch_offset'] = -pitch_offset
+	else:
+		output['pitch_offset'] = pitch_offset
+	output['top_chn_off_peak_loss'] = -10 * math.log10(output['top_chan_balanced_power'][0]/output['top_chan_peak_power'][0])
+	output['bottom_chn_off_peak_loss'] = -10 * math.log10(output['bottom_chan_balanced_power'][0]/output['bottom_chan_peak_power'][0])
 
 	return output
 
@@ -851,24 +865,25 @@ def set_positions(SequenceObj, positions):
 class testcase(object):
 	LaserSwitch = 'OpticalSwitch2X2'
 	LaserChannel = False
-	SGRX8Module1 = 0
-	SGRX8Module2 = 0
+	SGRX8Module1chn = 0
+	SGRX8Module2chn = 0
+	usePolarizationController = False
 	Description = ''
 	def __init__(self, laserChannel, mod1, mod2, meterChannel, description, laserSwitch='OpticalSwitch2X2'):
 		self.LaserChannel = laserChannel
-		self.SGRX8Module1 = mod1
-		self.SGRX8Module2 = mod2
+		self.SGRX8Module1chn = mod1
+		self.SGRX8Module2chn = mod2
 		self.Description = description
 		self.MeterChannel = meterChannel
 
 	def Setup():
 		IOController.SetOutputValue(LaserSwitch, self.LaserChannel)
 		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch {0:s} to channel {1}.'.format(LaserSwitch, self.LaserChannel))
-		SGRX8Switch.SetClosePoints(1,self.SGRX8Module1)
-		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format( self.SGRX8Module1))
+		SGRX8Switch.SetClosePoints(1,self.SGRX8Module1chn)
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format( self.SGRX8Module1chn))
 		sleep(1)
-		SGRX8Switch.SetClosePoints(2,self.SGRX8Module2)
-		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format( self.SGRX8Module2))
+		SGRX8Switch.SetClosePoints(2,self.SGRX8Module2chn)
+		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format( self.SGRX8Module2chn))
 		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, comment + self.Description)
 		sleep(1)
 
@@ -900,43 +915,45 @@ def SwitchLaserAndLoopbackChannel(swlist, LaserSwitch, comment='FAU channel '):
 		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, comment + swlist[3])
 		sleep(1)
 
-def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimzePolarization=True, csvfile=None):
+def MCF_RunAllScenario(SequenceObj, laserSwitch, meter=meter_powermeter, optimzePolarization=True, csvfile=None, usePolarzationController=False):
 	Powermeter.AutoUpdates(False)
 
 	results = OrderedDict()
 
 	meter_channel = 1
 	tap_meter_channel = 2
-	if(csvfile is not None):
-		csvwriter = csv.writer(csvfile)
-		csvfile.write("test case, max power, min power, scramble power, Tap power, polarization\r\n")
 
-	testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2)
-	results['item'] = ['max_power', 'min_power', '20% tap', 'scramble mean', 'median', 'STD', 'min', 'max', 'max polarization 1', '2', '3', '4']
+	testcases = (LoopbackFAU1to4, LoopbackFAU4to1, LoopbackFAU2to3, LoopbackFAU3to2, CrossTalkFAU1to3, CrossTalkFAU4to2, CrossTalkFAU2to4, CrossTalkFAU3to1 )
+	if(usePolarzationController):
+		results['item'] = ['max_power', 'min_power', '20% tap', 'scramble mean', 'median', 'STD', 'min', 'max', 'max polarization 1', '2', '3', '4']
+	else:
+		results['item'] = ['max_power', 'min_power', '20% tap', 'scramble mean', 'median', 'STD', 'min', 'max']
 
 	for test in testcases:
 		SwitchLaserAndLoopbackChannel(test, laserSwitch)
 		sleep(2)
-		if(optimzePolarization):
+		if(usePolarzationController and optimzePolarization):
 			(max_polarizations, max_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, coarse_scan = False)
 			(min_polarizations, min_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, mode='min', coarse_scan = False)
 		else:
 			max_power = meter.ReadPower(meter_channel)
 			min_power = meter.ReadPower(meter_channel)
 
-		ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
-		sleep(1)
+		if(usePolarzationController):
+			ScramblePolarizationMPC201(SequenceObj, scramblerType=ScrambleMethodType.Discrete)
+			sleep(1)
 		scramble_power = meter.ReadPowerWithStatistic(meter_channel, n_measurements=100)
 		tap_power = meter.ReadPower(tap_meter_channel)
 
-		PolarizationControl.SetScrambleEnableState(False)
+		if(usePolarzationController):
+			PolarizationControl.SetScrambleEnableState(False)
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'max power {0:.3f} min power {1:.3f} 20% tap power {2:.3f}.'.format(max_power, min_power, tap_power))
 		row = []
 		row.append('%.3f' % max_power)
 		row.append('%.3f' % min_power)
 		row.append('%.3f' % tap_power)
 		row.extend(map(lambda x: '%.3f'%x, scramble_power))
-		if(optimzePolarization):
+		if(usePolarzationController and optimzePolarization):
 			row.extend(map(lambda x: '%.3f'%x, max_polarizations))
 		results[test[3]] = row
 		if SequenceObj.Halt:
@@ -974,6 +991,8 @@ def MCF_Run4Loopback(SequenceObj, laserSwitch, csvfile=None):
 def VacuumController(device, on):
 	if(VacuumControl == None):
 		return
+	if (VacuumControl.InitializeState != HardwareInitializeState.Initialized):
+	   return 
 	VacuumControl.SetOutputValue(device, on)
 
 
