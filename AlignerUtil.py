@@ -157,18 +157,12 @@ def SetScanChannel(scan, channel, UseOpticalSwitch = False, LaserSwitch='Optical
 				scan.MonitorInstrument = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
 	return output_ch
 
-class meter(object):
-	power = 0.0
-	dev = 0.0
-	min = 0.0
-	max = 0.0
-	median = 0.0
-	channel = 1
-
-	def __init__(self, channel=1, device='NanocubeAnalogInput'):
-		self.channel = channel
-		self.device = device
+class Meter(object):
+	def __init__(self):
 		self.power = 0.0
+		self.dev = 0.0
+		self.min = 0.0
+		self.max = 0.0
 
 	def ReadPower(self, channel):
 		self.channel = cahnnel
@@ -198,22 +192,30 @@ class meter(object):
 		self.median = (measurements[l] + measurements[l-1])/2
 		return (self.power, self.median, self.dev, self.min, self.max)
 
-class meter_nanocube(meter):
-	device = 'NanocubeAnalogInput'
+class Meter_nanocube(Meter):
+	# device = 'NanocubeAnalogInput'
+	def __init__(self, channel):
+		super(Meter_nanocube, self).__init__()
+		self.channel = channel
+
 	def ReadPower(self, channel):
 		self.channel = channel
 		self.power = Nanocube.ReadAnalogInput(self.channel)
 		return self.power
 
-class meter_hexapod(meter):
-	device = 'HexapodAnalogInput'
+class Meter_hexapod(Meter):
+	# device = 'HexapodAnalogInput'
 	def ReadPower(self, channel):
 		self.channel = channel
 		self.power = Hexapod.ReadAnalogInput(self.channel+4)
 		return self.power
 
-class meter_powermeter(meter):
-	device = 'Powermeter'
+class Meter_powermeter(Meter):
+	# device = 'Powermeter'
+	def __init__(self, channel):
+		super(Meter_powermeter, self).__init__()
+		self.channel = channel
+
 	def ReadPower(self, channel):
 		self.channel = channel
 		if (self.channel == 1):
@@ -225,9 +227,9 @@ class meter_powermeter(meter):
 		self.power = power
 		return self.power
 
-meter_nanocube = meter_nanocube()
-meter_hexapod = meter_hexapod()
-meter_powermeter = meter_powermeter()
+meter_nanocube = Meter_nanocube(1)
+meter_hexapod = Meter_hexapod()
+meter_powermeter = Meter_powermeter(1)
 
 def ReadMonitorSignal(channel, n_measurements = 10):
 	sleep(0.2)
