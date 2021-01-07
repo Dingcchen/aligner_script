@@ -191,9 +191,7 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
             testResultloop5to8,
             testResultloop8to5,
             testResultloop6to7,
-            testResultloop7to6
-		)
-	"""
+            testResultloop7to6,
             testResultCross1to3,
             testResultCross3to1,
             testResultCross2to4,
@@ -202,7 +200,8 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
             testResultCross7to5,
             testResultCross6to8,
             testResultCross8to6
-	"""
+		)
+
 	testResults = TestResults(testcases)
 	testResults.run(SequenceObj)
 
