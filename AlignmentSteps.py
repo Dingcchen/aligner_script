@@ -27,6 +27,16 @@ from AlignerUtil import *
 from time import sleep
 from step_manager import *
 from Alignment import *
+from VisionAlign import *
+
+def SetFirstLightPoistion(SequenceObj, alignment_parameters, alignment_results):
+	if not VisionAlignTop(alignment_parameters):
+		return 0
+
+	if not VisionAlignSide(alignment_parameters):
+		return 0
+	return alignment_results
+
 
 def FauTouchAndBackOff(SequenceObj, contactThreshold, backoff, bondgap):
 	# Re-establish the contact point again
@@ -201,7 +211,6 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
             testResultCross6to8,
             testResultCross8to6
 		)
-
 	testResults = TestResults(testcases)
 	testResults.run(SequenceObj)
 

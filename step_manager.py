@@ -17,7 +17,7 @@ def step_manager(SequenceObj, step):
 		with open(parameters_filename, 'r') as f:
 			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
 	else:
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at {}'.format(parameters_filename))
 		return 0
 
 	# load the alignment results file if we're not starting a new sequence, otherwise create a new dictionary
