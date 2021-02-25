@@ -30,11 +30,56 @@ from Alignment import *
 from VisionAlign import *
 
 def SetFirstLightPoistion(SequenceObj, alignment_parameters, alignment_results):
-	if not VisionAlignTop(alignment_parameters):
+	# Make sure the coordinate is correct.
+	initpivot = alignment_parameters['InitialPivotPoint']
+	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
+	Nanocube.MoveAxesAbsolute(Array[String](['X', 'Y', 'Z']), Array[float]([50, 50, 50]), Motion.AxisMotionSpeeds.Normal, True)
+	# Get hexapod preset position from recipe and go there
+	Hexapod.GetHardwareStateTree().ActivateState(initialposition)
+
+	Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot), True)
+
+
+	if not VisionAlignTop(alignment_parameters, x=-0.5):
 		return 0
 
-	if not VisionAlignSide(alignment_parameters):
+	if not VisionAlignSide(alignment_parameters, x=-0.1, y=0.1):
 		return 0
+
+	if not VisionAlignTop(alignment_parameters, x= -0.1):
+		return 0
+
+	downcamera_stage = DownCameraStage('die_left_side')
+	downcamera_stage.ActivateState()
+	Hexapod.MoveAxisRelative('Y', 2.75, Motion.AxisMotionSpeeds.Slow, True)
+	sleep(8)
+	if not VisionAlignSide(alignment_parameters,  die_stage='die_left_side', fau_stage='die_left_side', x=-0.1, y=0.1):
+		return 0
+
+	downcamera_stage = DownCameraStage('die_right_side')
+	downcamera_stage.ActivateState()
+
+	Hexapod.MoveAxisRelative('Y', -5.5, Motion.AxisMotionSpeeds.Slow, True)
+	sleep(15)
+
+	if not VisionRightEdgeDiff(alignment_parameters, x=-0.1, y=0.1):
+		return 0
+
+	"""
+	if not VisionFiberEdge(alignment_parameters, x=-0.2, y=0.2):
+		return 0
+
+	if not VisionRightEdge(alignment_parameters, x=-0.1, y=0.1):
+		return 0
+
+	if not VisionRightEdge(alignment_parameters, x=-0.02, y=0.02):
+		return 0
+
+	if not VisionFiberEdge(alignment_parameters, x=-0.02, y=0.015):
+		return 0
+	"""
+
+
 	return alignment_results
 
 
@@ -66,7 +111,42 @@ def FauTouchAndBackOff(SequenceObj, contactThreshold, backoff, bondgap):
 	Hexapod.MoveAxisRelative('X', -bondgap, Motion.AxisMotionSpeeds.Normal, True)
 	
 #-------------------------------------------------------------------------------
-# RollBalanceAlign
+# RollBalanceAlign for TFC glassblock 8 channels FAU
+#-------------------------------------------------------------------------------
+def RollBalanceAlign_TFC_GB(SequenceObj, alignment_parameters, alignment_results):
+
+	fau_flip = alignment_parameters["FAUFlipped"]
+	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
+	powerThresdhold = alignment_parameters["ScanMinPowerThreshold"]
+	max_z_difference_um = 0.2  # um
+	
+	opticalSwitchChn1To4 = OpticalSwitch(SGRX8Switch, 2, 3, "Loopback chn 1 to 4")
+	opticalSwitchChn5To8 = OpticalSwitch(SGRX8Switch, 4, 5, "Loopback chn 5 to 8")
+
+	laserAtChn1 = LaserSwitch('OpticalSwitch2X2', 1)
+	laserAtChn2 = LaserSwitch('OpticalSwitch2X2', 2)
+	meter1 = Meter_nanocube(1)
+	meter2 = Meter_nanocube(2)
+	top1Alignment = SearchMaxPosition('channel 5', laserAtChn1, meter2, opticalSwitchChn5To8, powerThresdhold)
+	top2Alignment = SearchMaxPosition('channel 8', laserAtChn2, meter2, opticalSwitchChn5To8, powerThresdhold)
+	bottom1Alignment = SearchMaxPosition('channel 1', laserAtChn1, meter1, opticalSwitchChn1To4, powerThresdhold)
+	bottom2Alignment = SearchMaxPosition('channel 4', laserAtChn2, meter1, opticalSwitchChn1To4, powerThresdhold)
+
+	scan_channels = (top1Alignment, top2Alignment, bottom1Alignment, bottom2Alignment)
+
+	testRollAlign = FourChannelRollAlignment(scan_channels, WG2WG_dist_mm, max_z_difference_um)
+
+	if not testRollAlign.Iteration(SequenceObj, num=10):
+		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Roll optimize failed!')
+		return 0
+
+	# Move back to original coordinate.
+	# Hexapod.CreateKSDCoordinateSystem('PIVOT', Array[String](['X', 'Y', 'Z' ]), Array[float](initpivot) )
+
+	return testRollAlign
+
+#-------------------------------------------------------------------------------
+# RollBalanceAlign for Tsumimoto dual MCF.
 # Roll balanced align, but wet
 # Touches the die with the force sensor and moves to bond gap
 # Uses much tighter spec for roll align

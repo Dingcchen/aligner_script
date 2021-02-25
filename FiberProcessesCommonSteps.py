@@ -76,7 +76,7 @@ def Template(SequenceObj, alignment_parameters, alignment_results):
 def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	LeftSideCamera.Live(True)
 
 	# clear the output data
 	SequenceObj.TestResults.ClearAllTestResult()
@@ -131,7 +131,7 @@ def CheckProbe(SequenceObj, alignment_parameters, alignment_results):
 
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	# SideCamera.Live(True)
 
 	IOController.GetHardwareStateTree().ActivateState(probeposition)
 
@@ -615,7 +615,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	inputx = die_res['X']
 	inputy = die_res['Y']
-	die_angle = fix_angle(Utility.RadianToDegree(die_res['Angle']),90)
+	# die_angle = fix_angle(Utility.RadianToDegree(die_res['Angle']),90)
+	die_angle = Utility.RadianToDegree(die_res['Angle']) + 90
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Die position {0:.3f} {1:.3f} {2:.3f}'.format(inputx, inputy, die_angle))
 
 	# one more time for the MPO side
@@ -626,7 +627,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 
 	outputx = res['X']
 	outputy = res['Y']
-	FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+	# FAU_front_face_angle = fix_angle(Utility.RadianToDegree(res['Angle']),90) ### NK 2020-06-29
+	FAU_front_face_angle = Utility.RadianToDegree(res['Angle']) 
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'FAU position {0:.3f} {1:.3f} {2:.3f}'.format(outputx, outputy, FAU_front_face_angle))
 
 	move_angle = (FAU_front_face_angle - die_angle)
@@ -766,8 +768,8 @@ def SetFirstLightPositionToDie(SequenceObj, alignment_parameters, alignment_resu
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to locate the FAU side position.')
 		return 0
 
-	mpox = res['WGX']
-	mpoy = res['WGY']
+	mpox = res['X']
+	mpoy = res['Y']
 	mpoangle = Utility.RadianToDegree(res['Angle'])
 
 	if safe_approach:

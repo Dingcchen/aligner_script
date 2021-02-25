@@ -25,9 +25,14 @@ from CiscoAligner import Station
 from CiscoAligner import Alignments
 from time import sleep
 import csv
-from AlignerUtil import *
+# from AlignerUtil import *
 from datetime import datetime
 from step_manager  import *
+
+Hexapod = HardwareFactory.Instance.GetHardwareByName('Hexapod')
+DownCamera = HardwareFactory.Instance.GetHardwareByName('DownCamera')
+LeftSideCamera = HardwareFactory.Instance.GetHardwareByName('LeftSideCamera')
+RightSideCamera = HardwareFactory.Instance.GetHardwareByName('RightSideCamera')
 
 def Template(SequenceObj, alignment_parameters, alignment_results):
     # DO NOT DELETE THIS METHOD
@@ -76,9 +81,9 @@ def CalibrateDownCamera(SequenceObj, alignment_parameters, alignment_results):
 
     # turn on the cameras
     # HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-    # HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    # HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Live(True)
     DownCamera.Live(True)
-    SideCamera.Live(True)
+    LeftSideCamera.Live(True)
     # set exposure
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(5)
 
@@ -178,7 +183,7 @@ def CalibrateDownCamera(SequenceObj, alignment_parameters, alignment_results):
 
     # turn on the cameras
     DownCamera.Live(False)
-    SideCamera.Live(False)
+    LeftSideCamera.Live(False)
 
     if SequenceObj.Halt:
         return 0
@@ -186,19 +191,19 @@ def CalibrateDownCamera(SequenceObj, alignment_parameters, alignment_results):
         return alignment_results
 
 #-------------------------------------------------------------------------------
-# CalibrateSideCamera
+# CalibrateLeftSideCamera
 # Calibrate the side camera to stage position
 #-------------------------------------------------------------------------------
-def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
+def CalibrateLeftSideCamera(SequenceObj, alignment_parameters, alignment_results):
     
     CAMERA_SHIFT = 0.6 
 
     # turn on the cameras
     HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Live(True)
     # set exposure
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(3)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(5)
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').SetExposureTime(1)
 
     # move to preset positions
     HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState('CameraCalibration')
@@ -220,11 +225,12 @@ def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
 
     # snap image to load to vision
     TestMetrics = SequenceObj.TestMetrics
-    sidevision = alignment_parameters['SideVisionTool'] #'DieTopGF2NoGlassBlock'
-    sidecamexposure = alignment_parameters['SideCamExposure'] #'DieTopGF2NoGlassBlock'
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(sidecamexposure)
+    sidevision = alignment_parameters['SideVisionTool']
+    # sidevision = "..\\Vision\\glass_block\\FAU_side\\TFC_FAU_GB_side_TB"
+    # sidecamexposure = alignment_parameters['FAUSideVisionCameraExposure']
+    # HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').SetExposureTime(sidecamexposure)
 
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -243,7 +249,7 @@ def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -261,7 +267,7 @@ def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -279,7 +285,7 @@ def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -290,14 +296,14 @@ def CalibrateSideCamera(SequenceObj, alignment_parameters, alignment_results):
     pointCollection.Add( Vision.CalibratePointPair(res['X'], res['Y'], HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'), HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Z')))
 
     # add it to transform and save to file
-    HardwareFactory.Instance.GetHardwareByName('MachineVision').AddTransform('SideCameraTransform', pointCollection)
+    HardwareFactory.Instance.GetHardwareByName('MachineVision').AddTransform('LeftSideCameraTransform', pointCollection)
     # turn off ring light
     HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
     # turn on camera live view
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('LeftSideCamera').Live(True)
 
     # return to load position
-    HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('BoardLoad')
+    # HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('BoardLoad')
 
     if SequenceObj.Halt:
         return 0
@@ -314,21 +320,21 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
 
     # turn on the cameras
     HardwareFactory.Instance.GetHardwareByName('DownCamera').Live(True)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Live(True)
     # set exposure
     HardwareFactory.Instance.GetHardwareByName('DownCamera').SetExposureTime(3)
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(5)
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').SetExposureTime(1)
 
     # move to preset positions
     HardwareFactory.Instance.GetHardwareByName('SideCameraStages').GetHardwareStateTree().ActivateState('CameraCalibration')
-    HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('CameraCalibration')
+    HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('RightSideCameraCalibration')
 
     if SequenceObj.Halt:
         return 0
 
     # turn off all lights and then set to recipe level
     HardwareFactory.Instance.GetHardwareByName('DownCamRingLightControl').SetIlluminationOff()
-    HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState('CameraCalibration')
+    # HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').GetHardwareStateTree().ActivateState('CameraCalibration')
 
     # Position 1
     # shift to one corner
@@ -339,11 +345,11 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
 
     # snap image to load to vision
     TestMetrics = SequenceObj.TestMetrics
-    sidevision = alignment_parameters['SideVisionTool'] #'DieTopGF2NoGlassBlock'
-    sidecamexposure = alignment_parameters['SideCamExposure'] #'DieTopGF2NoGlassBlock'
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').SetExposureTime(sidecamexposure)
+    sidevision = alignment_parameters['RightSideVisionTool'] #'DieTopGF2NoGlassBlock'
+    sidecamexposure = alignment_parameters['RightSideCamExposure'] #'DieTopGF2NoGlassBlock'
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').SetExposureTime(sidecamexposure)
 
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -362,7 +368,7 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -380,7 +386,7 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -398,7 +404,7 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
     Utility.DelayMS(1000)
 
     # snap image to load to vision
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Snap()
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Snap()
     res = HardwareFactory.Instance.GetHardwareByName('MachineVision').RunVisionTool(sidevision)
     # check result
     if res['Result'] != 'Success':
@@ -409,11 +415,11 @@ def CalibrateRightSideCamera(SequenceObj, alignment_parameters, alignment_result
     pointCollection.Add( Vision.CalibratePointPair(res['X'], res['Y'], HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('X'), HardwareFactory.Instance.GetHardwareByName('Hexapod').GetAxisPosition('Z')))
 
     # add it to transform and save to file
-    HardwareFactory.Instance.GetHardwareByName('MachineVision').AddTransform('SideCameraTransform', pointCollection)
+    HardwareFactory.Instance.GetHardwareByName('MachineVision').AddTransform('RightSideCameraTransform', pointCollection)
     # turn off ring light
-    HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
+    # HardwareFactory.Instance.GetHardwareByName('SideCamRingLightControl').SetIlluminationOff()
     # turn on camera live view
-    HardwareFactory.Instance.GetHardwareByName('SideCamera').Live(True)
+    HardwareFactory.Instance.GetHardwareByName('RightSideCamera').Live(True)
 
     # return to load position
     HardwareFactory.Instance.GetHardwareByName('Hexapod').GetHardwareStateTree().ActivateState('BoardLoad')

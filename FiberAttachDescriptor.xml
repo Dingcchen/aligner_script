@@ -223,5 +223,6 @@
   <CamerasCalibration StepName="Initialize" StepScriptFile="..\Scripts\FiberProcessesCommonSteps.py" StepMethod="Initialize" MustRun="true" />
   <CamerasCalibration StepName="Calibrate down camera" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateDownCamera" MustRun="true" />
   <CamerasCalibration StepName="Calibrate side camera" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateSideCamera" MustRun="true" />
+  <CamerasCalibration StepName="Right side camera" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="CalibrateRightSideCamera" MustRun="true" />
   <CamerasCalibration StepName="Finalize" StepScriptFile="..\Scripts\CamerasCalibrationProcessSteps.py" StepMethod="Finalize" MustRun="true" />
 </PythonProcessSequences>
