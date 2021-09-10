@@ -160,23 +160,27 @@ def CheckProbe(SequenceObj, alignment_parameters, alignment_results):
 def SnapDieText(SequenceObj, alignment_parameters, alignment_results):
 
 	probeposition = alignment_parameters['ProbePresetPosition'] #'BoardLoad'
-	die_text_position = alignment_parameters['die_text_position'] #'FAUToBoardInitial'
+	die_text_position = alignment_parameters['DieTextPosition'] #'FAUToBoardInitial'
 
 	DownCameraStages.GetHardwareStateTree().ActivateState(die_text_position)
 
+	IOController.GetHardwareStateTree().ActivateState(die_text_position)
 	# set exposure
 	# DownCamera.SetExposureTime(15)
 
 	# move things out of way for operator to load stuff
+	"""
 	DownCamRingLightControl.GetHardwareStateTree().ActivateState(probeposition)
 	DownCameraStages.GetHardwareStateTree().ActivateState(probeposition)
 
 	SideCamRingLightControl.GetHardwareStateTree().ActivateState(probeposition)
 	SideCameraStages.GetHardwareStateTree().ActivateState(probeposition)
+	"""
 
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
+	TestResults = SequenceObj.TestResults
 	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieTopText.jpg')
@@ -184,9 +188,10 @@ def SnapDieText(SequenceObj, alignment_parameters, alignment_results):
 
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	RightSideCamera.Live(True)
 
 	# go back to initial position
+	initialposition = alignment_parameters['InitialPresetPosition'] #'FAUToBoardInitial'
 	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
 
 	if SequenceObj.Halt:
@@ -241,6 +246,7 @@ def SetFirstLightPositionToFAU(SequenceObj, alignment_parameters, alignment_resu
 	# acquire image for vision
 	DownCamera.Snap()
 	# save to file
+	TestResults = SequenceObj.TestResults
 	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'FAUTop.jpg')
@@ -1142,7 +1148,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	RightSideCamera.Live(True)
 
 
 	# back to zero position
@@ -1224,12 +1230,12 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 	DownCamera.SaveToFile(dir)
 
 	# acquire image for vision
-	SideCamera.Snap()
+	RightSideCamera.Snap()
 	# save to file
 	dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'DieSideEpoxy.jpg')
-	SideCamera.SaveToFile(dir)
+	RightSideCamera.SaveToFile(dir)
 
 	if SequenceObj.Halt:
 		return 0
@@ -1546,12 +1552,12 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	DownCamera.SaveToFile(dir)
 
 	# acquire image for vision
-	SideCamera.Snap()
+	RightSideCamera.Snap()
 	# save to file
 	dir = IO.Path.Combine(SequenceObj.TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Pre_UV.jpg')
-	SideCamera.SaveToFile(dir)
+	RightSideCamera.SaveToFile(dir)
 
 	loadposition = alignment_parameters['LoadPresetPosition']
 	uvposition = alignment_parameters['UVPresetPosition']
@@ -1636,7 +1642,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 
 	# turn on the cameras
 	DownCamera.Live(False)
-	SideCamera.Live(False)
+	RightSideCamera.Live(False)
 
 	sleep(1)
 
@@ -1649,7 +1655,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	DownCamera.SaveToFile(dir)
 
 	# acquire image for vision
-	SideCamera.Snap()
+	RightSideCamera.Snap()
 	# save to file
 	#dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
 	#Utility.CreateDirectory(dir)

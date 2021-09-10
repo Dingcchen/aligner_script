@@ -790,7 +790,7 @@ def ManualSetFirstLightPositionToBoard(SequenceObj, alignment_parameters, alignm
 
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	RightSideCamera.Live(True)
 	
 	IOController.GetHardwareStateTree().ActivateState('Default')
 	
@@ -801,7 +801,7 @@ def ManualSetFirstLightPositionToBoard(SequenceObj, alignment_parameters, alignm
 
 	# Get hexapod and camera stage preset positions from recipe and go there
 	DownCameraStages.GetHardwareStateTree().ActivateState(initialposition)
-	Hexapod.GetHardwareStateTree().ActivateState(initialposition)
+	# Hexapod.GetHardwareStateTree().ActivateState(initialposition)
 
 	if SequenceObj.Halt:
 		return 0

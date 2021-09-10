@@ -135,12 +135,14 @@ class SearchMaxPosition(object):
 		return self.pitch_offset
 
 	def ReadPower(self):
-		self.laser.Set()
+		if self.laser != None:
+			self.laser.Set()
 		self.opticalSwitch.Set()
 		return self.meter.ReadPowerWithStatistic(self.meter.channel)
 
 	def scan(self, SequenceObj):
-		self.laser.Set()
+		if self.laser != None:
+			self.laser.Set()
 		self.opticalSwitch.Set()
 		UseOpticalSwitch = False
 		if self.polarizationController:
@@ -151,7 +153,8 @@ class SearchMaxPosition(object):
 			else:
 				(self.polarization_state, self.polarization_power) = self.polarizationController.SetPolarization(self.polarization_state)
 
-		self.meter.ReadPowerWithStatistic(self.meter.channel, n_measurements=1000)
+		self.meter.ReadPowerWithStatistic(self.meter.channel, n_measurements=100)
+		LogHelper.Log('SearchMaxPosition', LogEventSeverity.Alert, "Meter channel {0} threshold {1:.2f} reading max {2:.2f}".format(self.meter.channel, self.threshold, self.meter.max))
 		if self.meter.max < self.threshold: #check max signal found
 			if not NanocubeSpiralScan(SequenceObj, self.meter.channel, threshold = self.threshold, UseOpticalSwitch = UseOpticalSwitch):
 				Nanocube.GetHardwareStateTree().ActivateState('Center')
@@ -186,6 +189,7 @@ class RollAlignment(object):
 		self.num_channels = 0
 		self.balanced_position = [50.0, 50.0, 50.0]
 		self.pitch_offset = []
+		self.fau_flip = True
 
 	@property
 	def Results(self):
@@ -234,9 +238,12 @@ class RollAlignment(object):
 			# calculate the roll angle
 			r = Utility.RadianToDegree(Math.Asin(h / (self.WG2WG_dist_mm*1000)))
 
-			rollangle = r
+			if self.fau_flip:
+				rollangle = -r
+			else:
+				rollangle = r
 			"""
-			rollangle = 0.5 * r
+			rollangle = 0.5 * rollangle
 
 			if rollangle > 0.5:
 				rollangle = 0.5
