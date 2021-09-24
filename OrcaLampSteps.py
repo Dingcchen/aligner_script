@@ -1697,14 +1697,6 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move down camera stages!')
 		return 0
 
-	"""
-
-	# move UV wands into position
-	if not HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(uvposition):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move UV wand stages!')
-		return 0
-	"""
-
 	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Start UV')
 	# get the uv profile
 	profile = alignment_parameters['UVCureStepProfiles']
@@ -1764,13 +1756,6 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	###SequenceObj.TestResults.SaveArrayResultsToStorage(alignment_results['Assembly_SN', 'UVCureChannelPowers', 'Elapsed Time(s),Top Chan Signal(V),Bottom Chan Signal(V)', UVPowerTracking])
 	Utility.ShowProcessTextOnMainUI()
 
-
-	"""
-	if not HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition):
-		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move UV wand stages!')
-		return 0
-
-	"""
 	# if not ret or SequenceObj.Halt:
 	# 	return 0
 
@@ -1797,9 +1782,6 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# acquire image for vision
 	RightSideCamera.Snap()
 	sleep(1)
-	# save to file
-	#dir = IO.Path.Combine(TestResults.OutputDestinationConfiguration, alignment_results['Assembly_SN'])
-	#Utility.CreateDirectory(dir)
 	dir = IO.Path.Combine(dir, 'ASM_Side_Post_UV.jpg')
 	RightSideCamera.SaveToFile(dir)
 
@@ -1984,12 +1966,6 @@ def UnloadBoard(SequenceObj, alignment_parameters, alignment_results):
 	# Ask operator to unfasten the board brace
 	if not LogHelper.AskContinue('Disconnect the FAU. Click Yes when done, No to abort. Vacuum will release automatically.'):
 		return 0
-
-	# here we need to turn off the vacuum and do some other unload related sequences.
-	HardwareFactory.Instance.GetHardwareByName('VacuumControl').SetOutputValue(fauvac, False)
-
-	# wait for a second for the vacuum to release
-	sleep(.001*5000)
 
 	# Ask operator to adjust probe
 	if not LogHelper.AskContinue('Raise the probe and release board clamp. Click Yes when done, No to abort.'):

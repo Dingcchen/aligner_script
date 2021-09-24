@@ -1812,7 +1812,7 @@ def UnloadBoard(SequenceObj, alignment_parameters, alignment_results):
 
 	# turn on the cameras
 	DownCamera.Live(True)
-	SideCamera.Live(True)
+	RightSideCamera.Live(True)
 
 	# save powers
 	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
