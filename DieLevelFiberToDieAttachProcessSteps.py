@@ -75,7 +75,7 @@ def LoadLoopbackDie(SequenceObj, alignment_parameters, alignment_results):
 	dievac = alignment_parameters['TargetVaccumPortName']
 
 	# reset the positions
-	HardwareFactory.Instance.GetHardwareByName('UVWandStage').GetHardwareStateTree().ActivateState(loadposition)
+	# HardwareFactory.Instance.GetHardwareByName('UVWandStage').GetHardwareStateTree().ActivateState(loadposition)
 	Hexapod.GetHardwareStateTree().ActivateState(loadposition)
 	Nanocube.GetHardwareStateTree().ActivateState(loadposition)
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(loadposition)
@@ -181,7 +181,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	dievac = alignment_parameters['TargetVaccumPortName']
 	# reset the positions
 	HardwareFactory.Instance.GetHardwareByName('DownCameraStages').GetHardwareStateTree().ActivateState(loadposition)
-	HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
+	# HardwareFactory.Instance.GetHardwareByName('UVWandStages').GetHardwareStateTree().ActivateState(loadposition)
 	Hexapod.GetHardwareStateTree().ActivateState(loadposition)
 	Nanocube.GetHardwareStateTree().ActivateState(loadposition)
 

@@ -180,7 +180,7 @@ class SearchMaxPosition(object):
 
 
 class RollAlignment(object):
-	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um):
+	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um, fau_flip=False):
 		self.channels = channels
 		self.WG2WG_dist_mm = WG2WG_dist_mm
 		self.top_position = 0.0
@@ -189,7 +189,7 @@ class RollAlignment(object):
 		self.num_channels = 0
 		self.balanced_position = [50.0, 50.0, 50.0]
 		self.pitch_offset = []
-		self.fau_flip = True
+		self.fau_flip = fau_flip
 
 	@property
 	def Results(self):
@@ -238,6 +238,7 @@ class RollAlignment(object):
 			# calculate the roll angle
 			r = Utility.RadianToDegree(Math.Asin(h / (self.WG2WG_dist_mm*1000)))
 
+			LogHelper.Log("RollAlignment", LogEventSeverity.Alert, 'Flipped {0} wave guide distant {1}'.format(self.fau_flip, self.WG2WG_dist_mm))
 			if self.fau_flip:
 				rollangle = -r
 			else:
@@ -272,8 +273,8 @@ class RollAlignment(object):
 		return True
 	
 class TwoChannelRollAlignment(RollAlignment):
-	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um):
-		super(TwoChannelRollAlignment, self).__init__(channels, WG2WG_dist_mm, max_z_difference_um)
+	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um, fau_flip=False):
+		super(TwoChannelRollAlignment, self).__init__(channels, WG2WG_dist_mm, max_z_difference_um,fau_flip=fau_flip)
 		self.num_channels = 2
 		
 	def FindTopAndBottomPosition(self):
@@ -285,8 +286,8 @@ class TwoChannelRollAlignment(RollAlignment):
 		
 		
 class FourChannelRollAlignment(RollAlignment):
-	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um):
-		super(FourChannelRollAlignment, self).__init__(channels, WG2WG_dist_mm, max_z_difference_um)
+	def __init__(self, channels, WG2WG_dist_mm, max_z_difference_um, fau_flip=False):
+		super(FourChannelRollAlignment, self).__init__(channels, WG2WG_dist_mm, max_z_difference_um,fau_flip=fau_flip)
 		self.num_channels = 4
 		
 	def FindTopAndBottomPosition(self):
@@ -309,7 +310,8 @@ class TestResult(object):
 		self.mean_power = 0.0
 
 	def run(self, SequenceObj):
-		self.laser.Set()
+		if self.laser != None:
+			self.laser.Set()
 		self.opticalSwitch.Set()
 		if self.polarizationController:
 			(self.max_polarizations, self.max_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, coarse_scan = False)

@@ -1935,7 +1935,7 @@ def UnloadDie(SequenceObj, alignment_parameters, alignment_results):
 		return alignment_results
 
 
-def Orca_Lamp_TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
+def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 
 	fau_flip = alignment_parameters["FAUFlipped"]
 	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
