@@ -1703,6 +1703,10 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	dir = IO.Path.Combine(dir, 'ASM_Side_Pre_UV.jpg')
 	RightSideCamera.SaveToFile(dir)
 
+	# Ask operator to initialize UV controller.
+	if not LogHelper.AskContinue('Initialize UV controller and check safety shield in place. Click Yes when done, No to abort.'):
+		return 0
+
 	loadposition = alignment_parameters['LoadPresetPosition']
 	uvposition = alignment_parameters['UVPresetPosition']
 
