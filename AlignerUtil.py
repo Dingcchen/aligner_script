@@ -1,3 +1,4 @@
+import sys
 import clr
 clr.AddReference('System.Core')
 from System import IO
@@ -206,6 +207,10 @@ class Meter_nanocube(Meter):
 
 class Meter_hexapod(Meter):
 	# device = 'HexapodAnalogInput'
+	def __init__(self, channel):
+		super(Meter_hexapod, self).__init__()
+		self.channel = channel
+
 	def ReadPower(self, channel):
 		self.channel = channel
 		self.power = Hexapod.ReadAnalogInput(self.channel+4)
@@ -229,8 +234,19 @@ class Meter_powermeter(Meter):
 		return self.power
 
 meter_nanocube = Meter_nanocube(1)
-meter_hexapod = Meter_hexapod()
+meter_hexapod = Meter_hexapod(1)
 meter_powermeter = Meter_powermeter(1)
+
+def GetMeter(meterParams):
+	"""
+	if meterParams[0] == "Meter_nanocube":
+		return Meter_nanocube(meterParams[1])
+	elif meterParams[0] == "Meter_hexapod":
+		return Meter_hexapod(meterParams[1])
+	elif meterParams[0] == "Meter_powermeter":
+		return Meter_powermeter(meterParams[1])
+	"""
+	return getattr(sys.modules[__name__], meterParams[0])(meterParams[1])
 
 def ReadMonitorSignal(channel, n_measurements = 10):
 	sleep(0.2)

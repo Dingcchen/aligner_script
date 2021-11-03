@@ -1,6 +1,7 @@
 ﻿# Include all necessary assemblies from the C# side
 # DO NOT REMOVE THESE REFERECES
 import clr
+import sys
 clr.AddReference('System.Core')
 from System import IO
 from System import Action
@@ -1154,19 +1155,32 @@ def BalanceDryAlignmentNanocube(SequenceObj, alignment_parameters, alignment_res
 # Touches the die with the force sensor and moves to bond gap
 # Uses much tighter spec for roll align
 #-------------------------------------------------------------------------------
-def OrcaLampRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
+def RunRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	fau_flip = alignment_parameters["FAUFlipped"]
-	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
-	powerThresdhold = alignment_parameters["ScanMinPowerThreshold"]
-	max_z_difference_um = 0.2  # um
-	
-	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, 0, 5, "chn 1")
-	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, 0, 6, "chn 2")
+
+	RollAlignmentParameter = alignment_parameters["TwoChannelRollAlignment"]
+	WG2WG_dist_mm = RollAlignmentParameter['ChannelDisant_mm']
+	powerThresdhold = RollAlignmentParameter["ScanMinPowerThreshold"]
+	max_z_difference_um = RollAlignmentParameter["Maximum_z_um"]
+
+	TopChannelParameter = RollAlignmentParameter["TopChannel"]
+	JGRSwitch = TopChannelParameter["JGRSwitch"]
+	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], TopChannelParameter["Name"])
+	# opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, 0, 5, "chn 1")
+
+	BottomChannelParameter = RollAlignmentParameter["BottomChannel"]
+	JGRSwitch = BottomChannelParameter["JGRSwitch"]
+	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], TopChannelParameter["Name"])
+	# opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, 0, 6, "chn 2")
 
 	laserAtChn1 = None
-	meter1 = Meter_nanocube(1)
-	meter2 = Meter_nanocube(2)
+
+	meter1 = GetMeter(TopChannelParameter["Meter"])
+	# meter1 = Meter_nanocube(1)
+	meter2 = GetMeter(BottomChannelParameter["Meter"])
+	# meter2 = Meter_nanocube(1)
+
 	topAlignment = SearchMaxPosition('TX', laserAtChn1, meter1, opticalSwitchChn1, powerThresdhold)
 	bottomAlignment = SearchMaxPosition('RX', laserAtChn1, meter2, opticalSwitchChn2, powerThresdhold)
 
@@ -1196,7 +1210,9 @@ def DryBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	if LogHelper.AskContinue('Connect both channels from optical switch! Click Yes when done, No to abort.') == False:
 		return 0
 
-	testRollAlign = OrcaLampRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results)
+	LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'DryAlignment')
+
+	testRollAlign = RunRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results)
 
 	if(testRollAlign is False):
 		return 0
@@ -1264,7 +1280,7 @@ def WetBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 	"""
 	"""
 
-	roll_align_result = OrcaLampRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results)
+	roll_align_result = RunRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results)
 	# roll_align_result = OptimizeRollAngle(SequenceObj, alignment_parameters['FirstLight_WG2WG_dist_mm'], use_polarization_controller, alignment_parameters["ScanMinPowerThreshold"], max_z_difference_um = 0.2, UseOpticalSwitch = UseOpticalSwitch, fau_flip=fau_flip)
 
 	# Move back to original coordinate.
@@ -1388,7 +1404,7 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 # TestResultStep
 # Optimize polarizations on both channels sequentially
 #-------------------------------------------------------------------------------
-def TestResultStep(SequenceObj, alignment_parameters, alignment_results):
+def Orca_Lamp_TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 
 	"""
 	if not alignment_parameters['use_polarization_controller']:
@@ -1941,6 +1957,7 @@ def UnloadDie(SequenceObj, alignment_parameters, alignment_results):
 
 def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 
+	title = GetAndCheckUserInput('Test result title ', 'Please test result title')
 	fau_flip = alignment_parameters["FAUFlipped"]
 	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
 	powerThresdhold = alignment_parameters["ScanMinPowerThreshold"]
@@ -1948,7 +1965,6 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 	max_z_difference_um = 0.2  # um
 
 
-	title = GetAndCheckUserInput('Test result title ', 'Please test result title')
 	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, 0, 5, "chn 1")
 	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, 0, 6, "chn 2")
 
@@ -1968,7 +1984,7 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 
 	alignment_results[title] = testResults.Results
 
-	filename = "..\\Data\\" + assembly_name
+	filename = "..\\Data\\" + assembly_name + "\\test_result.csv"
 	csvfile = open(filename, 'wb')
 	csvfile.write("Loopback test result.\r\n")
 	writeCSV(csvfile, alignment_results)

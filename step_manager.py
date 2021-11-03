@@ -6,6 +6,7 @@ import json
 import re
 from collections import *
 from AlignerUtil import get_positions
+import shutil
 
 
 def step_manager(SequenceObj, step):
@@ -48,6 +49,9 @@ def step_manager(SequenceObj, step):
 	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
 
 	if save_pretty_json(alignment_results, results_filename):
+		assembly_name = alignment_parameters['Assembly_SN']
+		tfile = "..\\Data\\" + assembly_name + "\\test_result.json"
+		shutil.copyfile(results_filename, tfile)
 		return 1
 	else:
 		return 0

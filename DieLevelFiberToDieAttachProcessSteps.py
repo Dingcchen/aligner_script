@@ -218,6 +218,8 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 		Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
 	if Assembly_SN != None:
 		alignment_results['Assembly_SN'] = Assembly_SN
+		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN):
+			LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Assembly_SN in aligment_parameters!')
 	else:
 		return 0
 
