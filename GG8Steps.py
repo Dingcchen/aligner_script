@@ -1045,6 +1045,17 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 #-------------------------------------------------------------------------------
 def LaserAndFauPower(SequenceObj, alignment_parameters, alignment_results):
 
+	RollAlignmentParameter = alignment_parameters["TwoChannelRollAlignment"]
+
+	TopChannelParameter = RollAlignmentParameter["TopChannel"]
+	JGRSwitch = TopChannelParameter["JGRSwitch"]
+	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], TopChannelParameter["Name"])
+
+	BottomChannelParameter = RollAlignmentParameter["BottomChannel"]
+	JGRSwitch = BottomChannelParameter["JGRSwitch"]
+	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], BottomChannelParameter["Name"])
+
+	opticalSwitchChn1.Set()
 	ret = UserFormInputDialog.ShowDialog('Top chan laser launch power', 'Please enter laser top channel launch power (dBm):', True)
 	if ret == True:
 		try:
@@ -1055,6 +1066,7 @@ def LaserAndFauPower(SequenceObj, alignment_parameters, alignment_results):
 	else:
 		return 0
 
+	opticalSwitchChn2.Set()
 	ret = UserFormInputDialog.ShowDialog('Bottom chan laser launch power', 'Please enter laser bottom channel launch power (dBm):', True)
 	if ret == True:
 		try:
@@ -1065,6 +1077,7 @@ def LaserAndFauPower(SequenceObj, alignment_parameters, alignment_results):
 	else:
 		return 0
 
+	opticalSwitchChn1.Set()
 	ret = UserFormInputDialog.ShowDialog('Top chan FAU output power', 'Please enter FAU top channel output power (dBm):', True)
 	if ret == True:
 		try:
@@ -1075,6 +1088,7 @@ def LaserAndFauPower(SequenceObj, alignment_parameters, alignment_results):
 	else:
 		return 0
 
+	opticalSwitchChn2.Set()
 	ret = UserFormInputDialog.ShowDialog('Bottom chan FAU output power', 'Please enter FAU bottom channel output power (dBm):', True)
 	if ret == True:
 		try:
