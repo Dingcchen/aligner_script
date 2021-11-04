@@ -48,7 +48,7 @@ class OpticalSwitch(object):
 		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, 'switch SGR X8 module 2 to channel {0}.'.format(self.mod2chn))
 		LogHelper.Log('SwitchLaserAndLoopbackChannel', LogEventSeverity.Alert, self.comment)
 		sleep(1)
-		
+
 class PolarizationController(object):
 	def __init__(self, meter):
 		self.meter = meter
@@ -118,8 +118,8 @@ class SearchMaxPosition(object):
 		output['peak_position'] = map(lambda x: round(x,4), list( self.peak_position ))
 		output["peak_power"] = self.peak_power
 		if len(self.balanced_power) > 0:
-			output["balanced_power"] = self.balanced_power
-			output["Off_peak_loss"] = -10 * math.log10(self.balanced_power[0]/self.peak_power[0])
+			output["balanced_power"] = [self.balanced_power, self.meter.unit]
+			output["Off_peak_loss"] = [-10 * math.log10(self.balanced_power[0]/self.peak_power[0]), "dB"]
 		if len(self.scramble_power) > 0:
 			output["scramble_power"] = self.scramble_power
 		if len(self.polarization_state) > 0:
@@ -308,11 +308,13 @@ class TestResult(object):
 		self.min_power = 0.0
 		self.scramble_power = 0.0
 		self.mean_power = 0.0
+		self.unit = ""
 
 	def run(self, SequenceObj):
 		if self.laser != None:
 			self.laser.Set()
 		self.opticalSwitch.Set()
+		self.unit = self.meter.unit
 		if self.polarizationController:
 			(self.max_polarizations, self.max_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, coarse_scan = False)
 			(self.min_polarizations, self.min_power) = FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1, mode='min', coarse_scan = False)
@@ -323,7 +325,7 @@ class TestResult(object):
 			LogHelper.Log("TestCase", LogEventSeverity.Alert, 'max power {0:.3f} min power {1:.3f}.'.format(self.max_power, self.min_power))
 		else:
 			self.mean_power = self.meter.ReadPower(self.meter.channel)
-			LogHelper.Log("TestCase", LogEventSeverity.Alert, 'power {0:.3f}.'.format(self.mean_power))
+			# LogHelper.Log("TestCase", LogEventSeverity.Alert, 'power {0:.3f}.'.format(self.mean_power))
 
 
 	@property
@@ -336,7 +338,7 @@ class TestResult(object):
 			output['min_polarizations'] = map(lambda x: '%.3f'%x, self.min_polarizations )
 			output['scramble_power'] = self.scramble_power
 		else:
-			output['power'] = self.mean_power
+			output['power'] = [self.mean_power, self.unit]
 		return output
 
 class TestResults(object):

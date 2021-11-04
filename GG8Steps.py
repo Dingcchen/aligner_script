@@ -30,6 +30,7 @@ from datetime import datetime
 from step_manager  import *
 from Alignment import *
 import random
+import json
 
 
 # UseOpticalSwitch = True
@@ -85,7 +86,7 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	Utility.ShowProcessTextOnMainUI() # clear message
 
 	SequenceObj.TestResults.AddTestResult('Start_Time', DateTime.Now)
-	alignment_results['Start_Time'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+	alignment_results['Start_Time'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 	SequenceObj.TestResults.AddTestResult('Operator', UserManager.CurrentUser.Name)
 	alignment_results['Operator'] = UserManager.CurrentUser.Name
 	SequenceObj.TestResults.AddTestResult('Software_Version', Utility.GetApplicationVersion())
@@ -1040,6 +1041,72 @@ def FirstLightSearchDualChannels(SequenceObj, alignment_parameters, alignment_re
 
 
 #-------------------------------------------------------------------------------
+# Measure laser and FAU output power
+#-------------------------------------------------------------------------------
+def LaserAndFauPower(SequenceObj, alignment_parameters, alignment_results):
+
+	ret = UserFormInputDialog.ShowDialog('Top chan laser launch power', 'Please enter laser top channel launch power (dBm):', True)
+	if ret == True:
+		try:
+			lp1 = float(UserFormInputDialog.ReturnValue)
+		except:
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Invalid entry. Please enter a valid number.')
+			return 0
+	else:
+		return 0
+
+	ret = UserFormInputDialog.ShowDialog('Bottom chan laser launch power', 'Please enter laser bottom channel launch power (dBm):', True)
+	if ret == True:
+		try:
+			lp2 = float(UserFormInputDialog.ReturnValue)
+		except:
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Invalid entry. Please enter a valid number.')
+			return 0
+	else:
+		return 0
+
+	ret = UserFormInputDialog.ShowDialog('Top chan FAU output power', 'Please enter FAU top channel output power (dBm):', True)
+	if ret == True:
+		try:
+			fau_p1 = float(UserFormInputDialog.ReturnValue)
+		except:
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Invalid entry. Please enter a valid number.')
+			return 0
+	else:
+		return 0
+
+	ret = UserFormInputDialog.ShowDialog('Bottom chan FAU output power', 'Please enter FAU bottom channel output power (dBm):', True)
+	if ret == True:
+		try:
+			fau_p2 = float(UserFormInputDialog.ReturnValue)
+		except:
+			LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Invalid entry. Please enter a valid number.')
+			return 0
+	else:
+		return 0
+
+
+	RollAlignmentParameter = alignment_parameters["TwoChannelRollAlignment"]
+
+	TopChannelParameter = RollAlignmentParameter["TopChannel"]
+
+	BottomChannelParameter = RollAlignmentParameter["BottomChannel"]
+
+	# LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Alert, 'DryAlignment')
+
+	result = OrderedDict()
+	result['channel'] = (TopChannelParameter["Name"], BottomChannelParameter["Name"] )
+	result['Laser power'] = (lp1, lp2,"dBm")
+	result['FAU output power'] = (fau_p1, fau_p2, "dBm")
+	alignment_results['Laser and FAU power'] = result
+
+	if SequenceObj.Halt:
+		return 0
+	else:
+		return alignment_results
+	
+	
+#-------------------------------------------------------------------------------
 # PitchPivotSearch
 # Find the pitch pivot point
 #-------------------------------------------------------------------------------
@@ -1171,7 +1238,7 @@ def RunRollBalanceAlign(SequenceObj, alignment_parameters, alignment_results):
 
 	BottomChannelParameter = RollAlignmentParameter["BottomChannel"]
 	JGRSwitch = BottomChannelParameter["JGRSwitch"]
-	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], TopChannelParameter["Name"])
+	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], BottomChannelParameter["Name"])
 	# opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, 0, 6, "chn 2")
 
 	laserAtChn1 = None
@@ -1399,41 +1466,6 @@ def ApplyEpoxy(SequenceObj, alignment_parameters, alignment_results):
 		return 0
 	else:
 		return alignment_results
-
-#-------------------------------------------------------------------------------
-# TestResultStep
-# Optimize polarizations on both channels sequentially
-#-------------------------------------------------------------------------------
-def Orca_Lamp_TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
-
-	"""
-	if not alignment_parameters['use_polarization_controller']:
-		return 0
-	"""
-
-
-	if(alignment_parameters['UseOpticalSwitch']):
-		laserSwitch = 'OpticalSwitch2X2'
-	else:
-		laserSwitch = None
-
-	filename = "..\\Data\\MCF_loopback_test_result.csv"
-	csvfile = open(filename, 'wb')
-	csvfile.write("Loopback test result.\r\n")
-	testcases_result = MCF_RunAllScenario(SequenceObj, laserSwitch, csvfile=csvfile)
-	alignment_results['Test Case Results']  = testcases_result
-	writeCSV(csvfile, alignment_results)
-
-	csvfile.close()
-
-	# if not FastOptimizePolarizationMPC201(SequenceObj,feedback_channel=1):
-	#	return 0
-
-	if LogHelper.AskContinue('Channel 1 plarization is peaked!') == False:
-		return 0
-
-	return alignment_results
-
 
 #-------------------------------------------------------------------------------
 # LoopbackAlignPowermeter
@@ -1964,16 +1996,22 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 	assembly_name = alignment_parameters['Assembly_SN']
 	max_z_difference_um = 0.2  # um
 
+	RollAlignmentParameter = alignment_parameters["TwoChannelRollAlignment"]
+	TopChannel = RollAlignmentParameter["TopChannel"]
 
-	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, 0, 5, "chn 1")
-	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, 0, 6, "chn 2")
+	JGRSwitch = TopChannel["JGRSwitch"]
+	opticalSwitchChn1 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], TopChannel["Name"])
+
+	BottomChannel = RollAlignmentParameter["BottomChannel"]
+	JGRSwitch = BottomChannel["JGRSwitch"]
+	opticalSwitchChn2 = OpticalSwitch(SGRX8Switch, JGRSwitch[0], JGRSwitch[1], BottomChannel["Name"])
 
 	laserAtChn1 = None
 	meter1 = Meter_nanocube(1)
 	meter2 = Meter_nanocube(2)
 
-	TX_testResult = TestResult("Tx rev Iff ", laserAtChn1, meter1, opticalSwitchChn1)
-	RX_testResult = TestResult("RX Iff ", laserAtChn1, meter2, opticalSwitchChn2)
+	TX_testResult = TestResult(TopChannel["Name"], laserAtChn1, meter1, opticalSwitchChn1)
+	RX_testResult = TestResult(BottomChannel["Name"], laserAtChn1, meter2, opticalSwitchChn2)
 
 	testcases =  (
             TX_testResult,

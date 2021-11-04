@@ -84,7 +84,7 @@ def Initialize(SequenceObj, alignment_parameters, alignment_results):
 	Utility.ShowProcessTextOnMainUI() # clear message
 
 	SequenceObj.TestResults.AddTestResult('Start_Time', DateTime.Now)
-	alignment_results['Start_Time'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+	alignment_results['Start_Time'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 	SequenceObj.TestResults.AddTestResult('Operator', UserManager.CurrentUser.Name)
 	alignment_results['Operator'] = UserManager.CurrentUser.Name
 	SequenceObj.TestResults.AddTestResult('Software_Version', Utility.GetApplicationVersion())

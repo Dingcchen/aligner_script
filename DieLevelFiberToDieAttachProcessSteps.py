@@ -239,7 +239,7 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 			alignment_parameters['EpoxyTubeNumber'] = EpoxyTubeNumber
 			if not update_alignment_parameter(SequenceObj, 'EpoxyTubeNumber', EpoxyTubeNumber):
 				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update EpoxyTubeNumber in aligment_parameters!')
-		alignment_results['Epoxy_Tube_Number'] = UserFormInputDialog.ReturnValue
+		alignment_results['Epoxy_Tube_Number'] =  EpoxyTubeNumber
 	else:
 		return 0
 	# save back to persistent data
@@ -257,9 +257,9 @@ def LoadPDDie(SequenceObj, alignment_parameters, alignment_results):
 	if not EpoxyExpirationDate == False:
 		if not EpoxyExpirationDate == alignment_parameters['EpoxyExpirationDate']:
 			alignment_parameters['EpoxyExpirationDate'] = EpoxyExpirationDate
-			if not update_alignment_parameter(SequenceObj, 'EpoxyExpirationDate', EpoxyTubeNumber):
+			if not update_alignment_parameter(SequenceObj, 'EpoxyExpirationDate', EpoxyExpirationDate):
 				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update EpoxyExpirationDate in aligment_parameters!')
-		alignment_results['Epoxy_Expiration_Date'] = UserFormInputDialog.ReturnValue
+		alignment_results['Epoxy_Expiration_Date'] = EpoxyExpirationDate
 	else:
 		return 0
 	# save back to persistent data

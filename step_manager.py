@@ -6,6 +6,7 @@ import json
 import re
 from collections import *
 from AlignerUtil import get_positions
+from AlignerUtil import GetAndCheckUserInput
 import shutil
 
 
@@ -21,10 +22,17 @@ def step_manager(SequenceObj, step):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at {}'.format(parameters_filename))
 		return 0
 
-	# load the alignment results file if we're not starting a new sequence, otherwise create a new dictionary
-	results_filename = os.path.join(SequenceObj.RootPath, 'Data', 'temp_alignment_results.json') # store the temporary results file here
-
+	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if SequenceObj.StepName == 'Initialize':
+		if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
+			Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
+		if Assembly_SN != None:
+			if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN):
+				LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Assembly_SN in aligment_parameters!')
+		else:
+		    return 0
+
+		results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 		if os.path.exists(results_filename):
 			if LogHelper.AskContinue('Load clean alignment result') == True:
 				alignment_results = OrderedDict()
@@ -34,6 +42,7 @@ def step_manager(SequenceObj, step):
 		else:
 			alignment_results = OrderedDict()
 	else:
+		results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f, object_pairs_hook=OrderedDict)
 
@@ -48,9 +57,9 @@ def step_manager(SequenceObj, step):
 
 	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
 
+	# results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 	if save_pretty_json(alignment_results, results_filename):
-		assembly_name = alignment_parameters['Assembly_SN']
-		tfile = "..\\Data\\" + assembly_name + "\\test_result.json"
+		tfile = "..\\Data\\" + Assembly_SN + "\\test_result.json"
 		shutil.copyfile(results_filename, tfile)
 		return 1
 	else:

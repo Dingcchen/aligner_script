@@ -162,6 +162,7 @@ def SetScanChannel(scan, channel, UseOpticalSwitch = False, LaserSwitch='Optical
 class Meter(object):
 	def __init__(self):
 		self.power = 0.0
+		self.unit = ""
 		self.dev = 0.0
 		self.min = 0.0
 		self.max = 0.0
@@ -199,6 +200,7 @@ class Meter_nanocube(Meter):
 	def __init__(self, channel):
 		super(Meter_nanocube, self).__init__()
 		self.channel = channel
+		self.unit = "uA"
 
 	def ReadPower(self, channel):
 		self.channel = channel
@@ -210,6 +212,7 @@ class Meter_hexapod(Meter):
 	def __init__(self, channel):
 		super(Meter_hexapod, self).__init__()
 		self.channel = channel
+		self.unit = "uA"
 
 	def ReadPower(self, channel):
 		self.channel = channel
@@ -221,6 +224,7 @@ class Meter_powermeter(Meter):
 	def __init__(self, channel):
 		super(Meter_powermeter, self).__init__()
 		self.channel = channel
+		self.unit = "dBm"
 
 	def ReadPower(self, channel):
 		self.channel = channel
