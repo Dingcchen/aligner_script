@@ -32,6 +32,10 @@ def step_manager(SequenceObj, step):
 		else:
 		    return 0
 
+		results_folder = "..\\Data\\" + Assembly_SN
+		if not os.path.exists(results_folder):
+			os.mkdir(results_folder)
+
 		results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 		if os.path.exists(results_filename):
 			if LogHelper.AskContinue('Load clean alignment result') == True:
