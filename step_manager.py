@@ -65,6 +65,7 @@ def step_manager(SequenceObj, step):
 
 	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
 
+	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 	if save_pretty_json(alignment_results, results_filename):
 		tfile = "..\\Data\\" + Assembly_SN + "\\test_result.json"

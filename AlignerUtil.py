@@ -150,9 +150,11 @@ def update_alignment_parameter(SequenceObj, key, value):
 def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
-		Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
-	if Assembly_SN != None:
-		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN):
+		Assembly_SN_new = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
+		alignment_parameters['Assembly_SN'] = Assembly_SN_new
+	if Assembly_SN != Assembly_SN_new:
+		Assembly_SN = Assembly_SN_new
+		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN_new):
 			LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Assembly_SN in aligment_parameters!')
 	else:
 	    return None
@@ -162,6 +164,7 @@ def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 		os.mkdir(results_folder)
 
 	results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
+	LogHelper.Log("GetAssemblyParameterAndResults", LogEventSeverity.Alert, 'retrieve result to {0}'.format(results_filename))
 	if os.path.exists(results_filename):
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f, object_pairs_hook=OrderedDict)
