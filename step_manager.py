@@ -7,6 +7,7 @@ import re
 from collections import *
 from AlignerUtil import get_positions
 from AlignerUtil import GetAndCheckUserInput
+from AlignerUtil import GetAssemblyParameterAndResults
 import shutil
 
 
@@ -24,6 +25,8 @@ def step_manager(SequenceObj, step):
 
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if SequenceObj.StepName == 'Initialize':
+		alignment_parameters, alignment_results = GetAssemblyParameterAndResults(alignment_parameters)
+		"""
 		if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
 			Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
 		if Assembly_SN != None:
@@ -45,6 +48,7 @@ def step_manager(SequenceObj, step):
 					alignment_results = json.load(f, object_pairs_hook=OrderedDict)
 		else:
 			alignment_results = OrderedDict()
+		"""
 	else:
 		results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 		with open(results_filename, 'r') as f:

@@ -2003,6 +2003,11 @@ def UnloadDie(SequenceObj, alignment_parameters, alignment_results):
 
 def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 
+	alignment_parameters, alignment_results = GetAssemblyParameterAndResults(alignment_parameters)
+
+	if alignment_parameters == None:
+		return 0
+
 	title = GetAndCheckUserInput('Test result title ', 'Please test result title')
 	fau_flip = alignment_parameters["FAUFlipped"]
 	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
