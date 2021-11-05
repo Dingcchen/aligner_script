@@ -29,6 +29,7 @@ from collections import *
 # import statistics
 import os.path
 import re
+import json
 
 ChannelsAnalogSignals = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals')
 Nanocube = HardwareFactory.Instance.GetHardwareByName('Nanocube')
@@ -93,7 +94,60 @@ def LoopbackCycleRandom(SequenceObj, csvwriter):
 		if SequenceObj.Halt:
 				return 0
 
-def GetAssemblyParameterAndResults(alignment_parameters):
+def save_pretty_json(variable, filename):
+	#combines arrays into one line to make json files more human-readable and saves the variable to the filename
+
+	#terrible fix for json floating point output not rounding correctly
+	original_float_repr = json.encoder.FLOAT_REPR
+	json.encoder.FLOAT_REPR = lambda o: format(o,'.4f')
+
+	# create json string
+	output_string = json.dumps(variable, indent=2 , sort_keys=False)
+
+	#put the FLOAT_REPR back the way it was
+	json.encoder.FLOAT_REPR = original_float_repr
+
+	# find the arrays by splitting by square brackets
+	split_output_string = re.split(r'\[|\]',output_string)
+	output_string = ''
+	# reassemble string, but removing whitepace and newline chars inside square brackets
+	for i in range(len(split_output_string)):
+		# odd numbered elements of the array will be between square brackets because that is how JSON files work
+		if i % 2 == 0:
+			output_string += split_output_string[i]
+		else:
+			output_string += '[' + re.sub(r'[\s\n]','',split_output_string[i]) + ']'
+
+	with open(filename, 'w+') as f:
+		f.write(output_string)
+
+	f.close()
+	# LogHelper.Log('save_pretty_json', LogEventSeverity.Warning, 'Save alignement_results to ' + output_string )
+	return True
+
+
+def update_alignment_parameter(SequenceObj, key, value):
+	# load the alignment parameters file
+	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
+	if os.path.exists(parameters_filename):
+		with open(parameters_filename, 'r') as f:
+			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
+	else:
+		Utility.LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at %s'.format(parameters_filename))
+		return 0
+	
+	alignment_parameters[key] = value
+
+	# save the alignment results
+	# with open(parameters_filename, 'w') as outfile:
+	# 	json.dump(output, alignment_results, indent=2 , sort_keys=True)
+
+	if save_pretty_json(alignment_parameters, parameters_filename):
+		return True
+	else:
+		return False
+
+def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
 		Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')

@@ -25,7 +25,7 @@ def step_manager(SequenceObj, step):
 
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if SequenceObj.StepName == 'Initialize':
-		alignment_parameters, alignment_results = GetAssemblyParameterAndResults(alignment_parameters)
+		alignment_parameters, alignment_results = GetAssemblyParameterAndResults(SequenceObj, alignment_parameters)
 		"""
 		if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
 			Assembly_SN = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
@@ -65,7 +65,7 @@ def step_manager(SequenceObj, step):
 
 	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
 
-	# results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
+	results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
 	if save_pretty_json(alignment_results, results_filename):
 		tfile = "..\\Data\\" + Assembly_SN + "\\test_result.json"
 		shutil.copyfile(results_filename, tfile)

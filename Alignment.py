@@ -118,7 +118,9 @@ class SearchMaxPosition(object):
 		output['peak_position'] = map(lambda x: round(x,4), list( self.peak_position ))
 		output["peak_power"] = self.peak_power
 		if len(self.balanced_power) > 0:
-			output["balanced_power"] = [self.balanced_power, self.meter.unit]
+			# balanced_power = self.balanced_power
+			# balanced_power.append(self.meter.unit)
+			output["balanced_power"] = self.balanced_power
 			output["Off_peak_loss"] = [-10 * math.log10(self.balanced_power[0]/self.peak_power[0]), "dB"]
 		if len(self.scramble_power) > 0:
 			output["scramble_power"] = self.scramble_power
