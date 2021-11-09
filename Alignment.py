@@ -327,7 +327,7 @@ class TestResult(object):
 			LogHelper.Log("TestCase", LogEventSeverity.Alert, 'max power {0:.3f} min power {1:.3f}.'.format(self.max_power, self.min_power))
 		else:
 			self.mean_power = self.meter.ReadPower(self.meter.channel)
-			# LogHelper.Log("TestCase", LogEventSeverity.Alert, 'power {0:.3f}.'.format(self.mean_power))
+			LogHelper.Log("TestCase", LogEventSeverity.Alert, 'power {0:.5f} {1}.'.format(self.mean_power, self.meter.unit))
 
 
 	@property
