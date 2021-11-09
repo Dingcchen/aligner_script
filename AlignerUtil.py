@@ -150,14 +150,10 @@ def update_alignment_parameter(SequenceObj, key, value):
 def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	if LogHelper.AskContinue('Correct assembly ID?\n' + str(Assembly_SN) + '\nClick Yes when done, No to update value.') == False:
-		Assembly_SN_new = GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
-		alignment_parameters['Assembly_SN'] = Assembly_SN_new
-	if Assembly_SN != Assembly_SN_new:
-		Assembly_SN = Assembly_SN_new
-		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN_new):
+		Assembly_SN= GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
+		alignment_parameters['Assembly_SN'] = Assembly_SN
+		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN):
 			LogHelper.Log(SequenceObj.StepName, LogEventSeverity.Warning, 'Failed to update Assembly_SN in aligment_parameters!')
-	else:
-	    return None
 
 	results_folder = "..\\Data\\" + Assembly_SN
 	if not os.path.exists(results_folder):
