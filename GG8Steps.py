@@ -1804,31 +1804,7 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	# stop timer when UV done
 	stopwatch.Stop()
 
-	# save powers
-	toppow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 6)
-	bottompow = round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 6)
-
-	pm = HardwareFactory.Instance.GetHardwareByName('Powermeter')
-	if pm is not None and pm.InitializeState == HardwareInitializeState.Initialized:
-		power = pm. ReadPowers()
-		toppow = power.Item2[0]
-		bottompow = power.Item2[1]
-
-	# save process values
-	alignment_results['Post_UV_Cure_Power_Top_Outer_Chan'] = toppow
-	alignment_results['Post_UV_Cure_Power_Bottom_Outer_Chan'] = bottompow
-
-	"""
-	# retrieve wet align power
-	# bottompowinput = alignment_results['Wet_Align_Balanced_Power_Top_Chan']
-	# toppowinput = alignment_results['Wet_Align_Balanced_Power_Bottom_Chan']
-	bottompowinput = alignment_results['Wet_Align_Results']['bottom_chan_peak_power'][0]
-	toppowinput = alignment_results['Wet_Align_Results']['top_chan_peak_power'][0]
-
-	# save process values
-	alignment_results['Post_UV_Cure_Power_Top_Chan_Loss'] = round(toppowinput - toppow, 6)
-	alignment_results['Post_UV_Cure_Power_Bottom_Chan_Loss'] = round(bottompowinput - bottompow, 6)
-	"""
+	alignment_results = ReadTopAndBottomChannelPowers(SequenceObj, alignment_parameters, alignment_results, title="Post-UV Cure")
 
 	# save the power tracking to a file
 	# save uv cure power tracking
@@ -1843,9 +1819,10 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Failed to move down camera stages!')
 		return 0
 
+	"""
 	# turn on the cameras
-	DownCamera.Live(False)
-	RightSideCamera.Live(False)
+	# DownCamera.Live(False)
+	# RightSideCamera.Live(False)
 
 	sleep(1)
 
@@ -1858,6 +1835,8 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	dir = IO.Path.Combine(dir, 'ASM_Top_Post_UV.jpg')
 	DownCamera.SaveToFile(dir)
 
+	sleep(1)
+
 	# acquire image for vision
 	RightSideCamera.Snap()
 	sleep(1)
@@ -1865,8 +1844,9 @@ def UVCure(SequenceObj, alignment_parameters, alignment_results):
 	RightSideCamera.SaveToFile(dir)
 
 	# turn on the cameras
-	DownCamera.Live(True)
-	RightSideCamera.Live(True)
+	# DownCamera.Live(True)
+	# RightSideCamera.Live(True)
+	"""
 
 	if SequenceObj.Halt:
 		return 0
@@ -2001,18 +1981,13 @@ def UnloadDie(SequenceObj, alignment_parameters, alignment_results):
 		return alignment_results
 
 
-def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
+def ReadTopAndBottomChannelPowers(SequenceObj, alignment_parameters, alignment_results, title=None):
+	if title is None:
+		return alignment_results
 
-	alignment_parameters, alignment_results = GetAssemblyParameterAndResults(SequenceObj, alignment_parameters)
-
-	if alignment_parameters == None:
-		return 0
-
-	title = GetAndCheckUserInput('Test result title ', 'Please test result title')
 	fau_flip = alignment_parameters["FAUFlipped"]
 	WG2WG_dist_mm = alignment_parameters['FirstLight_WG2WG_dist_mm']
 	powerThresdhold = alignment_parameters["ScanMinPowerThreshold"]
-	assembly_name = alignment_parameters['Assembly_SN']
 	max_z_difference_um = 0.2  # um
 
 	RollAlignmentParameter = alignment_parameters["TwoChannelRollAlignment"]
@@ -2038,8 +2013,22 @@ def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
 		)
 	testResults = TestResults(testcases)
 	testResults.run(SequenceObj)
-
 	alignment_results[title] = testResults.Results
+	return alignment_results
+
+def TestResultsStep(SequenceObj, alignment_parameters, alignment_results):
+
+	# To confirm and get assembky parameters and result.
+	alignment_parameters, alignment_results = GetAssemblyParameterAndResults(SequenceObj, alignment_parameters)
+
+	if alignment_parameters == None:
+		return 0
+
+	assembly_name = alignment_parameters['Assembly_SN']
+
+	title = GetAndCheckUserInput('Test result title ', 'Please test result title')
+
+	alignment_results = ReadTopAndBottomChannelPowers(SequenceObj, alignment_parameters, alignment_results, title=title)
 
 	filename = "..\\Data\\" + assembly_name + "\\test_result.csv"
 	csvfile = open(filename, 'wb')
