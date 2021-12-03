@@ -5,16 +5,20 @@ import os.path
 import json
 import re
 from collections import *
-from AlignerUtil import get_positions
 from AlignerUtil import GetAndCheckUserInput
 from AlignerUtil import GetAssemblyParameterAndResults
 import shutil
+from System import DateTime
+from datetime import datetime
 
+from HAL import Motion
+from HAL import HardwareFactory
 
-def step_manager(SequenceObj, step):
+def step_manager(SequenceObj, alignStep):
 	# This method loads alignment_parameters and alignment_results files
 
 	# load the alignment parameters file
+	alignment_results = OrderedDict()
 	parameters_filename = os.path.join(SequenceObj.RootPath, 'Sequences', SequenceObj.ProcessSequenceName + '.cfg')
 	if os.path.exists(parameters_filename):
 		with open(parameters_filename, 'r') as f:
@@ -34,13 +38,14 @@ def step_manager(SequenceObj, step):
 	filename = os.path.basename(SequenceObj.ScriptFilePath) # just get the filename
 	filename = filename.split('.')[0] # get rid of the extension
 
-	alignment_results = step(SequenceObj, alignment_parameters, alignment_results)
+	LogHelper.Log('step_manager', LogEventSeverity.Alert, 'run')
+	procedure = alignStep(SequenceObj, alignment_parameters, alignment_results)
+	procedure.run()
+	alignment_results[SequenceObj.StepName] = procedure.results
 
 	# or (alignment_results is False):
 	if (alignment_results == 0) :
 		return 0
-
-	alignment_results[SequenceObj.StepMethod + "_position"] = get_positions(SequenceObj)
 
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
 	results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
@@ -103,6 +108,154 @@ def save_pretty_json(variable, filename):
 	# LogHelper.Log('save_pretty_json', LogEventSeverity.Warning, 'Save alignement_results to ' + output_string )
 	return True
 
+
+
+class StepBase(object):
+	def __init__(self, SequenceObj, parameters, results):
+		self.SequenceObj = SequenceObj
+		self.parameters = parameters
+		self.results = OrderedDict()
+		self.DownCamera = HardwareFactory.Instance.GetHardwareByName('DownCamera')
+		self.LeftSideCamera = HardwareFactory.Instance.GetHardwareByName('LeftSideCamera')
+		self.RightSideCamera = HardwareFactory.Instance.GetHardwareByName('RightSideCamera')
+		self.IOController = HardwareFactory.Instance.GetHardwareByName('IOControl')
+		self.SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
+		self.VacuumControl = HardwareFactory.Instance.GetHardwareByName('VacuumControl')
+		self.meter = None
+		self.FAU_xyz_stage = HardwareFactory.Instance.GetHardwareByName('Gantry')
+		self.MachineVision = HardwareFactory.Instance.GetHardwareByName('MachineVision')
+		self.title = self.SequenceObj.StepName
+
+	def run(self):
+		#Show user what's going on.
+		msg = "Step : " +  type(self).__name__ + "\n" + self.__doc__
+		Utility.ShowProcessTextOnMainUI(msg)    
+		self.runStep()
+
+	def runStep(self):
+		pass
+
+class StepInit(StepBase):
+	"""Setup default."""
+	def __init__(self, SequenceObj, parameters, results):
+		LogHelper.Log('InitStep', LogEventSeverity.Alert, 'run')
+		super(StepInit,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		self.SequenceObj.TestResults.AddTestResult('Start_Time', DateTime.Now)
+		self.results['Start_Time'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+		self.SequenceObj.TestResults.AddTestResult('Operator', UserManager.CurrentUser.Name)
+		self.results['Operator'] = UserManager.CurrentUser.Name
+		self.SequenceObj.TestResults.AddTestResult('Software_Version', Utility.GetApplicationVersion())
+		self.results['Software_Version'] = Utility.GetApplicationVersion()
+		self.IOController.GetHardwareStateTree().ActivateState('Default')
+
+		current_position = list(self.FAU_xyz_stage.GetAxesPositions())
+		LogHelper.Log('Initialize', LogEventSeverity.Alert, 'current_position {0:.3f} {1:.3f} {2:.3f}.'.format(current_position[0], current_position[1], current_position[2]))
+
+class StepLaserAndFauPower(StepBase):
+	"""Laser power output at FAU"""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepLaserAndFauPower,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepLoadComponent(StepBase):
+	"""Load Compamnets."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepLoadComponent,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepCheckProbe(StepBase):
+	"""Setup probe."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepCheckProbe,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepSetFirstLight(StepBase):
+	"""Move FAU to first light posuition."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepSetFirstLight,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepSnapDieText(StepBase):
+	"""Take snapshot of die text image."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepSnapDieText,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepFindFirstLight(StepBase):
+	"""Find first light."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepFindFirstLight,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepDryBalanceAlign(StepBase):
+	"""Dry balance alignment."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepDryBalanceAlign,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepApplyEpoxy(StepBase):
+	"""Apply epoxy."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepApplyEpoxy,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepWetBalanceAlign(StepBase):
+	"""Wet balance alignment."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepWetBalanceAlign,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepUVCure(StepBase):
+	"""UV cure."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepUVCure,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepTestResults(StepBase):
+	"""Measure result."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepTestResults,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepUnloadBoard(StepBase):
+	"""Unload compamnet."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepUnloadBoard,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
+
+class StepFinalize(StepBase):
+	"""Save data."""
+	def __init__(self, SequenceObj, parameters, results):
+		super(StepFinalize,self).__init__(SequenceObj, parameters, results)
+
+	def runStep(self):
+		pass
 
 
 
