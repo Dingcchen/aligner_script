@@ -97,5 +97,23 @@ class MeterDevice(DeviceBase):
 		return (self.power, self.median, self.dev, self.min, self.max)
 
 
+class OpticalSwitchDevice(DeviceBase):
+	def __init__(self, deviceName):
+		super(OpticalSwitchDevice, self).__init__(deviceName)
+		self.ModuleAChannel = 0
+		self.ModuleBChannel = 0
+		self.Comment = ""
+		self.Title = "Optical switch"
+
+	def Log(self, msg):
+		LogHelper.Log(self.Title, LogEventSeverity.Alert, 'switch SGR X8 module 1 to channel {0}.'.format(self.ModuleAChannel))
+
+	def Set(self):
+		self.hardware.SetClosePoints(1, self.ModuleAChannel)
+		self.Log('switch SGR X8 module 1 to channel {0}.'.format(self.ModuleAChannel))
+		self.hardware.SetClosePoints(2, self.ModuleBChannel)
+		self.Log('switch SGR X8 module 2 to channel {0}.'.format(self.ModuleBChannel))
+		self.Log(self.Comment)
+
 if __name__ == "__main__":
 	pass
