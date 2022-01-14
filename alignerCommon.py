@@ -2,7 +2,10 @@
 from collections import OrderedDict
 import os
 import json
+from System import Array
+from System import String
 clr.AddReferenceToFile('HAL.dll')
+from HAL import Motion
 from HAL import HardwareFactory
 clr.AddReferenceToFile('Utility.dll')
 from Utility import *
@@ -22,6 +25,14 @@ class MethodBase(object):
 	def __init__(self, parameters=None, results=None):
 		self.parameters = LoadJsonFileOrderedDict(parameters)
 		self.results = LoadJsonFileOrderedDict(results)
+
+	def ParameterUpdate(self):
+		typeName = type(self).__name__
+		if typeName in self.parameters:
+			typeParameters = self.parameters[typeName]
+			for k in typeParameters:
+				if hasattr(self, k):
+					setattr(self, k, typeParameters[k])
 
 
 class DeviceBase(object):
@@ -54,6 +65,17 @@ class IODevice(DeviceBase):
 class MotionDevice(DeviceBase):
 	def __init__(self, deviceName):
 		super(MotionDevice, self).__init__(deviceName)
+
+	def GetPositions(self, axes):
+		positions = []
+		for x in axes:
+			pos = self.hardware.ReadAxisPosition(x)
+			positions.append(pos)
+		return positions
+
+
+	def MoveAxesRelative(self, axes, position, speed=Motion.AxisMotionSpeeds.Normal, WaitForDone=True):
+		self.hardware.MoveAxesRelative(Array[String](axes), Array[float](position), speed, WaitForDone)
 
 	def Profile(self):
 		pass

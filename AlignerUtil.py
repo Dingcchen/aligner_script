@@ -31,6 +31,7 @@ import os.path
 import re
 import json
 
+"""
 ChannelsAnalogSignals = HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals')
 Nanocube = HardwareFactory.Instance.GetHardwareByName('Nanocube')
 Hexapod = HardwareFactory.Instance.GetHardwareByName('Hexapod')
@@ -49,6 +50,7 @@ TopChanMonitorSignal = ChannelsAnalogSignals.FindByName('TopChanMonitorSignal')
 BottomChanMonitorSignal = ChannelsAnalogSignals.FindByName('BottomChanMonitorSignal')
 SGRX8Switch = HardwareFactory.Instance.GetHardwareByName('JGRSwitch')
 VacuumControl = HardwareFactory.Instance.GetHardwareByName('VacuumControl')
+"""
 
 def loopback_test(channel):
 	SGRX8Switch.SetClosePoints(1,channel)

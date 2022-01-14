@@ -4,13 +4,16 @@ from Utility import *
 import os.path
 import json
 import re
+from time import sleep
 from collections import *
 from AlignerUtil import GetAndCheckUserInput
 from AlignerUtil import GetAssemblyParameterAndResults
 import shutil
 from System import DateTime
+from System.Collections.Generic import List
 from datetime import datetime
 
+from HAL import Vision
 from HAL import Motion
 from HAL import HardwareFactory
 from alignerCommon import *
@@ -110,11 +113,7 @@ class StepBase(MethodBase):
 
 	def run(self):
 		#Show user what's going on.
-		if self.stepName in self.parameters:
-			stepParameters = self.parameters[self.stepName]
-			for k in stepParameters:
-				if hasattr(self, k):
-					setattr(self, k, stepParameters[k])
+		self.ParameterUpdate()
 		self.ConsoleLog(LogEventSeverity.Trace, self.__doc__)
 		self.runStep()
 
@@ -128,6 +127,9 @@ class StepBase(MethodBase):
 			return
 		LogHelper.Log(type(self).__name__, severity, msg)
 		
+	def Confirm(self, msg):
+		return LogHelper.AskContinue(msg)
+
 	@property
 	def Results(self):
 		return self.results
@@ -138,7 +140,8 @@ class StepInit(StepBase):
 	def __init__(self, SequenceObj, parameters, results=None):
 		""" Initialization"""
 		super(StepInit,self).__init__(SequenceObj, parameters, results)
-		# self.logTrace = True
+		self.switch = OpticalSwitchDevice('JGRSwitch')
+
 
 	def runStep(self):
 		self.parameters, self.results = GetAssemblyParameterAndResults(self.SequenceObj, self.parameters)
@@ -161,9 +164,30 @@ class StepLoadComponent(StepBase):
 	"""Load Compamnets."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepLoadComponent,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = DeviceBase('Gantry')
+		self.FAUGripper = IODevice('PneumaticControl', 'FAUGripper')
+		self.FAUHolder = IODevice('VacuumControl', 'FAUHolder')
+		self.switch = OpticalSwitchDevice('JGRSwitch')
 
 	def runStep(self):
-		pass
+		self.ConsoleLog(LogEventSeverity.Trace, 'runStep')
+		self.FAUHolder.Off()
+		self.FAUGripper.Off()
+		sleep(2)
+		self.FAUstage.ActivateState("Load")
+		if self.Confirm("Load F A U Ready? \nClick Yes to hold F A U in place, No to abort.") == False:
+			return
+		self.FAUHolder.On()
+		if self.Confirm("F A U in place? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUstage.ActivateState("FAU_holder")
+		if self.Confirm("Load F A U Ready? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUGripper.On()
+		sleep(2)
+		self.FAUHolder.Off()
+		sleep(2)
+		self.FAUstage.ActivateState("Start")
 
 class StepCheckProbe(StepBase):
 	"""Setup probe."""
@@ -253,5 +277,60 @@ class StepFinalize(StepBase):
 	def runStep(self):
 		pass
 
+class StepCarmeaCalibration(StepBase):
+	"""Save data."""
+	def __init__(self, SequenceObj, parameters, results=None):
+		super(StepCarmeaCalibration,self).__init__(SequenceObj, parameters, results)
+		self.width = 0.1
+		self.height = 0.1
+		self.visionToolFolder = "..\Vision\\GF10\\right_side\\" 
+		self.visionTool = 'GF10_FAU_right_side_TB'
+		self.targetAxes = ['Y', 'Z']
+		self.pointCollection = List[Vision.CalibratePointPair]()
+		self.transformMatrix= "RightSideCameraTransform"
 
+		self.camera = DeviceBase("RightSideCamera")
+		self.cameraStage = MotionDevice("CameraStages")
+		self.targetStage = MotionDevice('Gantry')
+		self.lightControl = DeviceBase("IOControl")
+		self.machineVision = DeviceBase("MachineVision")
+
+	def RunVisionToolAddPair(self):
+		self.camera.Snap()
+		tool = os.path.join(self.visionToolFolder, self.visionTool)
+		result = self.machineVision.RunVisionTool(tool)
+		if result['Result'] != 'Success':
+		    LogHelper.Log('RunVisionToolAddPair',  LogEventSeverity.Warning, 'Vision tool fail {0}'.format(tool))
+		    return 0
+
+		positions = self.targetStage.GetPositions(self.targetAxes)
+		pointPair = Vision.CalibratePointPair(result['X'], result['Y'], positions[0], positions[1])
+		self.pointCollection.Add(pointPair)
+
+	def MoveTargetRelative(self, rx, ry):
+		self.targetStage.MoveAxesRelative(self.targetAxes, [rx, ry])
+
+	def RunCalibrateAtPositionRelative(self, rx, ry):
+		self.targetStage.MoveAxesRelative(self.targetAxes, [rx, ry])
+		sleep(1)
+		self.RunVisionTool()
+		self.targetStage.MoveAxesRelative(self.targetAxes, [-rx, -ry])
+		sleep(1)
+		
+	def runStep(self):
+		self.camera.Live(True)
+		self.cameraStage.ActivateState('CameraCalibration')
+		self.targetStage.ActivateState('RightCameraCalibration')
+		self.lightControl.ActivateState('CameraCalibration')
+
+		self.RunVisionToolAddPair()
+		self.MoveTargetRelative(self.width, 0)
+		self.RunVisionToolAddPair()
+		self.MoveTargetRelative(0, self.height)
+		self.RunVisionToolAddPair()
+		self.MoveTargetRelative(-self.width, 0)
+		self.RunVisionToolAddPair()
+
+		self.machineVision.AddTransform(self.transformMatrix, self.pointCollection)
+		self.camera.Live(False)
 
