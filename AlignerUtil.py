@@ -162,7 +162,7 @@ def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 		os.mkdir(results_folder)
 
 	results_filename = "..\\Data\\" + Assembly_SN + "\\temp_alignment_results.json"
-	LogHelper.Log("GetAssemblyParameterAndResults", LogEventSeverity.Alert, 'retrieve result to {0}'.format(results_filename))
+	LogHelper.Log("GetAssemblyParameterAndResults", LogEventSeverity.Alert, 'retrieve result from {0}'.format(results_filename))
 	if os.path.exists(results_filename):
 		with open(results_filename, 'r') as f:
 			alignment_results = json.load(f, object_pairs_hook=OrderedDict)

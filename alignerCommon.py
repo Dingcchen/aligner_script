@@ -23,17 +23,34 @@ def LoadJsonFileOrderedDict(jsonfile):
 
 class MethodBase(object):
 	def __init__(self, parameters=None, results=None):
+		self.logTrace = False
 		self.parameters = LoadJsonFileOrderedDict(parameters)
 		self.results = LoadJsonFileOrderedDict(results)
 
-	def ParameterUpdate(self):
-		typeName = type(self).__name__
-		if typeName in self.parameters:
-			typeParameters = self.parameters[typeName]
-			for k in typeParameters:
-				if hasattr(self, k):
-					setattr(self, k, typeParameters[k])
+	def DeviceUpdate(self, devices):
+		for device in devices:
+			deviceName = devices[device]
+			self.ConsoleLog(LogEventSeverity.Trace, device)
+			if hasattr(self, device):
+				hardware = HardwareFactory.Instance.GetHardwareByName(deviceName)
+				LogHelper.Log('device update', LogEventSeverity.Warning, 'Update {0} to {1}'.format(device, deviceName))
+				setattr(self, device, hardware)
+				
+	def ParameterUpdate(self, parameters):
+		for k in parameters:
+			self.ConsoleLog(LogEventSeverity.Trace, k)
+			if k == "devices":
+				self.DeviceUpdate(parameters["devices"])
+			elif hasattr(self, k):
+				setattr(self, k, parameters[k])
 
+	def ConsoleLog(self, severity, msg):
+		if severity is LogEventSeverity.Trace and self.logTrace is False:
+			return
+		if not msg:
+			return
+		LogHelper.Log(type(self).__name__, severity, msg)
+		
 
 class DeviceBase(object):
 	def __init__(self, deviceName):

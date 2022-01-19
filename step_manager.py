@@ -105,28 +105,26 @@ class StepBase(MethodBase):
 		self.SequenceObj = SequenceObj
 		# self.parameters = parameters
 		# self.results = results
-		self.stepName = type(self).__name__
-		self.logTrace = False
-		msg = "Step : " +  self.stepName + "\n" + self.__doc__
+		msg = "Step : " +  type(self).__name__ + "\n" + self.__doc__
 		Utility.ShowProcessTextOnMainUI(msg)    
 		super(StepBase,self).__init__(parameters, results)
 
 	def run(self):
-		#Show user what's going on.
-		self.ParameterUpdate()
 		self.ConsoleLog(LogEventSeverity.Trace, self.__doc__)
+		# Each step could have many different parameters which can be redefined in the sequence configuration.
+		typeName = type(self).__name__
+		# Parameters can be updated using step method name or sequence step name.
+		if typeName in self.parameters:
+			typeParameters = self.parameters[typeName]
+			self.ParameterUpdate(typeParameters)
+		if self.SequenceObj.StepName in self.parameters:
+			parameters = self.parameters[self.SequenceObj.StepName]
+			self.ParameterUpdate(parameters)
 		self.runStep()
 
 	def runStep(self):
 		pass
 	
-	def ConsoleLog(self, severity, msg):
-		if severity is LogEventSeverity.Trace and self.logTrace is False:
-			return
-		if not msg:
-			return
-		LogHelper.Log(type(self).__name__, severity, msg)
-		
 	def Confirm(self, msg):
 		return LogHelper.AskContinue(msg)
 
@@ -141,6 +139,7 @@ class StepInit(StepBase):
 		""" Initialization"""
 		super(StepInit,self).__init__(SequenceObj, parameters, results)
 		self.switch = OpticalSwitchDevice('JGRSwitch')
+		self.camera = DeviceBase('DownCamera')
 
 
 	def runStep(self):
