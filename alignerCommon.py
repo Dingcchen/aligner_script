@@ -45,11 +45,14 @@ class MethodBase(object):
 				setattr(self, k, parameters[k])
 
 	def ConsoleLog(self, severity, msg):
-		if severity is LogEventSeverity.Trace and self.logTrace is False:
-			return
 		if not msg:
 			return
+		EnableLogTrace = LogHelper.EnableLogTrace
+		if self.logTrace:
+			LogHelper.EnableLogTrace = True
 		LogHelper.Log(type(self).__name__, severity, msg)
+		if self.logTrace:
+			LogHelper.EnableLogTrace = EnableLogTrace
 		
 
 class DeviceBase(object):
@@ -82,13 +85,19 @@ class IODevice(DeviceBase):
 class MotionDevice(DeviceBase):
 	def __init__(self, deviceName):
 		super(MotionDevice, self).__init__(deviceName)
+		self.positions = []
 
-	def GetPositions(self, axes):
+	def GetPositions(self, axes=None):
+		self.positions = list(self.hardware.GetPositions(axes))
+		return self.positions
+
+		"""
 		positions = []
 		for x in axes:
 			pos = self.hardware.ReadAxisPosition(x)
 			positions.append(pos)
 		return positions
+		"""
 
 
 	def MoveAxesRelative(self, axes, position, speed=Motion.AxisMotionSpeeds.Normal, WaitForDone=True):
@@ -153,6 +162,15 @@ class OpticalSwitchDevice(DeviceBase):
 		self.hardware.SetClosePoints(2, self.ModuleBChannel)
 		self.Log('switch SGR X8 module 2 to channel {0}.'.format(self.ModuleBChannel))
 		self.Log(self.Comment)
+
+class AeroBasicTask(object):
+	def __init__(self, taskName):
+		self.taskName = taskName
+		self.controller = DeviceBase('Gantry')
+
+	def run(self):
+		self.controller.RunAeroBasicTask(self.taskName)
+
 
 if __name__ == "__main__":
 	pass

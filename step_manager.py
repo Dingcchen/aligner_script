@@ -126,7 +126,7 @@ class StepBase(MethodBase):
 		pass
 	
 	def Confirm(self, msg):
-		return LogHelper.AskContinue(msg)
+		return LogHelper.VoiceConfirmation(msg)
 
 	@property
 	def Results(self):
@@ -143,6 +143,7 @@ class StepInit(StepBase):
 
 
 	def runStep(self):
+		self.logTrace = True
 		self.parameters, self.results = GetAssemblyParameterAndResults(self.SequenceObj, self.parameters)
 		self.results['Start_Time'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 		self.results['Operator'] = UserManager.CurrentUser.Name
@@ -216,9 +217,11 @@ class StepFindFirstLight(StepBase):
 	"""Find first light."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepFindFirstLight,self).__init__(SequenceObj, parameters, results)
+		self.AeroBasicTaskName = "SpiralFine"
 
 	def runStep(self):
-		pass
+		task = AeroBasicTask(self.AeroBasicTaskName)
+		task.run()
 
 class StepDryBalanceAlign(StepBase):
 	"""Dry balance alignment."""
