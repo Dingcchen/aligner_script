@@ -235,8 +235,22 @@ class StepApplyEpoxy(StepBase):
 	"""Apply epoxy."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepApplyEpoxy,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = DeviceBase('Gantry')
+		self.EpoxyArm = IODevice('PneumaticControl', 'EpoxyWand')
+		self.UVArm = IODevice('PneumaticControl', 'MUVWand')
+		self.FAUHolder = IODevice('VacuumControl', 'FAUHolder')
+		self.UVEpoxy = DeviceBase('UVEpoxyStages')
 
 	def runStep(self):
+		self.EpoxyArm.Off();
+		self.UVEpoxy.ActivateState("Epoxy_up")
+		self.EpoxyArm.On();
+		sleep(1)
+		self.UVEpoxy.ActivateState("Epoxy")
+		sleep(10)
+		self.UVEpoxy.ActivateState("Epoxy_up")
+		self.EpoxyArm.Off();
+		self.UVEpoxy.ActivateState("Home")
 		pass
 
 class StepWetBalanceAlign(StepBase):
@@ -251,9 +265,17 @@ class StepUVCure(StepBase):
 	"""UV cure."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepUVCure,self).__init__(SequenceObj, parameters, results)
+		self.UVArm = IODevice('PneumaticControl', 'MUVWand')
+		self.UVEpoxy = DeviceBase('UVEpoxyStages')
 
 	def runStep(self):
-		pass
+		self.UVArm.Off();
+		self.UVEpoxy.ActivateState("UVCure")
+		self.UVArm.On();
+		sleep(10)
+		self.UVArm.Off();
+		sleep(2)
+		self.UVEpoxy.ActivateState("Home")
 
 class StepTestResults(StepBase):
 	"""Measure result."""
