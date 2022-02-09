@@ -156,9 +156,10 @@ class StepLaserAndFauPower(StepBase):
 	"""Laser power output at FAU"""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepLaserAndFauPower,self).__init__(SequenceObj, parameters, results)
+		self.switch = OpticalSwitchDevice('JGRSwitch')
 
 	def runStep(self):
-		pass
+		self.switch.SetClosePoints(1, 6)
 
 class StepLoadComponent(StepBase):
 	"""Load Compamnets."""
@@ -167,13 +168,21 @@ class StepLoadComponent(StepBase):
 		self.FAUstage = DeviceBase('Gantry')
 		self.FAUGripper = IODevice('PneumaticControl', 'FAUGripper')
 		self.FAUHolder = IODevice('VacuumControl', 'FAUHolder')
+		self.DieHolder = IODevice('VacuumControl', 'DieHolder')
 		self.switch = OpticalSwitchDevice('JGRSwitch')
 
 	def runStep(self):
 		self.ConsoleLog(LogEventSeverity.Trace, 'runStep')
 		self.FAUHolder.Off()
+		self.DieHolder.Off()
 		self.FAUGripper.Off()
-		sleep(2)
+		self.FAUstage.ActivateState("Load")
+		if self.Confirm("Please place Die in holder? \nClick Yes when ready , No to abort.") == False:
+			return
+		self.FAUstage.ActivateState("die_pos")
+		if self.Confirm("Check if Die in position.\nClick Yes when ready , No to abort.") == False:
+			return
+		self.DieHolder.On()
 		self.FAUstage.ActivateState("Load")
 		if self.Confirm("Load F A U Ready? \nClick Yes to hold F A U in place, No to abort.") == False:
 			return
@@ -187,7 +196,7 @@ class StepLoadComponent(StepBase):
 		sleep(2)
 		self.FAUHolder.Off()
 		sleep(2)
-		self.FAUstage.ActivateState("Start")
+		self.FAUstage.ActivateState("scanInit")
 
 class StepCheckProbe(StepBase):
 	"""Setup probe."""
@@ -267,12 +276,15 @@ class StepUVCure(StepBase):
 		super(StepUVCure,self).__init__(SequenceObj, parameters, results)
 		self.UVArm = IODevice('PneumaticControl', 'MUVWand')
 		self.UVEpoxy = DeviceBase('UVEpoxyStages')
+		self.UVSource = UVSourceDevice('UVSource')
 
 	def runStep(self):
 		self.UVArm.Off();
 		self.UVEpoxy.ActivateState("UVCure")
 		self.UVArm.On();
-		sleep(10)
+		sleep(5)
+		self.UVSource.Start()
+		sleep(5)
 		self.UVArm.Off();
 		sleep(2)
 		self.UVEpoxy.ActivateState("Home")

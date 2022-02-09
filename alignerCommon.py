@@ -2,8 +2,10 @@
 from collections import OrderedDict
 import os
 import json
+from System import Action
 from System import Array
 from System import String
+from System.Diagnostics import Stopwatch
 clr.AddReferenceToFile('HAL.dll')
 from HAL import Motion
 from HAL import HardwareFactory
@@ -99,7 +101,6 @@ class MotionDevice(DeviceBase):
 		return positions
 		"""
 
-
 	def MoveAxesRelative(self, axes, position, speed=Motion.AxisMotionSpeeds.Normal, WaitForDone=True):
 		self.hardware.MoveAxesRelative(Array[String](axes), Array[float](position), speed, WaitForDone)
 
@@ -163,13 +164,59 @@ class OpticalSwitchDevice(DeviceBase):
 		self.Log('switch SGR X8 module 2 to channel {0}.'.format(self.ModuleBChannel))
 		self.Log(self.Comment)
 
-class AeroBasicTask(object):
-	def __init__(self, taskName):
-		self.taskName = taskName
-		self.controller = DeviceBase('Gantry')
+class UVSourceDevice(DeviceBase):
+	def __init__(self, deviceName):
+		super(UVSourceDevice, self).__init__(deviceName)
+		self.profile ="10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF,10:IR=30,20:OFF" 
+		self.channels = "1,2"
 
-	def run(self):
+	def Start(self):
+		totaltime = sum(map(lambda x: float(x.split(':')[0]), self.profile.split(',')))
+		stopwatch = Stopwatch()
+		stopwatch.Start()
+
+		def LogPower(i):
+			# create the delegate for the UV cure function
+			# UVPowerTracking.Add(Array[float]([round(float(stopwatch.ElapsedMilliseconds) / 1000, 1), round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('TopChanMonitorSignal'), 5), round(HardwareFactory.Instance.GetHardwareByName('ChannelsAnalogSignals').ReadValue('BottomChanMonitorSignal'), 5)]))
+			Utility.ShowProcessTextOnMainUI('UV cure time ' + str(totaltime - int(stopwatch.ElapsedMilliseconds / 1000)) + ' seconds remaining.')
+
+		self.hardware.StartStepUVExposures(self.profile, self.channels, Action[int](LogPower))
+
+		stopwatch.Stop()
+
+
+
+class SearchTask(MotionDevice):
+	def __init__(self, deviceName, taskName):
+		super(SearchTask, self).__init__(deviceName)
+		self.taskName = taskName
+		self.searchSuccess = False
+
+	def Search():
+		pass
+
+class AeroBasicTask(SearchTask):
+	def __init__(self, taskName):
+		super(SearchTask, self).__init__('gantry', taskName)
+
+	def Search(self):
 		self.controller.RunAeroBasicTask(self.taskName)
+		self.positions = self.GetPositions()
+
+
+class RollAlignment(MethodBase):
+	def __init__(self, searchChannels):
+		self.channels = channels
+		self.WG2WG_dist_mm = 0.75
+		self.top_position = 0.0
+		self.bottom_position = 0.0
+		self.max_z_difference_um = 0.2 
+		self.num_channels = 0
+		self.balanced_position = [50.0, 50.0, 50.0]
+		self.pitch_offset = []
+		self.fau_flip = false
+
+
 
 
 if __name__ == "__main__":
