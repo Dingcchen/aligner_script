@@ -68,8 +68,8 @@ class DeviceBase(object):
 			return getattr(self.hardware, attr)
 		raise AttributeError("'%s' has no attribute '%s'" % (self.deviceName, attr))
 
-	def ActivateState(self, state):
-		self.hardware.GetHardwareStateTree().ActivateState(state)
+	def ActivateState(self, state,SafeSequence=True):
+		self.hardware.GetHardwareStateTree().ActivateState(state, UseSafeSequence=SafeSequence)
 
 		
 class IODevice(DeviceBase):
@@ -88,6 +88,7 @@ class MotionDevice(DeviceBase):
 	def __init__(self, deviceName):
 		super(MotionDevice, self).__init__(deviceName)
 		self.positions = []
+		self.speed = Motion.AxisMotionSpeeds.Normal
 
 	def GetPositions(self, axes=None):
 		self.positions = list(self.hardware.GetPositions(axes))
@@ -101,8 +102,11 @@ class MotionDevice(DeviceBase):
 		return positions
 		"""
 
-	def MoveAxesRelative(self, axes, position, speed=Motion.AxisMotionSpeeds.Normal, WaitForDone=True):
-		self.hardware.MoveAxesRelative(Array[String](axes), Array[float](position), speed, WaitForDone)
+	def MoveAxesRelative(self, axes, position, WaitForDone=True):
+		self.hardware.MoveAxesRelative(Array[String](axes), Array[float](position), self.speed, WaitForDone)
+
+	def MoveAxisRelative(self, axis, Distance, WaitForDone=True):
+		self.hardware.MoveAxisRelative(axis, Distance, self.speed, WaitForDone)
 
 	def Profile(self):
 		pass

@@ -151,7 +151,8 @@ def update_alignment_parameter(SequenceObj, key, value):
 
 def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 	Assembly_SN = alignment_parameters['Assembly_SN'] 
-	if (not Assembly_SN) or (LogHelper.VoiceConfirmation('Is '  + str(Assembly_SN)  +  ' correct assembly ID?\n' + '\nClick Yes when done, No to update value.') == False):
+	# if (not Assembly_SN) or (LogHelper.VoiceConfirmation('Is '  + str(Assembly_SN)  +  ' correct assembly ID?\n' + '\nClick Yes when done, No to update value.') == False):
+	if (LogHelper.AskContinue('Is '  + str(Assembly_SN)  +  ' correct assembly ID?\n' + '\nClick Yes when done, No to update value.') == False):
 		Assembly_SN= GetAndCheckUserInput('Enter assembly ID', 'Please enter assembly serial number:')
 		alignment_parameters['Assembly_SN'] = Assembly_SN
 		if not update_alignment_parameter(SequenceObj, 'Assembly_SN', Assembly_SN):
@@ -171,6 +172,12 @@ def GetAssemblyParameterAndResults(SequenceObj, alignment_parameters):
 
 	return alignment_parameters, alignment_results
 
+
+def Confirm(msg):
+    return LogHelper.AskContinue(msg)
+
+def VoiceConfirm(msg):
+    return LogHelper.VoiceConfirmation(msg)
 
 
 #-------------------------------------------------------------------------------

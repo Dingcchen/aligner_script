@@ -6,7 +6,7 @@ import json
 import re
 from time import sleep
 from collections import *
-from AlignerUtil import GetAndCheckUserInput
+# from AlignerUtil import GetAndCheckUserInput
 from AlignerUtil import GetAssemblyParameterAndResults
 import shutil
 from System import DateTime
@@ -126,6 +126,9 @@ class StepBase(MethodBase):
 		pass
 	
 	def Confirm(self, msg):
+		return LogHelper.AskContinue(msg)
+
+	def VoiceConfirm(self, msg):
 		return LogHelper.VoiceConfirmation(msg)
 
 	@property
@@ -152,6 +155,26 @@ class StepInit(StepBase):
 		# current_position = list(self.FAU_xyz_stage.GetAxesPositions())
 		# LogHelper.Log('Initialize', LogEventSeverity.Alert, 'current_position {0:.3f} {1:.3f} {2:.3f}.'.format(current_position[0], current_position[1], current_position[2]))
 
+class StepLoadDie(StepBase):
+	"""Load Die."""
+	def __init__(self, SequenceObj, parameters, results=None):
+		super(StepLoadDie,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = DeviceBase('Gantry')
+		self.DieHolder = IODevice('VacuumControl', 'DieHolder')
+
+	def runStep(self):
+		self.ConsoleLog(LogEventSeverity.Trace, 'runStep')
+		self.DieHolder.Off()
+		self.FAUstage.ActivateState("Load")
+		if self.Confirm("Please place tray on work holder? \nClick Yes when ready , No to abort.") == False:
+			return
+		if self.Confirm("Please place Die in holder? \nClick Yes when ready , No to abort.") == False:
+			return
+		self.FAUstage.ActivateState("die_pos")
+		if self.Confirm("Check if Die in position.\nClick Yes when ready , No to abort.") == False:
+			return
+		self.DieHolder.On()
+
 class StepLaserAndFauPower(StepBase):
 	"""Laser power output at FAU"""
 	def __init__(self, SequenceObj, parameters, results=None):
@@ -161,28 +184,18 @@ class StepLaserAndFauPower(StepBase):
 	def runStep(self):
 		self.switch.SetClosePoints(1, 6)
 
-class StepLoadComponent(StepBase):
-	"""Load Compamnets."""
+class StepLoadFAU(StepBase):
+	"""Load FAU."""
 	def __init__(self, SequenceObj, parameters, results=None):
-		super(StepLoadComponent,self).__init__(SequenceObj, parameters, results)
+		super(StepLoadFAU,self).__init__(SequenceObj, parameters, results)
 		self.FAUstage = DeviceBase('Gantry')
 		self.FAUGripper = IODevice('PneumaticControl', 'FAUGripper')
 		self.FAUHolder = IODevice('VacuumControl', 'FAUHolder')
-		self.DieHolder = IODevice('VacuumControl', 'DieHolder')
-		self.switch = OpticalSwitchDevice('JGRSwitch')
 
 	def runStep(self):
 		self.ConsoleLog(LogEventSeverity.Trace, 'runStep')
 		self.FAUHolder.Off()
-		self.DieHolder.Off()
 		self.FAUGripper.Off()
-		self.FAUstage.ActivateState("Load")
-		if self.Confirm("Please place Die in holder? \nClick Yes when ready , No to abort.") == False:
-			return
-		self.FAUstage.ActivateState("die_pos")
-		if self.Confirm("Check if Die in position.\nClick Yes when ready , No to abort.") == False:
-			return
-		self.DieHolder.On()
 		self.FAUstage.ActivateState("Load")
 		if self.Confirm("Load F A U Ready? \nClick Yes to hold F A U in place, No to abort.") == False:
 			return
@@ -193,7 +206,7 @@ class StepLoadComponent(StepBase):
 		if self.Confirm("Load F A U Ready? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUGripper.On()
-		sleep(2)
+		sleep(1)
 		self.FAUHolder.Off()
 		sleep(2)
 		self.FAUstage.ActivateState("scanInit")
@@ -210,9 +223,29 @@ class StepSetFirstLight(StepBase):
 	"""Move FAU to first light posuition."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepSetFirstLight,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = MotionDevice('Gantry')
+		self.Lighting = DeviceBase('IOControl')
+		self.CameraStage = MotionDevice("CameraStages")
+		self.right_to_left_shift = 10.475
+		self.right_to_center_shift = 3.0454
 
 	def runStep(self):
-		pass
+		self.FAUstage.speed = Motion.AxisMotionSpeeds.Slow
+		if self.Confirm("Move FAU to epoxy position? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUstage.MoveAxisRelative("X", -self.right_to_center_shift)
+		self.Lighting.ActivateState("right_edge")
+		self.CameraStage.ActivateState("Die_edge")
+		if self.Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUstage.MoveAxisRelative("X", self.right_to_left_shift)
+		self.Lighting.ActivateState("left_edge")
+		if self.Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
+			return
+		shift = self.right_to_center_shift - self.right_to_left_shift
+		self.FAUstage.MoveAxisRelative("X", shift)
+		if self.Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
+			return
 
 class StepSnapDieText(StepBase):
 	"""Take snapshot of die text image."""
@@ -236,15 +269,29 @@ class StepDryBalanceAlign(StepBase):
 	"""Dry balance alignment."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepDryBalanceAlign,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = DeviceBase('Gantry')
+		self.Lighting = DeviceBase('IOControl')
+		self.CameraStage = MotionDevice("CameraStages")
 
 	def runStep(self):
-		pass
+		self.FAUstage.ActivateState("right_edge", SafeSequence=False)
+		self.Lighting.ActivateState("right_edge")
+		self.CameraStage.ActivateState("Die_edge")
+		if self.Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUstage.ActivateState("left_edge", SafeSequence=False)
+		self.Lighting.ActivateState("left_edge")
+		if self.Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
+			return
+		self.FAUstage.ActivateState("scanInit", SafeSequence=False)
+		if self.Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
+			return
 
 class StepApplyEpoxy(StepBase):
 	"""Apply epoxy."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepApplyEpoxy,self).__init__(SequenceObj, parameters, results)
-		self.FAUstage = DeviceBase('Gantry')
+		self.FAUstage = MotionDevice('Gantry')
 		self.EpoxyArm = IODevice('PneumaticControl', 'EpoxyWand')
 		self.UVArm = IODevice('PneumaticControl', 'MUVWand')
 		self.FAUHolder = IODevice('VacuumControl', 'FAUHolder')
@@ -254,13 +301,31 @@ class StepApplyEpoxy(StepBase):
 		self.EpoxyArm.Off();
 		self.UVEpoxy.ActivateState("Epoxy_up")
 		self.EpoxyArm.On();
+		if self.Confirm("Does epoxy at center? \nClick Yes to continue, No to abort.") == False:
+			return
 		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy")
-		sleep(10)
+		if self.Confirm("Finish apply epoxy? \nClick Yes to continue, No to abort.") == False:
+			return
+		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy_up")
+		sleep(1)
 		self.EpoxyArm.Off();
 		self.UVEpoxy.ActivateState("Home")
-		pass
+		self.FAUstage.MoveAxisRelative('Y', -0.1)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', 0.05)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', -0.05)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', 0.05)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', -0.05)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Z', 0.5)
+		sleep(1)
+		if self.Confirm("Move F A U to bond gap position? \nClick Yes to continue, No to abort.") == False:
+			return
 
 class StepWetBalanceAlign(StepBase):
 	"""Wet balance alignment."""
@@ -301,8 +366,15 @@ class StepUnloadBoard(StepBase):
 	"""Unload compamnet."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepUnloadBoard,self).__init__(SequenceObj, parameters, results)
+		self.FAUGripper = IODevice('PneumaticControl', 'FAUGripper')
+		self.FAUstage = DeviceBase('Gantry')
+		self.DieHolder = IODevice('VacuumControl', 'DieHolder')
 
 	def runStep(self):
+		self.FAUGripper.Off()
+		self.DieHolder.Off()
+		sleep(2)
+		self.FAUstage.ActivateState("Load")
 		pass
 
 class StepFinalize(StepBase):
@@ -312,6 +384,17 @@ class StepFinalize(StepBase):
 
 	def runStep(self):
 		pass
+
+class StepPark(StepBase):
+	"""Park Gantry and turn off light."""
+	def __init__(self, SequenceObj, parameters, results=None):
+		super(StepPark,self).__init__(SequenceObj, parameters, results)
+		self.FAUstage = MotionDevice('Gantry')
+		self.Lighting = DeviceBase('IOControl')
+
+	def runStep(self):
+		self.FAUstage.ActivateState("Park")
+		self.Lighting.ActivateState("off")
 
 class StepCarmeaCalibration(StepBase):
 	"""Save data."""
