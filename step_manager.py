@@ -160,18 +160,22 @@ class StepLoadDie(StepBase):
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepLoadDie,self).__init__(SequenceObj, parameters, results)
 		self.FAUstage = DeviceBase('Gantry')
+		self.Diestage = DeviceBase('Goni')
 		self.DieHolder = IODevice('VacuumControl', 'DieHolder')
+		self.CameraStage = MotionDevice("CameraStages")
 
 	def runStep(self):
 		self.ConsoleLog(LogEventSeverity.Trace, 'runStep')
 		self.DieHolder.Off()
 		self.FAUstage.ActivateState("Load")
-		if self.Confirm("Please place tray on work holder? \nClick Yes when ready , No to abort.") == False:
+		self.Diestage.ActivateState("scanInit")
+		if VoiceConfirm("Please place tray on work holder? \nClick Yes when ready , No to abort.") == False:
 			return
-		if self.Confirm("Please place Die in holder? \nClick Yes when ready , No to abort.") == False:
+		if VoiceConfirm("Please place Die in holder? \nClick Yes when ready , No to abort.") == False:
 			return
-		self.FAUstage.ActivateState("die_pos")
-		if self.Confirm("Check if Die in position.\nClick Yes when ready , No to abort.") == False:
+		self.FAUstage.ActivateState("scanInit")
+		self.CameraStage.ActivateState("Die_edge")
+		if VoiceConfirm("Check if Die in position.\nClick Yes when ready , No to abort.") == False:
 			return
 		self.DieHolder.On()
 
@@ -197,13 +201,13 @@ class StepLoadFAU(StepBase):
 		self.FAUHolder.Off()
 		self.FAUGripper.Off()
 		self.FAUstage.ActivateState("Load")
-		if self.Confirm("Load F A U Ready? \nClick Yes to hold F A U in place, No to abort.") == False:
+		if VoiceConfirm("Load F A U Ready? \nClick Yes to hold F A U in place, No to abort.") == False:
 			return
 		self.FAUHolder.On()
-		if self.Confirm("F A U in place? \nClick Yes to continue, No to abort.") == False:
+		if VoiceConfirm("F A U in place? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUstage.ActivateState("FAU_holder")
-		if self.Confirm("Load F A U Ready? \nClick Yes to continue, No to abort.") == False:
+		if VoiceConfirm("Load F A U Ready? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUGripper.On()
 		sleep(1)
@@ -231,20 +235,20 @@ class StepSetFirstLight(StepBase):
 
 	def runStep(self):
 		self.FAUstage.speed = Motion.AxisMotionSpeeds.Slow
-		if self.Confirm("Move FAU to epoxy position? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Move FAU to epoxy position? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUstage.MoveAxisRelative("X", -self.right_to_center_shift)
 		self.Lighting.ActivateState("right_edge")
 		self.CameraStage.ActivateState("Die_edge")
-		if self.Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUstage.MoveAxisRelative("X", self.right_to_left_shift)
 		self.Lighting.ActivateState("left_edge")
-		if self.Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
 			return
 		shift = self.right_to_center_shift - self.right_to_left_shift
 		self.FAUstage.MoveAxisRelative("X", shift)
-		if self.Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
 			return
 
 class StepSnapDieText(StepBase):
@@ -277,14 +281,14 @@ class StepDryBalanceAlign(StepBase):
 		self.FAUstage.ActivateState("right_edge", SafeSequence=False)
 		self.Lighting.ActivateState("right_edge")
 		self.CameraStage.ActivateState("Die_edge")
-		if self.Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does right edge look ok? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUstage.ActivateState("left_edge", SafeSequence=False)
 		self.Lighting.ActivateState("left_edge")
-		if self.Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does left edge looks ok? \nClick Yes to continue, No to abort.") == False:
 			return
 		self.FAUstage.ActivateState("scanInit", SafeSequence=False)
-		if self.Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does F A U at center? \nClick Yes to continue, No to abort.") == False:
 			return
 
 class StepApplyEpoxy(StepBase):
@@ -301,11 +305,11 @@ class StepApplyEpoxy(StepBase):
 		self.EpoxyArm.Off();
 		self.UVEpoxy.ActivateState("Epoxy_up")
 		self.EpoxyArm.On();
-		if self.Confirm("Does epoxy at center? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Does epoxy at center? \nClick Yes to continue, No to abort.") == False:
 			return
 		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy")
-		if self.Confirm("Finish apply epoxy? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Finish apply epoxy? \nClick Yes to continue, No to abort.") == False:
 			return
 		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy_up")
@@ -324,7 +328,7 @@ class StepApplyEpoxy(StepBase):
 		sleep(1)
 		self.FAUstage.MoveAxisRelative('Z', 0.5)
 		sleep(1)
-		if self.Confirm("Move F A U to bond gap position? \nClick Yes to continue, No to abort.") == False:
+		if Confirm("Move F A U to bond gap position? \nClick Yes to continue, No to abort.") == False:
 			return
 
 class StepWetBalanceAlign(StepBase):
@@ -405,7 +409,6 @@ class StepCarmeaCalibration(StepBase):
 		self.visionToolFolder = "..\Vision\\GF10\\right_side\\" 
 		self.visionTool = 'GF10_FAU_right_side_TB'
 		self.targetAxes = ['Y', 'Z']
-		self.pointCollection = List[Vision.CalibratePointPair]()
 		self.transformMatrix= "RightSideCameraTransform"
 
 		self.camera = DeviceBase("RightSideCamera")
@@ -413,6 +416,12 @@ class StepCarmeaCalibration(StepBase):
 		self.targetStage = MotionDevice('Gantry')
 		self.lightControl = DeviceBase("IOControl")
 		self.machineVision = DeviceBase("MachineVision")
+
+		self.cameraInitPoistion = "CameraCalibration"
+		self.targetInitPoistion = "CameraCalibration"
+		self.lightingState = "CameraCalibration"
+
+		self.pointCollection = List[Vision.CalibratePointPair]()
 
 	def RunVisionToolAddPair(self):
 		self.camera.Snap()
@@ -438,9 +447,9 @@ class StepCarmeaCalibration(StepBase):
 		
 	def runStep(self):
 		self.camera.Live(True)
-		self.cameraStage.ActivateState('CameraCalibration')
-		self.targetStage.ActivateState('RightCameraCalibration')
-		self.lightControl.ActivateState('CameraCalibration')
+		self.cameraStage.ActivateState(self.cameraInitPoistion)
+		self.targetStage.ActivateState(self.targetInitPoistion)
+		self.lightControl.ActivateState(self.lightingState)
 
 		self.RunVisionToolAddPair()
 		self.MoveTargetRelative(self.width, 0)

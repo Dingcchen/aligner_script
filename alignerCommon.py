@@ -22,6 +22,12 @@ def LoadJsonFileOrderedDict(jsonfile):
 		return jsonfile
 	return OrderedDict()
 
+def Confirm(msg):
+    return LogHelper.AskContinue(msg)
+
+def VoiceConfirm(msg):
+    return LogHelper.VoiceConfirmation(msg)
+
 
 class MethodBase(object):
 	def __init__(self, parameters=None, results=None):
