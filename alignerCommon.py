@@ -2,9 +2,11 @@
 from collections import OrderedDict
 import os
 import json
+from time import sleep
 from System import Action
 from System import Array
 from System import String
+from System import ValueTuple
 from System.Diagnostics import Stopwatch
 clr.AddReferenceToFile('HAL.dll')
 from HAL import Motion
@@ -97,15 +99,14 @@ class MotionDevice(DeviceBase):
 		self.speed = Motion.AxisMotionSpeeds.Normal
 
 	def GetPositions(self, axes=None):
-		self.positions = list(self.hardware.GetPositions(axes))
-		return self.positions
-
-		"""
 		positions = []
 		for x in axes:
 			pos = self.hardware.ReadAxisPosition(x)
 			positions.append(pos)
 		return positions
+		"""
+		self.positions = list(self.hardware.GetPositions(axes))
+		return self.positions
 		"""
 
 	def MoveAxesRelative(self, axes, position, WaitForDone=True):
@@ -194,6 +195,74 @@ class UVSourceDevice(DeviceBase):
 
 		stopwatch.Stop()
 
+
+"""
+Task and Algorithm
+"""
+
+class MachineVisionTask(MethodBase):
+	def __init__(self, parameters=None):
+		super(MachineVisionTask, self).__init__(parameters)
+		self.visionToolFolder = "..\Vision\\storm\\right_side\\" 
+		self.visionTool = 'FAU_right_side_TB'
+		self.exposure = 20.0
+		self.lightingState = "vision_right_edge"
+		self.targetInitPoistion = "right_edge"
+		self.cameraInitPoistion = "die_edge"
+		self.transformMatrix= "RightSideCameraTransform"
+		self.parameters = parameters
+
+		# Devices used
+		self.camera = DeviceBase("RightSideCamera")
+		self.Lighting = DeviceBase('IOControl')
+		self.targetStage = MotionDevice("Gantry")
+		self.cameraStage = MotionDevice("CameraStages")
+		self.machineVision = DeviceBase("MachineVision")
+
+		# Result
+		self.success = False
+		self.result = None
+		self.result_mm = None
+
+	def run(self):
+		if self.parameters is not None:
+			self.ParameterUpdate(self.parameters)
+		self.camera.Live(True)
+		self.Lighting.ActivateState(self.lightingState)
+		self.camera.SetExposureTime(self.exposure)
+		sleep(0.5)
+		self.camera.Snap()
+		tool = os.path.join(self.visionToolFolder, self.visionTool)
+		self.result = self.machineVision.RunVisionTool(tool)
+		self.success = (self.result['Result'] == 'Success')
+		if self.success:
+			x = self.result["X"]
+			y = self.result["Y"]
+			self.result_mm = self.machineVision.ApplyTransform(self.transformMatrix, ValueTuple[float,float](x, y))
+			x = self.result_mm.Item1
+			y = self.result_mm.Item2
+			angle =  Utility.RadianToDegree(self.result['Angle']) 
+			LogHelper.Log('MachineVisionTask',  LogEventSeverity.Warning, 'Vision tool find X {0}, Y {1}, Angle {2}'.format(x, y, angle))
+		else:
+			LogHelper.Log('MachineVisionTask',  LogEventSeverity.Warning, 'Vision tool fail {0}'.format(self.visionTool))
+
+	@property
+	def X(self):
+		if self.success:
+			return self.result_mm.Item1
+		return None
+
+	@property
+	def Y(self):
+		if self.success:
+			return self.result_mm.Item2
+		return None
+
+	@property
+	def Angle(self):
+		if self.success:
+			return Utility.RadianToDegree(self.result['Angle']) 
+		return None
 
 
 class SearchTask(MotionDevice):
