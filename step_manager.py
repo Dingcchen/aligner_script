@@ -28,11 +28,11 @@ def step_manager(SequenceObj, alignStep):
 			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
 	else:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at {}'.format(parameters_filename))
-		return 0
+		return StepStatus.Fail
 
 	result = None
 	procedure = alignStep(SequenceObj, alignment_parameters, result)
-	procedure.run()
+	run_status = procedure.run()
 	
 	# check (alignment_results is False):
 
@@ -44,9 +44,8 @@ def step_manager(SequenceObj, alignStep):
 	if save_pretty_json(alignment_results, results_filename):
 		tfile = "..\\Data\\" + Assembly_SN + "\\test_result.json"
 		shutil.copyfile(results_filename, tfile)
-		return 1
-	else:
-		return 0
+
+	return run_status
 
 def update_alignment_parameter(SequenceObj, key, value):
 	# load the alignment parameters file
@@ -100,6 +99,11 @@ def save_pretty_json(variable, filename):
 	# LogHelper.Log('save_pretty_json', LogEventSeverity.Warning, 'Save alignement_results to ' + output_string )
 	return True
 
+class StepStatus(Enum):
+	Success = 1
+	Stop = 0
+	Fail = -1
+
 class StepBase(MethodBase):
 	def __init__(self, SequenceObj, parameters, results=None):
 		self.SequenceObj = SequenceObj
@@ -112,6 +116,7 @@ class StepBase(MethodBase):
 	def run(self):
 		self.ConsoleLog(LogEventSeverity.Trace, self.__doc__)
 		# Each step could have many different parameters which can be redefined in the sequence configuration.
+		ret = StepStatus.Success
 		typeName = type(self).__name__
 		# Parameters can be updated using step method name or sequence step name.
 		if typeName in self.parameters:
@@ -121,13 +126,14 @@ class StepBase(MethodBase):
 			parameters = self.parameters[self.SequenceObj.StepName]
 			self.ParameterUpdate(parameters)
 		try:
-			self.runStep()
+			ret = self.runStep()
 		except Exception as e:
 			LogHelper.Log(typeName, LogEventSeverity.Warning, str(e))
-			return 
+			return StepStatus.Fail
+		return ret
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 	
 	def Confirm(self, msg):
 		return LogHelper.AskContinue(msg)
@@ -146,18 +152,26 @@ class StepInit(StepBase):
 		""" Initialization"""
 		super(StepInit,self).__init__(SequenceObj, parameters, results)
 		self.switch = OpticalSwitchDevice('JGRSwitch')
-		self.camera = DeviceBase('DownCamera')
+		self.FAUstage = MotionDevice('Gantry')
+		self.goni = MotionDevice('Goni')
 
 
 	def runStep(self):
-		self.logTrace = True
+		self.logTrace = False
 		self.parameters, self.results = GetAssemblyParameterAndResults(self.SequenceObj, self.parameters)
 		self.results['Start_Time'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 		self.results['Operator'] = UserManager.CurrentUser.Name
 		self.results['Software_Version'] = Utility.GetApplicationVersion()
 
-		# current_position = list(self.FAU_xyz_stage.GetAxesPositions())
-		# LogHelper.Log('Initialize', LogEventSeverity.Alert, 'current_position {0:.3f} {1:.3f} {2:.3f}.'.format(current_position[0], current_position[1], current_position[2]))
+		self.goni.EnableAxis("U", True)
+		self.goni.EnableAxis("V", True)
+		self.goni.EnableAxis("W", True)
+		self.FAUstage.EnableAxis("X", True)
+		self.FAUstage.EnableAxis("Y", True)
+		self.FAUstage.EnableAxis("Z", True)
+
+		self.goni.ActivateState("scanInit")
+		return StepStatus.Success
 
 class StepLoadDie(StepBase):
 	"""Load Die."""
@@ -175,15 +189,16 @@ class StepLoadDie(StepBase):
 		self.FAUstage.ActivateState("Load")
 		self.Diestage.ActivateState("scanInit")
 		if VoiceConfirm("Please place tray on work holder? ") == False:
-			return
+			return StepStatus.Stop
 		if VoiceConfirm("Please place Die in holder? ") == False:
-			return
+			return StepStatus.Stop
 		self.Lighting.ActivateState("right_edge")
 		self.FAUstage.ActivateState("scanInit")
 		self.CameraStage.ActivateState("Die_edge")
 		if VoiceConfirm("Check if Die in position?") == False:
-			return
+			return StepStatus.Stop
 		self.DieHolder.On()
+		return StepStatus.Success
 
 class StepLaserAndFauPower(StepBase):
 	"""Laser power output at FAU"""
@@ -193,6 +208,7 @@ class StepLaserAndFauPower(StepBase):
 
 	def runStep(self):
 		self.switch.SetClosePoints(1, 6)
+		return StepStatus.Success
 
 class StepLoadFAU(StepBase):
 	"""Load FAU."""
@@ -208,18 +224,19 @@ class StepLoadFAU(StepBase):
 		self.FAUGripper.Off()
 		self.FAUstage.ActivateState("Load")
 		if VoiceConfirm("Load F A U Ready?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUHolder.On()
 		if VoiceConfirm("F A U in place?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUstage.ActivateState("FAU_holder")
 		if VoiceConfirm("Load F A U Ready?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUGripper.On()
 		sleep(1)
 		self.FAUHolder.Off()
 		sleep(2)
 		self.FAUstage.ActivateState("scanInit")
+		return StepStatus.Success
 
 class StepCheckProbe(StepBase):
 	"""Setup probe."""
@@ -227,7 +244,7 @@ class StepCheckProbe(StepBase):
 		super(StepCheckProbe,self).__init__(SequenceObj, parameters, results)
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 
 class StepSetFirstLight(StepBase):
 	"""Move FAU to first light posuition."""
@@ -244,7 +261,7 @@ class StepSetFirstLight(StepBase):
 	def runStep(self):
 		self.FAUstage.speed = Motion.AxisMotionSpeeds.Slow
 		if Confirm("Move FAU to epoxy position?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUstage.MoveAxisRelative("X", -self.right_to_center_shift)
 		self.Lighting.ActivateState("right_edge")
 		self.CameraStage.ActivateState("Die_edge")
@@ -266,7 +283,7 @@ class StepSetFirstLight(StepBase):
 		self.goni.MoveAxisRelative("V", pitch_angle)
 
 		if Confirm("Does right edge look ok?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUstage.MoveAxisRelative("X", self.right_to_left_shift)
 
 		# Left side vision adjustment
@@ -286,11 +303,12 @@ class StepSetFirstLight(StepBase):
 		self.goni.MoveAxisRelative("U", roll_angle)
 
 		if Confirm("Does left edge looks ok?") == False:
-			return
+			return StepStatus.Stop
 		shift = self.right_to_center_shift - self.right_to_left_shift
 		self.FAUstage.MoveAxisRelative("X", shift)
 		if Confirm("Does F A U at center?") == False:
-			return
+			return StepStatus.Stop
+		return StepStatus.Success
 
 class StepSnapDieText(StepBase):
 	"""Take snapshot of die text image."""
@@ -298,7 +316,7 @@ class StepSnapDieText(StepBase):
 		super(StepSnapDieText,self).__init__(SequenceObj, parameters, results)
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 
 class StepFindFirstLight(StepBase):
 	"""Find first light."""
@@ -309,6 +327,7 @@ class StepFindFirstLight(StepBase):
 	def runStep(self):
 		task = AeroBasicTask(self.AeroBasicTaskName)
 		task.run()
+		return StepStatus.Success
 
 class StepDryBalanceAlign(StepBase):
 	"""Dry balance alignment."""
@@ -323,14 +342,15 @@ class StepDryBalanceAlign(StepBase):
 		self.Lighting.ActivateState("right_edge")
 		self.CameraStage.ActivateState("Die_edge")
 		if Confirm("Does right edge look ok?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUstage.ActivateState("left_edge", SafeSequence=False)
 		self.Lighting.ActivateState("left_edge")
 		if Confirm("Does left edge looks ok?") == False:
-			return
+			return StepStatus.Stop
 		self.FAUstage.ActivateState("scanInit", SafeSequence=False)
 		if Confirm("Does F A U at center?") == False:
-			return
+			return StepStatus.Stop
+		return StepStatus.Success
 
 class StepApplyEpoxy(StepBase):
 	"""Apply epoxy."""
@@ -349,13 +369,13 @@ class StepApplyEpoxy(StepBase):
 		self.UVEpoxy.ActivateState("Epoxy_up")
 		self.EpoxyArm.On();
 		if Confirm("Does epoxy at center?") == False:
-			return
+			return StepStatus.Stop
 		self.Lighting.ActivateState("right_edge")
 		self.cameraStage.ActivateState("FAU_edge")
 		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy")
 		if Confirm("Finish apply epoxy?") == False:
-			return
+			return StepStatus.Stop
 		sleep(1)
 		self.UVEpoxy.ActivateState("Epoxy_up")
 		sleep(1)
@@ -374,7 +394,8 @@ class StepApplyEpoxy(StepBase):
 		self.FAUstage.MoveAxisRelative('Z', 0.5)
 		sleep(1)
 		if Confirm("Move F A U to bond gap position?") == False:
-			return
+			return StepStatus.Stop
+		return StepStatus.Success
 
 class StepWetBalanceAlign(StepBase):
 	"""Wet balance alignment."""
@@ -382,7 +403,7 @@ class StepWetBalanceAlign(StepBase):
 		super(StepWetBalanceAlign,self).__init__(SequenceObj, parameters, results)
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 
 class StepUVCure(StepBase):
 	"""UV cure."""
@@ -402,6 +423,7 @@ class StepUVCure(StepBase):
 		self.UVArm.Off();
 		sleep(2)
 		self.UVEpoxy.ActivateState("Home")
+		return StepStatus.Success
 
 class StepTestResults(StepBase):
 	"""Measure result."""
@@ -409,7 +431,7 @@ class StepTestResults(StepBase):
 		super(StepTestResults,self).__init__(SequenceObj, parameters, results)
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 
 class StepUnloadBoard(StepBase):
 	"""Unload compamnet."""
@@ -424,7 +446,7 @@ class StepUnloadBoard(StepBase):
 		self.DieHolder.Off()
 		sleep(2)
 		self.FAUstage.ActivateState("Load")
-		pass
+		return StepStatus.Success
 
 class StepFinalize(StepBase):
 	"""Save data."""
@@ -432,7 +454,7 @@ class StepFinalize(StepBase):
 		super(StepFinalize,self).__init__(SequenceObj, parameters, results)
 
 	def runStep(self):
-		pass
+		return StepStatus.Success
 
 class StepPark(StepBase):
 	"""Park Gantry and turn off light."""
@@ -462,6 +484,7 @@ class StepPark(StepBase):
 		self.FAUstage.EnableAxis("Y", False)
 		sleep(1)
 		self.FAUstage.EnableAxis("Z", False)
+		return StepStatus.Success
 
 
 class StepCarmeaCalibration(StepBase):
@@ -528,4 +551,5 @@ class StepCarmeaCalibration(StepBase):
 		self.machineVision.AddTransform(self.transformMatrix, self.pointCollection)
 		self.machineVision.SaveAllTransforms()
 		self.camera.Live(False)
+		return StepStatus.Success
 
