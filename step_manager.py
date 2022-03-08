@@ -1,5 +1,6 @@
 import clr
 clr.AddReferenceToFile('Utility.dll')
+clr.AddReferenceToFile('Process.dll')
 from Utility import *
 import os.path
 import json
@@ -17,6 +18,7 @@ from HAL import Vision
 from HAL import Motion
 from HAL import HardwareFactory
 from alignerCommon import *
+from Process import *
 
 def step_manager(SequenceObj, alignStep):
 	# This method loads alignment_parameters and alignment_results files
@@ -28,7 +30,7 @@ def step_manager(SequenceObj, alignStep):
 			alignment_parameters = json.load(f, object_pairs_hook=OrderedDict)
 	else:
 		LogHelper.Log(SequenceObj.ProcessSequenceName, LogEventSeverity.Warning, 'Could not find alignment config file at {}'.format(parameters_filename))
-		return StepStatus.Fail
+		return int(StepStatus.Fail)
 
 	result = None
 	procedure = alignStep(SequenceObj, alignment_parameters, result)
@@ -45,7 +47,7 @@ def step_manager(SequenceObj, alignStep):
 		tfile = "..\\Data\\" + Assembly_SN + "\\test_result.json"
 		shutil.copyfile(results_filename, tfile)
 
-	return run_status
+	return int(run_status)
 
 def update_alignment_parameter(SequenceObj, key, value):
 	# load the alignment parameters file
@@ -99,10 +101,6 @@ def save_pretty_json(variable, filename):
 	# LogHelper.Log('save_pretty_json', LogEventSeverity.Warning, 'Save alignement_results to ' + output_string )
 	return True
 
-class StepStatus(Enum):
-	Success = 1
-	Stop = 0
-	Fail = -1
 
 class StepBase(MethodBase):
 	def __init__(self, SequenceObj, parameters, results=None):
@@ -254,6 +252,7 @@ class StepSetFirstLight(StepBase):
 		self.goni = MotionDevice('Goni')
 		self.Lighting = DeviceBase('IOControl')
 		self.CameraStage = MotionDevice("CameraStages")
+		self.InitEpoxyGap = 0.25
 		self.right_to_left_shift = 10.375
 		self.right_to_center_shift = 2.9454
 		self.targetAxes = ["Y", "Z"]
@@ -274,7 +273,7 @@ class StepSetFirstLight(StepBase):
 		die_visiontask.run()
 
 		# Move FAU 250um from Die location. 
-		x_dist = (die_visiontask.X - fau_visiontask.X) + 0.25
+		x_dist = (die_visiontask.X - fau_visiontask.X) + self.InitEpoxyGap
 		self.FAUstage.MoveAxisRelative(self.targetAxes[0], x_dist)
 
 		dist = (die_visiontask.Y - fau_visiontask.Y)
@@ -294,7 +293,7 @@ class StepSetFirstLight(StepBase):
 		die_visiontask = MachineVisionTask(parameters)
 		die_visiontask.run()
 
-		x_diff = fau_visiontask.X - die_visiontask.X - 0.25
+		x_diff = fau_visiontask.X - die_visiontask.X - self.InitEpoxyGap
 		yaw_angle = Utility.RadianToDegree(x_diff/12.0) 
 		self.goni.MoveAxisRelative("W", yaw_angle)
 
@@ -356,6 +355,7 @@ class StepApplyEpoxy(StepBase):
 	"""Apply epoxy."""
 	def __init__(self, SequenceObj, parameters, results=None):
 		super(StepApplyEpoxy,self).__init__(SequenceObj, parameters, results)
+		self.bondgap = 0.02
 		self.FAUstage = MotionDevice('Gantry')
 		self.EpoxyArm = IODevice('PneumaticControl', 'EpoxyWand')
 		self.UVArm = IODevice('PneumaticControl', 'MUVWand')
@@ -393,6 +393,13 @@ class StepApplyEpoxy(StepBase):
 		sleep(1)
 		self.FAUstage.MoveAxisRelative('Z', 0.5)
 		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', 0.05)
+		sleep(1)
+		self.FAUstage.MoveAxisRelative('Y', -0.05)
+		sleep(1)
+		bondgap_pos = self.bondgap - 0.15
+		self.FAUstage.MoveAxisRelative('Y', bondgap_pos)
+
 		if Confirm("Move F A U to bond gap position?") == False:
 			return StepStatus.Stop
 		return StepStatus.Success
